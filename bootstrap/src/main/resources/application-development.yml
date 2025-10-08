@@ -1,4 +1,25 @@
 spring:
+  # DevTools para hot reload em projeto multi-módulo
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: 
+        - ../domain/src/main/java
+        - ../application/src/main/java
+        - ../infrastructure/src/main/java
+        - ../interfaces/src/main/java
+      additional-exclude: 
+        - static/**
+        - public/**
+        - templates/**
+        - target/**
+      poll-interval: 1000ms
+      quiet-period: 400ms
+    livereload:
+      enabled: true
+      port: 35729
+    add-properties: true
+  
   # Datasource para desenvolvimento
   datasource:
     url: jdbc:postgresql://localhost:5432/marketplace_search_dev
@@ -16,6 +37,18 @@ spring:
     host: localhost
     port: 6379
     database: 1  # Use database 1 for dev
+  
+  # Cache desabilitado em desenvolvimento
+  cache:
+    type: none
+  
+  # Resource chain disabled para hot reload
+  web:
+    resources:
+      cache:
+        period: 0s
+      chain:
+        cache: false
 
 # Elasticsearch para desenvolvimento
 elasticsearch:

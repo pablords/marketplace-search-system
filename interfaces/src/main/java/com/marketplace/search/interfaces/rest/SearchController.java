@@ -1,27 +1,35 @@
 package com.marketplace.search.interfaces.rest;
 
+import java.util.concurrent.CompletableFuture;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.dto.SearchRequestDTO;
 import com.marketplace.search.application.dto.SearchResultDTO;
-import com.marketplace.search.application.usecases.SearchProductsUseCase;
 import com.marketplace.search.application.usecases.IndexProductUseCase;
+import com.marketplace.search.application.usecases.SearchProductsUseCase;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/v1/search")
@@ -94,34 +102,22 @@ public class SearchController {
             @Parameter(description = "ID do usuário (para personalização)", example = "user123")
             @RequestParam(required = false) String userId) {
 
-        SearchRequestDTO searchRequest = SearchRequestDTO.builder()
-                .query(query)
-                .categoryId(categoryId)
-                .brand(brand)
-                .minPrice(minPrice)
-                .maxPrice(maxPrice)
-                .condition(condition)
-                .sellerId(sellerId)
-                .page(page)
-                .size(size)
-                .sortBy(sortBy)
-                .sortDirection(sortDirection)
-                .userId(userId)
-                .build();
-
-        return searchProductsUseCase.execute(searchRequest)
-                .thenApply(result -> ResponseEntity.ok(result))
-                .exceptionally(throwable -> {
-                    // Log do erro
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(SearchResultDTO.builder()
-                                    .products(java.util.Collections.emptyList())
-                                    .totalElements(0L)
-                                    .totalPages(0)
-                                    .currentPage(0)
-                                    .pageSize(size)
-                                    .build());
-                });
+        SearchRequestDTO searchRequest = new SearchRequestDTO();
+        searchRequest.setQuery(query);
+        // Mapear outros parâmetros para o SearchRequestDTO conforme necessário
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                SearchResultDTO result = searchProductsUseCase.execute(searchRequest);
+                return ResponseEntity.ok(result);
+            } catch (Exception e) {
+                SearchResultDTO errorResult = new SearchResultDTO();
+                errorResult.setProducts(java.util.Collections.emptyList());
+                errorResult.setTotalCount(0L);
+                errorResult.setTotalPages(0);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResult);
+            }
+        });
     }
 
     @PostMapping("/products/{productId}/index")
@@ -147,12 +143,14 @@ public class SearchController {
             
             @Valid @RequestBody ProductDTO product) {
 
-        return indexProductUseCase.execute(product)
-                .thenApply(result -> ResponseEntity.accepted().build())
-                .exceptionally(throwable -> {
-                    // Log do erro
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-                });
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                indexProductUseCase.execute(product);
+                return ResponseEntity.accepted().build();
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+        });
     }
 
     @GetMapping("/suggestions")

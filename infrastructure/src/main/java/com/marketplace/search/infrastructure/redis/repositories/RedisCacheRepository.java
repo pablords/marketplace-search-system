@@ -1,19 +1,19 @@
 package com.marketplace.search.infrastructure.redis.repositories;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.marketplace.search.domain.repositories.CacheRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Repository;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Repository;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.marketplace.search.domain.repositories.CacheRepository;
 
 /**
  * Implementação do repositório de cache usando Redis
@@ -70,26 +70,6 @@ public class RedisCacheRepository implements CacheRepository {
             }
             
             T value = objectMapper.readValue(serializedValue, type);
-            logger.debug("Cache hit for key: {}", key);
-            return Optional.of(value);
-            
-        } catch (JsonProcessingException e) {
-            logger.error("Failed to deserialize value for key: {}", key, e);
-            return Optional.empty();
-        }
-    }
-
-    @Override
-    public <T> Optional<T> get(String key, TypeReference<T> typeReference) {
-        try {
-            String serializedValue = redisTemplate.opsForValue().get(key);
-            
-            if (serializedValue == null) {
-                logger.debug("Cache miss for key: {}", key);
-                return Optional.empty();
-            }
-            
-            T value = objectMapper.readValue(serializedValue, typeReference);
             logger.debug("Cache hit for key: {}", key);
             return Optional.of(value);
             

@@ -84,7 +84,22 @@ run_application() {
     
     # Usar profile de desenvolvimento
     export SPRING_PROFILES_ACTIVE=development
-    mvn spring-boot:run -pl bootstrap -q
+    mvn spring-boot:run -pl bootstrap -Dspring-boot.run.profiles=development -Dspring.devtools.restart.enabled=true -q
+}
+
+# Função para executar a aplicação com hot reload
+run_dev() {
+    echo "🔥 Executando aplicação com hot reload..."
+    cd "$PROJECT_DIR"
+    
+    # Usar profile de desenvolvimento com DevTools
+    export SPRING_PROFILES_ACTIVE=development
+    mvn compile spring-boot:run -pl bootstrap \
+        -Dspring-boot.run.profiles=development \
+        -Dspring.devtools.restart.enabled=true \
+        -Dspring.devtools.livereload.enabled=true \
+        -Dspring-boot.run.jvmArguments="-Xmx2G -XX:+UseG1GC" \
+        -q
 }
 
 # Função para executar testes
@@ -282,6 +297,7 @@ show_help() {
     echo "  start         Iniciar infraestrutura"
     echo "  stop          Parar infraestrutura"
     echo "  run           Executar aplicação"
+    echo "  run-dev       Executar aplicação com hot reload (DevTools)"
     echo "  test          Executar testes"
     echo "  status        Verificar status dos serviços"
     echo "  logs [serviço] Mostrar logs (opcionalmente de um serviço específico)"
@@ -293,6 +309,7 @@ show_help() {
     echo "Exemplos:"
     echo "  ./setup.sh full-setup    # Configuração completa"
     echo "  ./setup.sh start         # Iniciar apenas infraestrutura"
+    echo "  ./setup.sh run-dev       # Executar com hot reload"
     echo "  ./setup.sh logs kafka    # Ver logs do Kafka"
 }
 
@@ -312,6 +329,9 @@ case "${1:-help}" in
         ;;
     run)
         run_application
+        ;;
+    run-dev)
+        run_dev
         ;;
     test)
         run_tests

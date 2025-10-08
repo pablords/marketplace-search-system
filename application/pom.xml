@@ -5,20 +5,21 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.marketplace</groupId>
+        <groupId>com.marketplace.search</groupId>
         <artifactId>search-system</artifactId>
         <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>search-application</artifactId>
+    <artifactId>application</artifactId>
     <name>Search Application</name>
     <description>Camada de aplicação com casos de uso e serviços</description>
 
     <dependencies>
         <!-- Domain -->
         <dependency>
-            <groupId>com.marketplace</groupId>
-            <artifactId>search-domain</artifactId>
+            <groupId>com.marketplace.search</groupId>
+            <artifactId>domain</artifactId>
         </dependency>
 
         <!-- Spring -->

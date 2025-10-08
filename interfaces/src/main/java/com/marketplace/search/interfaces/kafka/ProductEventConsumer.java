@@ -1,8 +1,9 @@
 package com.marketplace.search.interfaces.kafka;
 
-import com.marketplace.search.application.dto.ProductDTO;
-import com.marketplace.search.application.usecases.IndexProductUseCase;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,8 +15,12 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.util.concurrent.CompletableFuture;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.marketplace.search.application.dto.BrandDTO;
+import com.marketplace.search.application.dto.CategoryDTO;
+import com.marketplace.search.application.dto.ProductDTO;
+import com.marketplace.search.application.dto.SellerDTO;
+import com.marketplace.search.application.usecases.IndexProductUseCase;
 
 @Component
 public class ProductEventConsumer {
@@ -39,7 +44,7 @@ public class ProductEventConsumer {
     public void handleProductEvent(
             @Payload String message,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION_ID) int partition,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.RECEIVED_TIMESTAMP) long timestamp,
             @Header(value = "eventType", required = false) String eventType,
             ConsumerRecord<String, String> record,
@@ -86,7 +91,8 @@ public class ProductEventConsumer {
         logger.debug("Processando criação/atualização do produto: {}", productEvent.getProductId());
         
         ProductDTO productDTO = mapToProductDTO(productEvent);
-        return indexProductUseCase.execute(productDTO);
+        indexProductUseCase.execute(productDTO);
+        return CompletableFuture.completedFuture(null);
     }
 
     private CompletableFuture<Void> processProductDeletion(ProductEvent productEvent) {
@@ -100,57 +106,57 @@ public class ProductEventConsumer {
     private CompletableFuture<Void> processInventoryUpdate(ProductEvent productEvent) {
         logger.debug("Processando atualização de estoque do produto: {}", productEvent.getProductId());
         
-        // Para atualização de estoque, podemos fazer uma atualização parcial
-        ProductDTO productDTO = ProductDTO.builder()
-                .id(productEvent.getProductId())
-                .availableQuantity(productEvent.getPayload().getAvailableQuantity())
-                .lastModified(productEvent.getTimestamp())
-                .build();
+        // Para atualização de estoque, criamos um ProductDTO com apenas os dados necessários
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setId(productEvent.getProductId());
+        productDTO.setStockQuantity(productEvent.getPayload().getAvailableQuantity());
         
-        return indexProductUseCase.execute(productDTO);
+        indexProductUseCase.execute(productDTO);
+        return CompletableFuture.completedFuture(null);
     }
 
     private CompletableFuture<Void> processPriceUpdate(ProductEvent productEvent) {
         logger.debug("Processando atualização de preço do produto: {}", productEvent.getProductId());
         
-        // Para atualização de preço, podemos fazer uma atualização parcial
-        ProductDTO productDTO = ProductDTO.builder()
-                .id(productEvent.getProductId())
-                .price(productEvent.getPayload().getPrice())
-                .currency(productEvent.getPayload().getCurrency())
-                .lastModified(productEvent.getTimestamp())
-                .build();
+        // Para atualização de preço, criamos um ProductDTO com apenas os dados necessários
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setId(productEvent.getProductId());
+        productDTO.setPrice(BigDecimal.valueOf(productEvent.getPayload().getPrice()));
+        productDTO.setCurrency(productEvent.getPayload().getCurrency());
         
-        return indexProductUseCase.execute(productDTO);
+        indexProductUseCase.execute(productDTO);
+        return CompletableFuture.completedFuture(null);
     }
 
     private ProductDTO mapToProductDTO(ProductEvent productEvent) {
         ProductEventPayload payload = productEvent.getPayload();
         
-        return ProductDTO.builder()
-                .id(productEvent.getProductId())
-                .title(payload.getTitle())
-                .description(payload.getDescription())
-                .price(payload.getPrice())
-                .currency(payload.getCurrency())
-                .availableQuantity(payload.getAvailableQuantity())
-                .condition(payload.getCondition())
-                .status(payload.getStatus())
-                .categoryId(payload.getCategoryId())
-                .categoryName(payload.getCategoryName())
-                .brandName(payload.getBrandName())
-                .sellerId(payload.getSellerId())
-                .sellerNickname(payload.getSellerNickname())
-                .sellerReputation(payload.getSellerReputation())
-                .attributes(payload.getAttributes())
-                .totalSold(payload.getTotalSold())
-                .viewCount(payload.getViewCount())
-                .conversionRate(payload.getConversionRate())
-                .averageRating(payload.getAverageRating())
-                .reviewCount(payload.getReviewCount())
-                .createdAt(payload.getCreatedAt())
-                .lastModified(productEvent.getTimestamp())
-                .build();
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setId(productEvent.getProductId());
+        productDTO.setTitle(payload.getTitle());
+        productDTO.setDescription(payload.getDescription());
+        productDTO.setPrice(BigDecimal.valueOf(payload.getPrice()));
+        productDTO.setCurrency(payload.getCurrency());
+        productDTO.setStockQuantity(payload.getAvailableQuantity());
+        productDTO.setCondition(payload.getCondition());
+        productDTO.setIsActive("ACTIVE".equals(payload.getStatus()));
+        
+        // Criando objetos de categoria, marca e vendedor
+        CategoryDTO categoryDTO = new CategoryDTO();
+        categoryDTO.setId(payload.getCategoryId());
+        categoryDTO.setName(payload.getCategoryName());
+        productDTO.setCategory(categoryDTO);
+        
+        BrandDTO brandDTO = new BrandDTO();
+        brandDTO.setName(payload.getBrandName());
+        productDTO.setBrand(brandDTO);
+        
+        SellerDTO sellerDTO = new SellerDTO();
+        sellerDTO.setId(payload.getSellerId());
+        sellerDTO.setName(payload.getSellerNickname());
+        productDTO.setSeller(sellerDTO);
+        
+        return productDTO;
     }
 
     // Classes internas para deserialização do evento

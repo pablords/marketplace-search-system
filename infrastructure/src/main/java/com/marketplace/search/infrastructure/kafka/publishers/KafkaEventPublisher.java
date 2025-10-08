@@ -1,10 +1,7 @@
 package com.marketplace.search.infrastructure.kafka.publishers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.marketplace.search.domain.events.DomainEvent;
-import com.marketplace.search.domain.events.ProductEvent;
-import com.marketplace.search.domain.repositories.EventPublisher;
+import java.util.concurrent.CompletableFuture;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +9,11 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.CompletableFuture;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.marketplace.search.domain.events.DomainEvent;
+import com.marketplace.search.domain.events.ProductEvent;
+import com.marketplace.search.domain.repositories.EventPublisher;
 
 /**
  * Implementação do publicador de eventos usando Apache Kafka
@@ -93,7 +94,7 @@ public class KafkaEventPublisher implements EventPublisher {
      */
     private String extractKeyFromEvent(DomainEvent event) {
         if (event instanceof ProductEvent productEvent) {
-            return productEvent.getProductId();
+            return productEvent.getProductId().getValue();
         }
         
         return event.getAggregateId();

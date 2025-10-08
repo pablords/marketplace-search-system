@@ -1,0 +1,47 @@
+spring:
+  # Datasource para desenvolvimento
+  datasource:
+    url: jdbc:postgresql://localhost:5432/marketplace_search_dev
+    username: dev_user
+    password: dev_password
+  
+  # JPA para desenvolvimento
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  
+  # Redis para desenvolvimento
+  redis:
+    host: localhost
+    port: 6379
+    database: 1  # Use database 1 for dev
+
+# Elasticsearch para desenvolvimento
+elasticsearch:
+  indices:
+    products: marketplace-products-dev
+
+# Logging mais verboso para desenvolvimento
+logging:
+  level:
+    com.marketplace.search: DEBUG
+    org.springframework.kafka: DEBUG
+    org.elasticsearch: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.data.elasticsearch: DEBUG
+
+# Management para desenvolvimento
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+# Application config para desenvolvimento
+marketplace:
+  search:
+    analytics:
+      enabled: true
+      sample-rate: 1.0  # 100% sampling for development

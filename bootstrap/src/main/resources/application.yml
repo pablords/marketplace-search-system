@@ -101,7 +101,8 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
     tagsSorter: alpha
-  show-actuator: true
+  show-actuator: false  # ← Isso esconde os endpoints do Actuator no Swagger
+  paths-to-match: /search/**  # ← Mostra apenas os endpoints que começam com /search
 
 # Application specific
 marketplace:

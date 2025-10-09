@@ -64,7 +64,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health,info,metrics,prometheus,loggers
+      base-path: /actuator
 
 # Application config para desenvolvimento
 marketplace:

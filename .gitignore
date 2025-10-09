@@ -82,8 +82,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Elasticsearch data
-elasticsearch/
+
 
 # Kafka data
 kafka-logs/

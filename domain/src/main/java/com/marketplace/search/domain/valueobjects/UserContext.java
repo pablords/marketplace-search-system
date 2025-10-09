@@ -1,10 +1,9 @@
 package com.marketplace.search.domain.valueobjects;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
 import java.util.Objects;
 import java.util.Set;
+
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Value Object representando o contexto do usuário para personalização de busca

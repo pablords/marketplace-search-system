@@ -1,0 +1,31 @@
+# Elasticsearch configuration for development
+
+cluster.name: marketplace-search
+node.name: node-1
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+
+network.host: 0.0.0.0
+http.port: 9200
+transport.port: 9300
+
+# Single node cluster for development
+discovery.type: single-node
+
+# Security (disabled for development)
+xpack.security.enabled: false
+xpack.ml.enabled: false
+
+# Memory settings
+bootstrap.memory_lock: true
+
+# Index settings
+action.auto_create_index: true
+indices.query.bool.max_clause_count: 10000
+
+# Logging
+logger.level: INFO
+logger.org.elasticsearch.discovery: DEBUG
+
+# JVM heap dump on OOM
+node.attr.jvm_heap_dump_path: /usr/share/elasticsearch/logs

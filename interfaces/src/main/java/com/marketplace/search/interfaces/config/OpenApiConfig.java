@@ -1,21 +1,25 @@
 package com.marketplace.search.interfaces.config;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
 
     @Value("${server.port:8080}")
     private String serverPort;
+
+    @Value("${server.servlet.context-path:/}")
+    private String contextPath;
 
     @Value("${spring.application.name:marketplace-search}")
     private String applicationName;
@@ -47,13 +51,13 @@ public class OpenApiConfig {
                                 .url("https://opensource.org/licenses/MIT")))
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:" + serverPort)
+                                .url("http://localhost:" + serverPort + contextPath)
                                 .description("Servidor de desenvolvimento"),
                         new Server()
-                                .url("https://api-staging.marketplace.com")
+                                .url("https://api-staging.marketplace.com" + contextPath)
                                 .description("Servidor de staging"),
                         new Server()
-                                .url("https://api.marketplace.com")
+                                .url("https://api.marketplace.com" + contextPath)
                                 .description("Servidor de produção")));
     }
 }

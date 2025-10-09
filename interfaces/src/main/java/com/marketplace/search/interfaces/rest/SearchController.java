@@ -2,6 +2,8 @@ package com.marketplace.search.interfaces.rest;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.dto.SearchRequestDTO;
 import com.marketplace.search.application.dto.SearchResultDTO;
+import com.marketplace.search.application.handlers.ProductEventHandler;
 import com.marketplace.search.application.usecases.IndexProductUseCase;
 import com.marketplace.search.application.usecases.SearchProductsUseCase;
 
@@ -33,13 +36,14 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
 @RestController
-@RequestMapping("/api/v1/search")
+@RequestMapping("/search")
 @Validated
 @Tag(name = "Search", description = "API de busca de produtos")
 public class SearchController {
 
   private final SearchProductsUseCase searchProductsUseCase;
   private final IndexProductUseCase indexProductUseCase;
+  private static final Logger logger = LoggerFactory.getLogger(ProductEventHandler.class);
 
   @Autowired
   public SearchController(SearchProductsUseCase searchProductsUseCase,
@@ -79,6 +83,7 @@ public class SearchController {
 
       @Parameter(description = "ID do usuário (para personalização)", example = "user123") @RequestParam(required = false) String userId) {
 
+    logger.debug("Recebendo consulta: " + query);
     SearchRequestDTO searchRequest = new SearchRequestDTO();
     searchRequest.setQuery(query);
     // Mapear outros parâmetros para o SearchRequestDTO conforme necessário

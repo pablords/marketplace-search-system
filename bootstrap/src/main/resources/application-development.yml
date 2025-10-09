@@ -20,18 +20,6 @@ spring:
       port: 35729
     add-properties: true
   
-  # # Datasource para desenvolvimento
-  # datasource:
-  #   url: jdbc:postgresql://localhost:5432/marketplace_search_dev
-  #   username: dev_user
-  #   password: dev_password
-  
-  # # JPA para desenvolvimento
-  # jpa:
-  #   hibernate:
-  #     ddl-auto: create-drop
-  #   show-sql: true
-  
   # Redis para desenvolvimento
   redis:
     host: localhost
@@ -58,12 +46,18 @@ elasticsearch:
 # Logging mais verboso para desenvolvimento
 logging:
   level:
-    com.marketplace.search: DEBUG
-    org.springframework.kafka: INFO
-    org.elasticsearch: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.springframework.data.elasticsearch: DEBUG
+    com.marketplace.search: INFO
+    # Kafka logging silenciado
+    org.springframework.kafka: OFF
+    org.apache.kafka: OFF
+    kafka: OFF
+    # Elasticsearch logging silenciado
+    org.elasticsearch: OFF
+    org.springframework.data.elasticsearch: OFF
+    co.elastic.clients: OFF
+    # Outros logs relacionados
+    org.springframework.web: WARN
+    org.springframework.security: WARN
 
 # Management para desenvolvimento
 management:

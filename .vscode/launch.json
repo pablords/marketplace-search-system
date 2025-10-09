@@ -19,13 +19,7 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}",
-            "classPaths": [
-                "${workspaceFolder}/bootstrap/target/classes",
-                "${workspaceFolder}/domain/target/classes",
-                "${workspaceFolder}/application/target/classes",
-                "${workspaceFolder}/infrastructure/target/classes",
-                "${workspaceFolder}/interfaces/target/classes"
-            ]
+            "preLaunchTask": "maven: compile"
         },
         {
             "type": "java",
@@ -47,7 +41,8 @@
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "maven: compile"
         },
         {
             "type": "java",

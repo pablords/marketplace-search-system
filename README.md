@@ -21,7 +21,6 @@ search-system/
 - **Elasticsearch 8.11.3** - Motor de busca principal
 - **Apache Kafka 3.6.1** - Eventos e CDC em tempo real
 - **Redis 7** - Cache de alta performance
-- **PostgreSQL** - Armazenamento relacional
 - **Maven** - Gerenciamento de dependências
 - **Docker Compose** - Ambiente de desenvolvimento
 

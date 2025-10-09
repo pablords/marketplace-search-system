@@ -5,35 +5,6 @@ spring:
   profiles:
     active: development
   
-  # Database configuration
-  datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:marketplace_search}
-    username: ${POSTGRES_USER:dev_user}
-    password: ${POSTGRES_PASSWORD:dev_password}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      idle-timeout: 300000
-      connection-timeout: 30000
-      validation-timeout: 5000
-      leak-detection-threshold: 60000
-
-  # JPA/Hibernate configuration
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        show_sql: false
-        jdbc:
-          batch_size: 25
-        order_inserts: true
-        order_updates: true
-    show-sql: false
-
   # Redis configuration
   data:
     redis:
@@ -90,10 +61,6 @@ kafka:
 logging:
   level:
     com.marketplace.search: DEBUG
-    org.springframework.kafka: INFO
-    org.elasticsearch: WARN
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
@@ -125,6 +92,16 @@ server:
   port: ${SERVER_PORT:8080}
   servlet:
     context-path: /api/v1
+
+# SpringDoc OpenAPI 3
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  show-actuator: true
 
 # Application specific
 marketplace:

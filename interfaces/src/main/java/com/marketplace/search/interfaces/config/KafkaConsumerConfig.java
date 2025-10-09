@@ -1,5 +1,8 @@
 package com.marketplace.search.interfaces.config;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,9 +14,6 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @Configuration
 @EnableKafka
 public class KafkaConsumerConfig {
@@ -21,25 +21,21 @@ public class KafkaConsumerConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
-    @Value("${kafka.consumer.group-id}")
+    @Value("${spring.kafka.consumer.group-id}")
     private String groupId;
 
-    @Value("${kafka.consumer.auto-offset-reset:earliest}")
+    @Value("${spring.kafka.consumer.auto-offset-reset}")
     private String autoOffsetReset;
 
-    @Value("${kafka.consumer.max-poll-records:500}")
-    private String maxPollRecords;
+    @Value("${spring.kafka.consumer.max-poll-records}")
+    private int maxPollRecords;
 
-    @Value("${kafka.consumer.max-poll-interval-ms:300000}")
-    private String maxPollIntervalMs;
+    // Configurações opcionais com valores padrão
+    private final int maxPollIntervalMs = 300000; // 5 minutos
+    private final int sessionTimeoutMs = 30000;   // 30 segundos  
+    private final int heartbeatIntervalMs = 3000; // 3 segundos
 
-    @Value("${kafka.consumer.session-timeout-ms:30000}")
-    private String sessionTimeoutMs;
-
-    @Value("${kafka.consumer.heartbeat-interval-ms:3000}")
-    private String heartbeatIntervalMs;
-
-    @Bean
+    @Bean("interface-consumer")
     public ConsumerFactory<String, String> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         
@@ -66,7 +62,7 @@ public class KafkaConsumerConfig {
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
-    @Bean
+    @Bean("interface-container-factory")
     public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, String> factory = 
             new ConcurrentKafkaListenerContainerFactory<>();

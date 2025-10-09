@@ -1,0 +1,64 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot - Search System",
+            "request": "launch",
+            "mainClass": "com.marketplace.search.bootstrap.SearchSystemApplication",
+            "projectName": "bootstrap",
+            "args": ["--spring.profiles.active=development"],
+            "vmArgs": [
+                "-Dspring.devtools.restart.enabled=true",
+                "-Dspring.devtools.livereload.enabled=true",
+                "-Dspring.output.ansi.enabled=always",
+                "-Xmx2G",
+                "-XX:+UseG1GC"
+            ],
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "cwd": "${workspaceFolder}",
+            "classPaths": [
+                "${workspaceFolder}/bootstrap/target/classes",
+                "${workspaceFolder}/domain/target/classes",
+                "${workspaceFolder}/application/target/classes",
+                "${workspaceFolder}/infrastructure/target/classes",
+                "${workspaceFolder}/interfaces/target/classes"
+            ]
+        },
+        {
+            "type": "java",
+            "name": "Debug - Search System",
+            "request": "launch",
+            "mainClass": "com.marketplace.search.bootstrap.SearchSystemApplication",
+            "projectName": "bootstrap",
+            "args": [
+                "--spring.profiles.active=development",
+                "--debug"
+            ],
+            "vmArgs": [
+                "-Dspring.devtools.restart.enabled=true",
+                "-Dspring.devtools.livereload.enabled=true",
+                "-Dspring.output.ansi.enabled=always",
+                "-Xmx2G",
+                "-XX:+UseG1GC"
+            ],
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "java",
+            "name": "Run with Maven",
+            "request": "launch",
+            "mainClass": "com.marketplace.search.bootstrap.SearchSystemApplication",
+            "args": ["--spring.profiles.active=development"],
+            "vmArgs": ["-Dspring.devtools.restart.enabled=true"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/bootstrap",
+            "preLaunchTask": "maven: compile"
+        }
+    ]
+}

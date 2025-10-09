@@ -11,7 +11,6 @@ build/
 
 # IDEs
 .idea/
-.vscode/
 *.iml
 *.ipr
 *.iws
@@ -92,3 +91,5 @@ dump.rdb
 
 # Postgres data
 postgres-data/
+
+venv

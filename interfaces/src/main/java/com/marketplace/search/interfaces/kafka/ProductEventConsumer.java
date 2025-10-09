@@ -38,7 +38,7 @@ public class ProductEventConsumer {
 
     @KafkaListener(
         topics = "${kafka.topics.product-events}",
-        groupId = "${kafka.consumer.group-id}",
+        groupId = "${spring.kafka.consumer.group-id}",
         containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleProductEvent(

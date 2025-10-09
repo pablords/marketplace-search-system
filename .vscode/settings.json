@@ -1,0 +1,24 @@
+{
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.autobuild.enabled": true,
+    "spring-boot.live-reload.enabled": true,
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    "java.saveActions.organizeImports": true,
+    "java.format.enabled": true,
+    "java.import.maven.enabled": true,
+    "maven.executable.path": "mvn",
+    "maven.terminal.useJavaHome": true,
+    "java.maven.downloadSources": true,
+    "java.maven.downloadJavadoc": true,
+    "java.codeGeneration.insertionLocation": "afterCursor",
+    "java.codeGeneration.generateComments": true,
+    "java.completion.enabled": true,
+    "java.completion.importOrder": [
+        "java",
+        "javax",
+        "org",
+        "com"
+    ]
+}

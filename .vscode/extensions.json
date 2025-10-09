@@ -1,0 +1,21 @@
+{
+    "recommendations": [
+        "vscjava.vscode-java-pack",
+        "redhat.vscode-spring-boot",
+        "pivotal.vscode-spring-boot",
+        "vscjava.vscode-maven",
+        "vscjava.vscode-java-test",
+        "vscjava.vscode-java-debug",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-json",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-vscode.live-server",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense",
+        "streetsidesoftware.code-spell-checker",
+        "ms-vscode.vscode-typescript-next",
+        "redhat.vscode-xml",
+        "sonarsource.sonarlint-vscode"
+    ]
+}

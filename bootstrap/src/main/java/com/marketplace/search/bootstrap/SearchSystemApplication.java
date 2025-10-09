@@ -1,4 +1,4 @@
-package com.marketplace.search;
+package com.marketplace.search.bootstrap;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

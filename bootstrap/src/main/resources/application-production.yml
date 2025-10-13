@@ -62,9 +62,11 @@ server:
 marketplace:
   search:
     cache:
+      enabled: true
       default-ttl: PT2H  # 2 hours
       search-results-ttl: PT30M  # 30 minutes
       popular-searches-ttl: PT48H  # 48 hours
+      key-prefix: search:results
     
     indexing:
       batch-size: 5000

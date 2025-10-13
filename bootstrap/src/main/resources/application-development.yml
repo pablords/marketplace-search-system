@@ -46,7 +46,7 @@ elasticsearch:
 # Logging mais verboso para desenvolvimento
 logging:
   level:
-    com.marketplace.search: INFO
+    com.marketplace.search: DEBUG
     # Kafka logging silenciado
     org.springframework.kafka: OFF
     org.apache.kafka: OFF
@@ -70,6 +70,8 @@ management:
 # Application config para desenvolvimento
 marketplace:
   search:
+    cache:
+      enabled: true
     analytics:
       enabled: true
       sample-rate: 1.0  # 100% sampling for development

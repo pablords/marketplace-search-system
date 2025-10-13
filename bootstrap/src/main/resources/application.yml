@@ -4,6 +4,10 @@ spring:
   
   profiles:
     active: development
+
+  output:
+    ansi:
+      enabled: always
   
   # Redis configuration
   data:
@@ -62,7 +66,7 @@ logging:
   level:
     com.marketplace.search: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){blue} %clr(%logger{36}){cyan} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/marketplace-search.log
@@ -108,9 +112,11 @@ springdoc:
 marketplace:
   search:
     cache:
+      enabled: true
       default-ttl: PT1H  # 1 hour
       search-results-ttl: PT10M  # 10 minutes
       popular-searches-ttl: PT24H  # 24 hours
+      key-prefix: search:results
     
     indexing:
       batch-size: 1000

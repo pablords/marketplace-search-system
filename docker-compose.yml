@@ -35,6 +35,19 @@ services:
       timeout: 10s
       retries: 5
 
+  # Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.3
+    container_name: marketplace-kibana
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    networks:
+      - marketplace-network
+
 
   # Zookeeper (para Kafka)
   zookeeper:

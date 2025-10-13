@@ -83,7 +83,7 @@ public class SearchController {
 
       @Parameter(description = "ID do usuário (para personalização)", example = "user123") @RequestParam(required = false) String userId) {
 
-    logger.info("Recebendo consulta: " + query);
+    logger.info("Received query {}", query);
     SearchRequestDTO searchRequest = new SearchRequestDTO();
     searchRequest.setQuery(query);
     // Mapear outros parâmetros para o SearchRequestDTO conforme necessário

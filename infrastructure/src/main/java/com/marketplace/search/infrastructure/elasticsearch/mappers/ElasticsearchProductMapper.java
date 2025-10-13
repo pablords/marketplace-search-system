@@ -128,7 +128,7 @@ public class ElasticsearchProductMapper {
     private Seller mapSellerToDomain(SellerDocument document) {
         // Recrear reputação com valores padrão - em um cenário real seria mais completo
         SellerReputation reputation = new SellerReputation(
-            document.getReputationScore() > 0 ? document.getReputationScore() * 5 : 5.0,
+            document.getReputationScore() > 0 ? document.getReputationScore() : 5.0,
             0, 0, 0, 0, 0.0, 1.0
         );
         

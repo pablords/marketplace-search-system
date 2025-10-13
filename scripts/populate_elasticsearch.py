@@ -12,7 +12,7 @@ import uuid
 
 # Configuração do Elasticsearch
 ELASTICSEARCH_URL = "http://localhost:9200"
-INDEX_NAME = "marketplace-products-dev"
+INDEX_NAME = "products"
 
 # Configuração do Faker para gerar dados em português
 fake = Faker('pt_BR')
@@ -144,6 +144,9 @@ def generate_product():
     
     popularity_score = round(random.uniform(0.1, 1.0), 2)
     
+    # Gera valores para campos específicos que o notebook espera no nível raiz
+    stock_quantity = random.randint(0, 100)
+    
     product = {
         "id": product_id,
         "title": title,
@@ -169,21 +172,36 @@ def generate_product():
         "attributes": list(attributes),
         "tags": list(tags),
         "metrics": {
-            "views": views,
-            "sales": sales,
-            "rating": rating,
-            "stock_quantity": random.randint(0, 100),
-            "conversion_rate": round(random.uniform(0.01, 0.15), 3)
+            "total_views": views,
+            "total_sales": sales,
+            "average_rating": rating,
+            "stock_quantity": stock_quantity,
+            "conversion_rate": round(random.uniform(0.01, 0.15), 3),
+            "total_reviews": random.randint(0, 50)
         },
         "status": {
-            "value": random.choice(PRODUCT_STATUSES),
-            "reason": "Sistema automático"
+            "is_active": (is_active := random.choice([True, False])),
+            "is_suspended": False if is_active else random.choice([True, False]),
+            "has_stock": random.choice([True, False])
         },
         "created_at": created_date.isoformat() + "Z",
         "updated_at": updated_date.isoformat() + "Z",
         "searchable_text": f"{title} {description} {brand['name']} {category['name']}",
         "price_range": generate_price_range(price),
-        "popularity_score": popularity_score
+        "popularity_score": popularity_score,
+        
+        # Campos adicionais no nível raiz para compatibilidade com notebook
+        "seller_id": seller["id"],
+        "seller_name": seller["name"],
+        "seller_reputation": seller["reputation_score"],
+        "brand_id": brand["id"],
+        "brand_name": brand["name"],
+        "category_id": category["id"],
+        "category_name": category["name"],
+        "stock_quantity": stock_quantity,
+        "total_views": views,
+        "total_sales": sales,
+        "average_rating": rating
     }
     
     return product
@@ -224,24 +242,35 @@ def create_index():
                 "tags": {"type": "keyword"},
                 "metrics": {
                     "properties": {
-                        "views": {"type": "integer"},
-                        "sales": {"type": "integer"},
-                        "rating": {"type": "double"},
+                        "total_views": {"type": "integer"},
+                        "total_sales": {"type": "integer"},
+                        "average_rating": {"type": "double"},
                         "stock_quantity": {"type": "integer"},
-                        "conversion_rate": {"type": "double"}
+                        "conversion_rate": {"type": "double"},
+                        "total_reviews": {"type": "integer"}
                     }
                 },
-                "status": {
-                    "properties": {
-                        "value": {"type": "keyword"},
-                        "reason": {"type": "text"}
-                    }
-                },
+                "is_active": {"type": "boolean"},
+                "is_suspended": {"type": "boolean"},
+                "has_stock": {"type": "boolean"},
                 "created_at": {"type": "date"},
                 "updated_at": {"type": "date"},
                 "searchable_text": {"type": "text", "analyzer": "standard"},
                 "price_range": {"type": "keyword"},
-                "popularity_score": {"type": "double"}
+                "popularity_score": {"type": "double"},
+                
+                # Campos adicionais no nível raiz para facilitar análises
+                "seller_id": {"type": "keyword"},
+                "seller_name": {"type": "text"},
+                "seller_reputation": {"type": "double"},
+                "brand_id": {"type": "keyword"},
+                "brand_name": {"type": "text"},
+                "category_id": {"type": "keyword"},
+                "category_name": {"type": "text"},
+                "stock_quantity": {"type": "integer"},
+                "total_views": {"type": "integer"},
+                "total_sales": {"type": "integer"},
+                "average_rating": {"type": "double"}
             }
         }
     }

@@ -1,24 +1,36 @@
 package com.marketplace.search.infrastructure.elasticsearch;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.*;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import com.marketplace.search.domain.entities.Product;
-import com.marketplace.search.domain.repositories.ProductSearchRepository;
-import com.marketplace.search.domain.valueobjects.*;
-import com.marketplace.search.infrastructure.elasticsearch.documents.ProductDocument;
-import com.marketplace.search.infrastructure.elasticsearch.mappers.ElasticsearchProductMapper;
-import com.marketplace.search.infrastructure.elasticsearch.queries.ElasticsearchQueryBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Repository;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+
+import com.marketplace.search.domain.entities.Product;
+import com.marketplace.search.domain.repositories.ProductSearchRepository;
+import com.marketplace.search.domain.valueobjects.ProductId;
+import com.marketplace.search.domain.valueobjects.SearchMetrics;
+import com.marketplace.search.domain.valueobjects.SearchQuery;
+import com.marketplace.search.domain.valueobjects.SearchResult;
+import com.marketplace.search.domain.valueobjects.UserContext;
+import com.marketplace.search.infrastructure.elasticsearch.documents.ProductDocument;
+import com.marketplace.search.infrastructure.elasticsearch.mappers.ElasticsearchProductMapper;
+import com.marketplace.search.infrastructure.elasticsearch.queries.ElasticsearchQueryBuilder;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.CountRequest;
+import co.elastic.clients.elasticsearch.core.CountResponse;
+import co.elastic.clients.elasticsearch.core.GetRequest;
+import co.elastic.clients.elasticsearch.core.GetResponse;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 
 /**
  * Implementação do repositório de busca usando Elasticsearch
@@ -27,7 +39,9 @@ import java.util.stream.Collectors;
 public class ElasticsearchProductSearchRepository implements ProductSearchRepository {
     
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchProductSearchRepository.class);
-    private static final String INDEX_NAME = "products";
+
+    @Value("${elasticsearch.indices.products:products}") 
+    String INDEX_NAME;
     
     private final ElasticsearchClient elasticsearchClient;
     private final ElasticsearchProductMapper productMapper;
@@ -43,13 +57,14 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
 
     @Override
     public SearchResult search(SearchQuery query, UserContext userContext) {
-        logger.debug("Executing search: query='{}', limit={}", query.getTerms(), query.getLimit());
+    logger.debug("Executing search on index '{}': query='{}', limit={}", INDEX_NAME, query.getTerms(), query.getLimit());
         
         Instant startTime = Instant.now();
         
         try {
             // Construir query do Elasticsearch
             Query esQuery = queryBuilder.buildQuery(query, userContext);
+            logger.trace("EsQuery: {}", esQuery);
             
             // Executar busca
             SearchRequest searchRequest = SearchRequest.of(s -> s
@@ -60,16 +75,33 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
                 .sort(queryBuilder.buildSort(query.getSort()))
                 .trackTotalHits(th -> th.enabled(true))
             );
+
+            logger.trace("SearchRequest {}", searchRequest);
             
             SearchResponse<ProductDocument> response = elasticsearchClient.search(
                 searchRequest, ProductDocument.class);
+
+            var hitsMetadata = response.hits();
+            List<Hit<ProductDocument>> hitList = hitsMetadata != null && hitsMetadata.hits() != null
+                ? hitsMetadata.hits()
+                : List.of();
+
+            var totalHitsMetadata = hitsMetadata != null ? hitsMetadata.total() : null;
+
+            if (hitsMetadata == null || hitsMetadata.hits() == null) {
+                logger.warn("Search returned null hits for query '{}'.", query.getTerms());
+            } else if (totalHitsMetadata != null) {
+                logger.debug("Search hits total: {}", totalHitsMetadata.value());
+            }
             
             // Mapear resultados
-            List<Product> products = response.hits().hits().stream()
+            List<Product> products = hitList.stream()
                 .map(hit -> productMapper.toDomain(hit.source()))
                 .collect(Collectors.toList());
             
-            long totalCount = response.hits().total().value();
+            long totalCount = totalHitsMetadata != null
+                ? totalHitsMetadata.value()
+                : products.size();
             Duration executionTime = Duration.between(startTime, Instant.now());
             
             SearchMetrics metrics = new SearchMetrics(
@@ -318,9 +350,29 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
     }
 
     private double calculateAverageScore(List<Hit<ProductDocument>> hits) {
-        return hits.stream()
-            .mapToDouble(hit -> hit.score() != null ? hit.score() : 0.0)
+        if (hits.isEmpty()) {
+            return 0.0;
+        }
+        
+        // Calcular o score médio bruto do Elasticsearch
+        double rawAverageScore = hits.stream()
+            .mapToDouble(hit -> {
+                Double score = hit.score();
+                return score != null ? score : 0.0;
+            })
             .average()
             .orElse(0.0);
+        
+        // Encontrar o score máximo para normalizar
+        double maxScore = hits.stream()
+            .mapToDouble(hit -> {
+                Double score = hit.score();
+                return score != null ? score : 0.0;
+            })
+            .max()
+            .orElse(1.0);
+        
+        // Normalizar para o intervalo [0.0, 1.0]
+        return maxScore > 0 ? rawAverageScore / maxScore : 0.0;
     }
 }

@@ -19,7 +19,7 @@ elasticsearch:
   username: ${ELASTICSEARCH_USERNAME}
   password: ${ELASTICSEARCH_PASSWORD}
   indices:
-    products: ${ELASTICSEARCH_PRODUCTS_INDEX:marketplace-products}
+    products: ${ELASTICSEARCH_PRODUCTS_INDEX:products}
 
 # Kafka para produção
 kafka:

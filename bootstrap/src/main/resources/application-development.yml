@@ -41,7 +41,7 @@ spring:
 # Elasticsearch para desenvolvimento
 elasticsearch:
   indices:
-    products: marketplace-products-dev
+    products: products
 
 # Logging mais verboso para desenvolvimento
 logging:

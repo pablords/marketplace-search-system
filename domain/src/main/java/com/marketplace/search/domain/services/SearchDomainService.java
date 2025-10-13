@@ -32,7 +32,7 @@ public class SearchDomainService {
     SearchResult initialResult = searchRepository.search(query, userContext);
 
     // Aplicar regras de negócio para ranking personalizado
-    List<Product> rankedProducts = applyBusinessRules(initialResult.getProducts(), userContext);
+  List<Product> rankedProducts = applyBusinessRules(initialResult.getProducts(), query, userContext);
 
     return new SearchResult(
         rankedProducts,
@@ -129,13 +129,13 @@ public class SearchDomainService {
     return Math.min(2.0, boost); // Máximo de 2x boost
   }
 
-  private List<Product> applyBusinessRules(List<Product> products, UserContext userContext) {
+  private List<Product> applyBusinessRules(List<Product> products, SearchQuery query, UserContext userContext) {
     return products.stream()
         .filter(product -> isProductSearchable(product, userContext))
         .sorted((p1, p2) -> {
-          double score1 = p1.calculateRelevanceScore(null, userContext).getValue() *
+          double score1 = p1.calculateRelevanceScore(query, userContext).getValue() *
               calculateBusinessBoost(p1, userContext);
-          double score2 = p2.calculateRelevanceScore(null, userContext).getValue() *
+          double score2 = p2.calculateRelevanceScore(query, userContext).getValue() *
               calculateBusinessBoost(p2, userContext);
           return Double.compare(score2, score1); // Ordem decrescente
         })

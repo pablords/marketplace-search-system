@@ -49,7 +49,7 @@ elasticsearch:
   connection-timeout: 10000
   socket-timeout: 60000
   indices:
-    products: ${ELASTICSEARCH_PRODUCTS_INDEX:marketplace-products}
+    products: ${ELASTICSEARCH_PRODUCTS_INDEX:products}
 
 # Kafka Topics
 kafka:

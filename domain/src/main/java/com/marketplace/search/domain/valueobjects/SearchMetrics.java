@@ -37,8 +37,14 @@ public class SearchMetrics {
     }
 
     private double validateScore(double score) {
-        if (score < 0.0 || score > 1.0) {
-            throw new IllegalArgumentException("Average score must be between 0.0 and 1.0");
+        if (Double.isNaN(score) || Double.isInfinite(score)) {
+            return 0.0;
+        }
+        if (score < 0.0) {
+            return 0.0;
+        }
+        if (score > 1.0) {
+            return 1.0;
         }
         return score;
     }

@@ -182,12 +182,6 @@ public class ElasticsearchQueryBuilder {
                         .value(false)
                     )
                 )
-                .must(m -> m
-                    .term(t -> t
-                        .field("seller.status")
-                        .value("ACTIVE")
-                    )
-                )
             )
         );
     }

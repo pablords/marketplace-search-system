@@ -52,7 +52,7 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
     public ElasticsearchProductIndexRepository(
             ElasticsearchClient client,
             ElasticsearchProductMapper mapper,
-            @Value("${elasticsearch.indices.products:marketplace-products}") String indexName) {
+            @Value("${elasticsearch.indices.products:products}") String indexName) {
         this.client = client;
         this.mapper = mapper;
         this.indexName = indexName;

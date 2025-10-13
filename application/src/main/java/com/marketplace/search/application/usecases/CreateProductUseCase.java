@@ -34,7 +34,7 @@ public class CreateProductUseCase {
      * @param productDTO dados do produto informado pelo cliente
      */
     public void execute(ProductDTO productDTO) {
-        logger.info("Recebendo solicitação de criação do produto: id={}, título='{}'",
+        logger.info("Received request for create product: id={}, title='{}'",
             productDTO.getId(), productDTO.getTitle());
 
         Product product = productMapper.toDomain(productDTO);
@@ -42,6 +42,6 @@ public class CreateProductUseCase {
         ProductCreatedEvent event = new ProductCreatedEvent(product);
         eventPublisher.publish(event);
 
-        logger.info("Evento de criação do produto {} publicado com sucesso", productDTO.getId());
+        logger.info("Event of create product {} publish with success", productDTO.getId());
     }
 }

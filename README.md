@@ -273,3 +273,63 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 - **Issues**: [GitHub Issues](link-para-issues)
 - **Documentação**: [Wiki](link-para-wiki)
 - **Slack**: [#marketplace-search](link-para-slack)
+
+
+```mermaid
+
+graph TD
+    subgraph "Fontes de Dados"
+        DB["Banco de Dados<br>(Ex: PostgreSQL)"]
+    end
+
+    subgraph "Plataforma de Dados"
+        CDC[Debezium CDC]
+        KAFKA["Apache Kafka<br>Tópico: product-events"]
+    end
+
+    subgraph "Backend de Indexação"
+        IDX_SVC["Indexing Service<br>(Microserviço Spring Boot)"]
+    end
+
+    subgraph "Core da Busca"
+        ELASTIC[Elasticsearch Cluster]
+    end
+
+    subgraph "Cache & Features"
+        REDIS["Redis Cluster<br>Cache de Features"]
+        FS["Feature Store<br>Offline & Online"]
+    end
+    
+    subgraph "Plataforma de Machine Learning"
+        ML_MODEL["ML Ranking Service<br>(Modelo de ML servido via API)"]
+    end
+
+    subgraph "Backend de Busca (API)"
+        API_GW[API Gateway]
+        SEARCH_API["Search API<br>(Microserviço Spring Boot)"]
+    end
+
+    USER[Usuário]
+
+    %% FLUXO DE INDEXAÇÃO (ESCRITA)
+    DB --"1. Captura de Mudanças (CDC)"--> CDC
+    CDC --"2. Publica Eventos"--> KAFKA
+    KAFKA --"3. Consome Eventos"--> IDX_SVC
+    IDX_SVC --"4. Enriquece e Formata"--> FS
+    IDX_SVC --"5. Indexa Documento"--> ELASTIC
+
+    %% FLUXO DE BUSCA (LEITURA)
+    USER --"1. GET /search?q=celular"--> API_GW
+    API_GW --"2. Roteia Requisição"--> SEARCH_API
+    SEARCH_API --"3a. Fase 1: Busca de Candidatos<br>(Top 400)"--> ELASTIC
+    ELASTIC --"3b. Retorna Candidatos"--> SEARCH_API
+    SEARCH_API --"4a. Fase 2: Busca Features<br>dos candidatos"--> REDIS
+    SEARCH_API --"4b. Busca Features<br>dos candidatos"--> FS
+    REDIS --"4c. Retorna Features em Cache"--> SEARCH_API
+    FS --"4d. Retorna Features"--> SEARCH_API
+    SEARCH_API --"5a. Envia Candidatos + Features<br>para Re-ranquear"--> ML_MODEL
+    ML_MODEL --"5b. Retorna Scores de ML"--> SEARCH_API
+    SEARCH_API --"6. Ordena pelo Score de ML<br>e retorna Top 20"--> API_GW
+    API_GW --"7. Responde ao Usuário"--> USER
+
+```

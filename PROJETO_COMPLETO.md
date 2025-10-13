@@ -198,3 +198,6 @@ O sistema foi projetado para:
 ✅ **Scripts de automação**  
 
 **O sistema está pronto para produção e pode ser facilmente expandido para suportar os desafios de um marketplace real como o Mercado Livre!** 🚀
+
+
+

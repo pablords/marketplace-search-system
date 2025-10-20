@@ -19,6 +19,31 @@ spring:
       enabled: true
       port: 35729
     add-properties: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/marketplace
+    username: marketplace
+    password: marketplace123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
+  
+  jpa:
+    hibernate:
+      ddl-auto: none  # Schema gerenciado por migrations ou script SQL
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
   
   # Redis para desenvolvimento
   redis:
@@ -37,20 +62,46 @@ spring:
         period: 0s
       chain:
         cache: false
+  
+  # Kafka configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: marketplace-search-elasticsearch-indexer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 100
+      properties:
+        session.timeout.ms: 30000
+        max.poll.interval.ms: 300000
+    producer:
+      client-id: marketplace-search-producer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
 
 # Elasticsearch para desenvolvimento
 elasticsearch:
   indices:
     products: products
 
+# Kafka topics para desenvolvimento
+kafka:
+  topics:
+    product-events: marketplace.public.products
+  consumer:
+    group-id: marketplace-search-elasticsearch-indexer
+
 # Logging mais verboso para desenvolvimento
 logging:
   level:
     com.marketplace.search: DEBUG
-    # Kafka logging silenciado
-    org.springframework.kafka: OFF
-    org.apache.kafka: OFF
-    kafka: OFF
+    # Kafka logging habilitado para debug do CDC
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+    com.marketplace.search.infrastructure.kafka: DEBUG
     # Elasticsearch logging silenciado
     org.elasticsearch: OFF
     org.springframework.data.elasticsearch: OFF

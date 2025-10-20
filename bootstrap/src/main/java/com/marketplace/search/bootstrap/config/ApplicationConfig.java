@@ -2,8 +2,10 @@ package com.marketplace.search.bootstrap.config;
 
 import java.util.concurrent.Executor;
 
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -14,6 +16,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 @EnableAsync
 @EnableScheduling
+@EnableJpaRepositories(basePackages = "com.marketplace.search.infrastructure.persistence.repositories")
+@EntityScan(basePackages = "com.marketplace.search.infrastructure.persistence.entities")
 public class ApplicationConfig {
 
     /**

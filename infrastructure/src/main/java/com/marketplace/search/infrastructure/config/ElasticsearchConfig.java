@@ -58,6 +58,9 @@ public class ElasticsearchConfig {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         
+        // Desabilitar serialização de datas como timestamps (usar ISO-8601)
+        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
         // Ignorar campos desconhecidos no JSON (ex: seller_id, brand_id, etc)
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         

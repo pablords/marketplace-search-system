@@ -48,6 +48,7 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
     private final ElasticsearchClient client;
     private final ElasticsearchProductMapper mapper;
     private final String indexName;
+    private volatile boolean indexCreated = false;
 
     public ElasticsearchProductIndexRepository(
             ElasticsearchClient client,
@@ -57,12 +58,40 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
         this.mapper = mapper;
         this.indexName = indexName;
         
-        // Criar índice se não existir
-        createIndexIfNotExists();
+        // Tentar criar índice de forma não bloqueante
+        tryCreateIndexAsync();
+    }
+    
+    /**
+     * Tenta criar o índice de forma assíncrona, sem bloquear a inicialização
+     */
+    private void tryCreateIndexAsync() {
+        new Thread(() -> {
+            try {
+                Thread.sleep(2000); // Aguarda Elasticsearch estabilizar
+                createIndexIfNotExists();
+            } catch (Exception e) {
+                logger.warn("Failed to create index during initialization, will retry on first operation: {}", e.getMessage());
+            }
+        }, "elasticsearch-index-creator").start();
+    }
+    
+    /**
+     * Garante que o índice existe antes de qualquer operação
+     */
+    private void ensureIndexExists() {
+        if (!indexCreated) {
+            synchronized (this) {
+                if (!indexCreated) {
+                    createIndexIfNotExists();
+                }
+            }
+        }
     }
 
     @Override
     public void indexProduct(Product product) {
+        ensureIndexExists();
         try {
             ProductDocument document = mapper.toDocument(product);
             
@@ -90,6 +119,7 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
             return;
         }
 
+        ensureIndexExists();
         try {
             BulkRequest.Builder bulkBuilder = new BulkRequest.Builder()
                 .index(indexName)
@@ -126,6 +156,7 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
 
     @Override
     public void updateProduct(Product product) {
+        ensureIndexExists();
         try {
             ProductDocument document = mapper.toDocument(product);
             
@@ -150,6 +181,7 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
 
     @Override
     public void deleteProduct(ProductId productId) {
+        ensureIndexExists();
         try {
             DeleteRequest request = DeleteRequest.of(d -> d
                 .index(indexName)
@@ -174,6 +206,7 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
             return;
         }
 
+        ensureIndexExists();
         try {
             BulkRequest.Builder bulkBuilder = new BulkRequest.Builder()
                 .index(indexName)
@@ -407,10 +440,10 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
                             .text(t -> t.analyzer("standard"))
                         )
                         .properties("created_at", p -> p
-                            .date(d -> d.format("yyyy-MM-dd'T'HH:mm:ss.SSSZ"))
+                            .date(d -> d.format("strict_date_optional_time_nanos"))
                         )
                         .properties("updated_at", p -> p
-                            .date(d -> d.format("yyyy-MM-dd'T'HH:mm:ss.SSSZ"))
+                            .date(d -> d.format("strict_date_optional_time_nanos"))
                         )
                     )
                     .settings(s -> s
@@ -422,7 +455,12 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
 
                 client.indices().create(createRequest);
                 logger.info("Created Elasticsearch index: {}", indexName);
+            } else {
+                logger.debug("Elasticsearch index already exists: {}", indexName);
             }
+            
+            // Marca que o índice foi criado/verificado com sucesso
+            indexCreated = true;
 
         } catch (IOException | ElasticsearchException e) {
             logger.error("Failed to create index: {}", indexName, e);

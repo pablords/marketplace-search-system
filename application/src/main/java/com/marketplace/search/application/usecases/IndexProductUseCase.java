@@ -1,5 +1,15 @@
 package com.marketplace.search.application.usecases;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
 import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.mappers.ProductMapper;
 import com.marketplace.search.domain.entities.Product;
@@ -7,16 +17,10 @@ import com.marketplace.search.domain.events.ProductCreatedEvent;
 import com.marketplace.search.domain.events.ProductUpdatedEvent;
 import com.marketplace.search.domain.repositories.ProductIndexRepository;
 import com.marketplace.search.domain.valueobjects.ProductId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * Caso de uso para indexação de produtos
+ * Caso de uso para indexação de produtos.
+ * Executa operações de indexação de forma assíncrona para não bloquear o caller.
  */
 @Service
 public class IndexProductUseCase {
@@ -36,10 +40,13 @@ public class IndexProductUseCase {
     }
 
     /**
-     * Indexa um único produto
+     * Indexa um único produto de forma assíncrona.
+     * Este método retorna imediatamente, permitindo que o caller continue seu processamento.
+     * A indexação acontece em background usando o threadpool configurado.
      */
-    public void execute(ProductDTO productDTO) {
-        logger.info("Indexing product: id={}, title='{}'", 
+    @Async("asyncIndexingExecutor")
+    public CompletableFuture<Void> execute(ProductDTO productDTO) {
+        logger.info("Indexing product asynchronously: id={}, title='{}'", 
                    productDTO.getId(), productDTO.getTitle());
         
         try {
@@ -58,9 +65,12 @@ public class IndexProductUseCase {
                 logger.info("Product indexed: {}", product.getId());
             }
             
+            return CompletableFuture.completedFuture(null);
+            
         } catch (Exception e) {
             logger.error("Error indexing product: {}", productDTO.getId(), e);
-            throw new IndexingException("Failed to index product: " + productDTO.getId(), e);
+            return CompletableFuture.failedFuture(
+                new IndexingException("Failed to index product: " + productDTO.getId(), e));
         }
     }
 

@@ -3,17 +3,17 @@ package com.marketplace.search.application.usecases;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.mappers.ProductMapper;
 import com.marketplace.search.domain.entities.Product;
-import com.marketplace.search.domain.events.ProductCreatedEvent;
-import com.marketplace.search.domain.repositories.EventPublisher;
+import com.marketplace.search.domain.repositories.ProductRepository;
 
 /**
  * Caso de uso responsável por orquestrar o fluxo de criação de um produto.
- * O produto é publicado como evento de domínio para que outras camadas
- * (como a indexação no Elasticsearch) possam reagir via Kafka.
+ * O produto é persistido no PostgreSQL via ProductRepository (port) e o Debezium (CDC) 
+ * automaticamente captura a mudança e publica no Kafka para indexação no Elasticsearch.
  */
 @Service
 public class CreateProductUseCase {
@@ -21,27 +21,34 @@ public class CreateProductUseCase {
     private static final Logger logger = LoggerFactory.getLogger(CreateProductUseCase.class);
 
     private final ProductMapper productMapper;
-    private final EventPublisher eventPublisher;
+    private final ProductRepository productRepository;
 
-    public CreateProductUseCase(ProductMapper productMapper, EventPublisher eventPublisher) {
+    public CreateProductUseCase(
+            ProductMapper productMapper,
+            ProductRepository productRepository) {
         this.productMapper = productMapper;
-        this.eventPublisher = eventPublisher;
+        this.productRepository = productRepository;
     }
 
     /**
-     * Cria um novo produto, publicando o evento correspondente na fila de Kafka.
+     * Cria um novo produto salvando no PostgreSQL.
+     * O Debezium captura automaticamente a inserção via CDC e publica no Kafka.
      *
      * @param productDTO dados do produto informado pelo cliente
      */
+    @Transactional
     public void execute(ProductDTO productDTO) {
         logger.info("Received request for create product: id={}, title='{}'",
             productDTO.getId(), productDTO.getTitle());
 
+        // Converte DTO para domínio
         Product product = productMapper.toDomain(productDTO);
 
-        ProductCreatedEvent event = new ProductCreatedEvent(product);
-        eventPublisher.publish(event);
+        // Salva usando o repositório (port - implementado por adapter na infrastructure)
+        productRepository.save(product);
 
-        logger.info("Event of create product {} publish with success", productDTO.getId());
+        logger.info("Product {} saved to PostgreSQL. Debezium will capture and publish to Kafka.", 
+            productDTO.getId());
     }
 }
+

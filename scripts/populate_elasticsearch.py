@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Script para popular o Elasticsearch com 100 produtos de teste
+Script para popular o banco de dados com produtos de teste via API REST.
+Os produtos serão salvos no PostgreSQL e automaticamente indexados no Elasticsearch via CDC (Debezium).
 """
 
 import json
@@ -9,8 +10,13 @@ import requests
 from datetime import datetime, timedelta
 from faker import Faker
 import uuid
+import time
 
-# Configuração do Elasticsearch
+# Configuração da API
+API_URL = "http://localhost:8080/api/v1"
+PRODUCTS_BASE_ENDPOINT = f"{API_URL}/search/products"
+
+# Configuração do Elasticsearch (para verificação)
 ELASTICSEARCH_URL = "http://localhost:9200"
 INDEX_NAME = "products"
 
@@ -32,29 +38,29 @@ CATEGORIES = [
 ]
 
 BRANDS = [
-    {"id": "brand_1", "name": "Samsung"},
-    {"id": "brand_2", "name": "Apple"},
-    {"id": "brand_3", "name": "Dell"},
-    {"id": "brand_4", "name": "Nike"},
-    {"id": "brand_5", "name": "Adidas"},
-    {"id": "brand_6", "name": "Sony"},
-    {"id": "brand_7", "name": "LG"},
-    {"id": "brand_8", "name": "Xiaomi"},
-    {"id": "brand_9", "name": "Lenovo"},
-    {"id": "brand_10", "name": "HP"}
+    {"id": "brand_1", "name": "Samsung", "description": "Marca líder em tecnologia"},
+    {"id": "brand_2", "name": "Apple", "description": "Inovação e design"},
+    {"id": "brand_3", "name": "Dell", "description": "Computadores de qualidade"},
+    {"id": "brand_4", "name": "Nike", "description": "Just do it"},
+    {"id": "brand_5", "name": "Adidas", "description": "Impossible is nothing"},
+    {"id": "brand_6", "name": "Sony", "description": "Entretenimento e tecnologia"},
+    {"id": "brand_7", "name": "LG", "description": "Life's good"},
+    {"id": "brand_8", "name": "Xiaomi", "description": "Tecnologia acessível"},
+    {"id": "brand_9", "name": "Lenovo", "description": "For those who do"},
+    {"id": "brand_10", "name": "HP", "description": "Keep reinventing"}
 ]
 
 SELLERS = [
-    {"id": "seller_1", "name": "TechStore Brasil", "reputation_score": 4.8},
-    {"id": "seller_2", "name": "Casa & Decoração Ltda", "reputation_score": 4.5},
-    {"id": "seller_3", "name": "Fashion Store", "reputation_score": 4.2},
-    {"id": "seller_4", "name": "Livraria Digital", "reputation_score": 4.9},
-    {"id": "seller_5", "name": "Sport Center", "reputation_score": 4.6},
-    {"id": "seller_6", "name": "Mega Electronics", "reputation_score": 4.7},
-    {"id": "seller_7", "name": "Style Fashion", "reputation_score": 4.3},
-    {"id": "seller_8", "name": "Home Decor", "reputation_score": 4.4},
-    {"id": "seller_9", "name": "Tech Paradise", "reputation_score": 4.8},
-    {"id": "seller_10", "name": "Sports World", "reputation_score": 4.5}
+    {"id": "seller_1", "name": "TechStore Brasil", "type": "PROFESSIONAL", "status": "ACTIVE", 
+     "reputation": {"score": 4.8, "total_reviews": 1500, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "seller_2", "name": "Casa & Decoração Ltda", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.5, "total_reviews": 1200, "cancellation_rate": 0.03, "delivery_performance": 0.95}},
+    {"id": "seller_3", "name": "Fashion Store", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.2, "total_reviews": 800, "cancellation_rate": 0.05, "delivery_performance": 0.92}},
+    {"id": "seller_4", "name": "Livraria Digital", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.9, "total_reviews": 2000, "cancellation_rate": 0.01, "delivery_performance": 0.99}},
+    {"id": "seller_5", "name": "Sport Center", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.6, "total_reviews": 1100, "cancellation_rate": 0.02, "delivery_performance": 0.96}}
 ]
 
 PRODUCT_NAMES = [
@@ -96,8 +102,8 @@ def generate_price_range(price):
         return "1000+"
 
 def generate_product():
-    """Gera um produto aleatório"""
-    product_id = str(uuid.uuid4())
+    """Gera um produto aleatório no formato da API"""
+    product_id = f"MLB{random.randint(100000, 999999)}"
     category = random.choice(CATEGORIES)
     brand = random.choice(BRANDS)
     seller = random.choice(SELLERS)
@@ -119,34 +125,28 @@ def generate_product():
     images = [f"https://marketplace.com/images/{product_id}_{i}.jpg" for i in range(num_images)]
     
     # Gera atributos baseados na categoria
-    attributes = set()
+    attributes = []
     if "Eletrônicos" in category["path"]:
-        attributes.add("Garantia 1 ano")
-        attributes.add("Bivolt")
+        attributes.extend(["Garantia 1 ano", "Bivolt"])
     if "Roupas" in category["path"]:
-        attributes.add(f"Tamanho {random.choice(['P', 'M', 'G', 'GG'])}")
-        attributes.add(f"Cor {random.choice(['Preto', 'Branco', 'Azul', 'Vermelho', 'Verde'])}")
+        attributes.extend([
+            f"Tamanho {random.choice(['P', 'M', 'G', 'GG'])}",
+            f"Cor {random.choice(['Preto', 'Branco', 'Azul', 'Vermelho', 'Verde'])}"
+        ])
     if "Esportes" in category["path"]:
-        attributes.add(f"Tamanho {random.randint(35, 44)}")
-        attributes.add("Material sintético")
+        attributes.extend([f"Tamanho {random.randint(35, 44)}", "Material sintético"])
     
     # Gera tags
-    tags = {fake.word() for _ in range(random.randint(2, 5))}
+    tags = [fake.word() for _ in range(random.randint(2, 5))]
     
     # Gera métricas
-    views = random.randint(10, 5000)
-    sales = random.randint(0, 200)
-    rating = round(random.uniform(3.0, 5.0), 1)
+    stock_quantity = random.randint(5, 100)
+    total_reviews = random.randint(10, 500)
+    positive_reviews = int(total_reviews * random.uniform(0.6, 0.9))
+    negative_reviews = int(total_reviews * random.uniform(0.05, 0.15))
+    neutral_reviews = total_reviews - positive_reviews - negative_reviews
     
-    # Gera datas
-    created_date = fake.date_time_between(start_date='-2y', end_date='now')
-    updated_date = fake.date_time_between(start_date=created_date, end_date='now')
-    
-    popularity_score = round(random.uniform(0.1, 1.0), 2)
-    
-    # Gera valores para campos específicos que o notebook espera no nível raiz
-    stock_quantity = random.randint(0, 100)
-    
+    # Monta o payload no formato esperado pela API
     product = {
         "id": product_id,
         "title": title,
@@ -156,209 +156,150 @@ def generate_product():
         "category": {
             "id": category["id"],
             "name": category["name"],
-            "path": category["path"],
-            "parent_id": category.get("parent_id")
+            "parent_id": category.get("parent_id"),
+            "path": category["path"]
         },
         "brand": {
             "id": brand["id"],
-            "name": brand["name"]
+            "name": brand["name"],
+            "description": brand["description"]
         },
         "seller": {
             "id": seller["id"],
             "name": seller["name"],
-            "reputation_score": seller["reputation_score"]
+            "type": seller["type"],
+            "status": seller["status"],
+            "reputation": {
+                "score": seller["reputation"]["score"],
+                "total_reviews": total_reviews,
+                "positive_reviews": positive_reviews,
+                "neutral_reviews": neutral_reviews,
+                "negative_reviews": negative_reviews,
+                "cancellation_rate": seller["reputation"]["cancellation_rate"],
+                "delivery_performance": seller["reputation"]["delivery_performance"]
+            },
+            "member_since": fake.date_time_between(start_date='-5y', end_date='-1y').isoformat() + 'Z'
         },
         "images": images,
-        "attributes": list(attributes),
-        "tags": list(tags),
-        "metrics": {
-            "total_views": views,
-            "total_sales": sales,
-            "average_rating": rating,
-            "stock_quantity": stock_quantity,
-            "conversion_rate": round(random.uniform(0.01, 0.15), 3),
-            "total_reviews": random.randint(0, 50)
-        },
-        "status": {
-            "is_active": (is_active := random.choice([True, False])),
-            "is_suspended": False if is_active else random.choice([True, False]),
-            "has_stock": random.choice([True, False])
-        },
-        "created_at": created_date.isoformat() + "Z",
-        "updated_at": updated_date.isoformat() + "Z",
-        "searchable_text": f"{title} {description} {brand['name']} {category['name']}",
-        "price_range": generate_price_range(price),
-        "popularity_score": popularity_score,
-        
-        # Campos adicionais no nível raiz para compatibilidade com notebook
-        "seller_id": seller["id"],
-        "seller_name": seller["name"],
-        "seller_reputation": seller["reputation_score"],
-        "brand_id": brand["id"],
-        "brand_name": brand["name"],
-        "category_id": category["id"],
-        "category_name": category["name"],
+        "attributes": attributes,
+        "tags": tags,
         "stock_quantity": stock_quantity,
-        "total_views": views,
-        "total_sales": sales,
-        "average_rating": rating
+        "condition": random.choice(["NEW", "USED", "REFURBISHED"]),
+        "is_active": random.choice([True, True, True, False])  # 75% ativo
     }
     
     return product
 
-def create_index():
-    """Cria o índice no Elasticsearch com mapping adequado"""
-    mapping = {
-        "mappings": {
-            "properties": {
-                "id": {"type": "keyword"},
-                "title": {"type": "text", "analyzer": "standard"},
-                "description": {"type": "text", "analyzer": "standard"},
-                "price": {"type": "double"},
-                "currency": {"type": "keyword"},
-                "category": {
-                    "properties": {
-                        "id": {"type": "keyword"},
-                        "name": {"type": "text"},
-                        "path": {"type": "keyword"},
-                        "parent_id": {"type": "keyword"}
-                    }
-                },
-                "brand": {
-                    "properties": {
-                        "id": {"type": "keyword"},
-                        "name": {"type": "text"}
-                    }
-                },
-                "seller": {
-                    "properties": {
-                        "id": {"type": "keyword"},
-                        "name": {"type": "text"},
-                        "reputation_score": {"type": "double"}
-                    }
-                },
-                "images": {"type": "keyword"},
-                "attributes": {"type": "keyword"},
-                "tags": {"type": "keyword"},
-                "metrics": {
-                    "properties": {
-                        "total_views": {"type": "integer"},
-                        "total_sales": {"type": "integer"},
-                        "average_rating": {"type": "double"},
-                        "stock_quantity": {"type": "integer"},
-                        "conversion_rate": {"type": "double"},
-                        "total_reviews": {"type": "integer"}
-                    }
-                },
-                "is_active": {"type": "boolean"},
-                "is_suspended": {"type": "boolean"},
-                "has_stock": {"type": "boolean"},
-                "created_at": {"type": "date"},
-                "updated_at": {"type": "date"},
-                "searchable_text": {"type": "text", "analyzer": "standard"},
-                "price_range": {"type": "keyword"},
-                "popularity_score": {"type": "double"},
-                
-                # Campos adicionais no nível raiz para facilitar análises
-                "seller_id": {"type": "keyword"},
-                "seller_name": {"type": "text"},
-                "seller_reputation": {"type": "double"},
-                "brand_id": {"type": "keyword"},
-                "brand_name": {"type": "text"},
-                "category_id": {"type": "keyword"},
-                "category_name": {"type": "text"},
-                "stock_quantity": {"type": "integer"},
-                "total_views": {"type": "integer"},
-                "total_sales": {"type": "integer"},
-                "average_rating": {"type": "double"}
-            }
-        }
-    }
-    
-    # Deleta o índice se já existir
-    requests.delete(f"{ELASTICSEARCH_URL}/{INDEX_NAME}")
-    
-    # Cria o novo índice
-    response = requests.put(f"{ELASTICSEARCH_URL}/{INDEX_NAME}", json=mapping)
-    if response.status_code not in [200, 201]:
-        print(f"Erro ao criar índice: {response.text}")
-        return False
-    
-    print(f"Índice '{INDEX_NAME}' criado com sucesso!")
-    return True
-
-def bulk_index_products(products):
-    """Indexa produtos em lote no Elasticsearch"""
-    bulk_data = []
-    
-    for product in products:
-        # Ação de indexação
-        action = {"index": {"_index": INDEX_NAME, "_id": product["id"]}}
-        bulk_data.append(json.dumps(action))
-        bulk_data.append(json.dumps(product))
-    
-    bulk_body = "\n".join(bulk_data) + "\n"
-    
-    headers = {"Content-Type": "application/x-ndjson"}
-    response = requests.post(f"{ELASTICSEARCH_URL}/_bulk", data=bulk_body, headers=headers)
-    
-    if response.status_code == 200:
-        result = response.json()
-        if result.get("errors"):
-            print("Alguns produtos falharam na indexação:")
-            for item in result["items"]:
-                if "error" in item.get("index", {}):
-                    print(f"Erro: {item['index']['error']}")
+def create_product_via_api(product):
+    """Cria um produto via API REST usando o endpoint /products/{id}/index"""
+    try:
+        product_id = product["id"]
+        endpoint = f"{PRODUCTS_BASE_ENDPOINT}/{product_id}/index"
+        
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(endpoint, json=product, headers=headers, timeout=5)
+        
+        if response.status_code in [200, 201, 204]:
+            return True, None
         else:
-            print(f"Todos os {len(products)} produtos foram indexados com sucesso!")
-    else:
-        print(f"Erro na indexação em lote: {response.text}")
+            return False, f"Status {response.status_code}: {response.text}"
+    except requests.exceptions.RequestException as e:
+        return False, str(e)
 
 def main():
     """Função principal"""
-    print("🚀 Iniciando geração de produtos para teste...")
+    print("🚀 Iniciando criação de produtos via API REST...")
+    print(f"📍 API URL: {API_URL}")
+    print(f"📍 Elasticsearch URL: {ELASTICSEARCH_URL}")
+    print()
+    
+    # Verifica se a API está rodando
+    try:
+        response = requests.get(f"{API_URL}/actuator/health", timeout=3)
+        if response.status_code == 200:
+            print("✅ API está rodando!")
+        else:
+            print("⚠️  API respondeu mas pode não estar saudável")
+    except requests.exceptions.ConnectionError:
+        print("❌ Não foi possível conectar à API. Verifique se está rodando em localhost:8080")
+        return
+    except requests.exceptions.Timeout:
+        print("⚠️  API demorou para responder, mas vamos tentar continuar...")
     
     # Verifica se o Elasticsearch está rodando
     try:
-        response = requests.get(f"{ELASTICSEARCH_URL}/_cluster/health")
-        if response.status_code != 200:
-            print("❌ Elasticsearch não está acessível!")
-            return
-        print("✅ Elasticsearch está rodando!")
+        response = requests.get(f"{ELASTICSEARCH_URL}/_cluster/health", timeout=3)
+        if response.status_code == 200:
+            print("✅ Elasticsearch está rodando!")
+        else:
+            print("⚠️  Elasticsearch respondeu mas pode não estar saudável")
     except requests.exceptions.ConnectionError:
-        print("❌ Não foi possível conectar ao Elasticsearch. Verifique se está rodando em localhost:9200")
-        return
+        print("❌ Elasticsearch não está acessível em localhost:9200")
+        print("⚠️  Os produtos serão criados mas não poderão ser verificados")
     
-    # Cria o índice
-    if not create_index():
-        return
+    print()
+    print("📦 Gerando e criando produtos...")
+    print("=" * 60)
     
-    # Gera produtos
-    print("📦 Gerando 100 produtos...")
-    products = []
-    for i in range(100):
+    # Gera e cria produtos
+    total_products = 10
+    created = 0
+    failed = 0
+    
+    for i in range(total_products):
         product = generate_product()
-        products.append(product)
-        if (i + 1) % 10 == 0:
-            print(f"   Gerados {i + 1}/100 produtos...")
+        
+        success, error = create_product_via_api(product)
+        
+        if success:
+            created += 1
+            if (i + 1) % 10 == 0:
+                print(f"✅ [{i + 1}/{total_products}] Produtos criados: {created} | Falhas: {failed}")
+        else:
+            failed += 1
+            print(f"❌ Erro ao criar produto {product['id']}: {error}")
+        
+        # Pequeno delay para não sobrecarregar a API
+        time.sleep(0.1)
     
-    # Indexa produtos em lotes de 10
-    print("📝 Indexando produtos no Elasticsearch...")
-    batch_size = 10
-    for i in range(0, len(products), batch_size):
-        batch = products[i:i + batch_size]
-        bulk_index_products(batch)
-        print(f"   Indexados {min(i + batch_size, len(products))}/100 produtos...")
+    print("=" * 60)
+    print()
+    print(f"📊 Resumo:")
+    print(f"   ✅ Produtos criados com sucesso: {created}")
+    print(f"   ❌ Produtos com falha: {failed}")
+    print(f"   📈 Taxa de sucesso: {(created/total_products)*100:.1f}%")
+    print()
     
-    # Verifica a indexação
-    print("🔍 Verificando indexação...")
-    response = requests.get(f"{ELASTICSEARCH_URL}/{INDEX_NAME}/_count")
-    if response.status_code == 200:
-        count = response.json()["count"]
-        print(f"✅ Total de produtos indexados: {count}")
+    # Aguarda alguns segundos para o Debezium processar
+    print("⏳ Aguardando 5 segundos para o CDC (Debezium) processar...")
+    time.sleep(5)
     
-    print("🎉 Script finalizado com sucesso!")
-    print(f"🌐 Você pode verificar os dados em: {ELASTICSEARCH_URL}/{INDEX_NAME}/_search")
+    # Verifica a indexação no Elasticsearch
+    try:
+        print("🔍 Verificando indexação no Elasticsearch...")
+        response = requests.get(f"{ELASTICSEARCH_URL}/{INDEX_NAME}/_count", timeout=3)
+        if response.status_code == 200:
+            count = response.json()["count"]
+            print(f"✅ Total de produtos indexados no Elasticsearch: {count}")
+            
+            if count < created:
+                print(f"⚠️  Alguns produtos ainda podem estar sendo processados pelo CDC")
+                print(f"   Aguarde alguns segundos e verifique novamente")
+        else:
+            print(f"⚠️  Não foi possível verificar a contagem no Elasticsearch")
+    except:
+        print("⚠️  Não foi possível verificar o Elasticsearch")
+    
+    print()
+    print("🎉 Script finalizado!")
+    print()
+    print("🌐 URLs úteis:")
+    print(f"   - API Products: {PRODUCTS_BASE_ENDPOINT}")
+    print(f"   - Swagger UI: {API_URL}/swagger-ui/index.html")
+    print(f"   - Elasticsearch Search: {ELASTICSEARCH_URL}/{INDEX_NAME}/_search")
+    print(f"   - Kibana: http://localhost:5601")
+    print(f"   - Kafka UI: http://localhost:8081")
+    print(f"   - Kafka Connect: http://localhost:8083/connectors")
 
 if __name__ == "__main__":
     main()

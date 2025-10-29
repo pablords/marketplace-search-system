@@ -55,8 +55,7 @@ spring.log
 # Docker
 docker-compose.override.yml
 
-# Dados de desenvolvimento
-data/
+
 volumes/
 
 # Certificados e chaves

@@ -21,7 +21,7 @@ spring:
     add-properties: true
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/marketplace
+    url: jdbc:postgresql://postgres.pablolab.online:5432/marketplace
     username: marketplace
     password: marketplace123
     driver-class-name: org.postgresql.Driver
@@ -45,6 +45,15 @@ spring:
         order_updates: true
     open-in-view: false
   
+  # Configuração para executar scripts SQL na inicialização
+  sql:
+    init:
+      mode: always  # Executa sempre (embedded, always, never)
+      schema-locations: classpath:data/create_products_table.sql
+      data-locations: classpath:data/insert_sample_products.sql
+      continue-on-error: true  # Continua mesmo se houver erros (tabela já existe)
+      separator: ";"
+  
   # Redis para desenvolvimento
   redis:
     host: localhost
@@ -65,7 +74,7 @@ spring:
   
   # Kafka configuration
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka.pablolab.online:9092
     consumer:
       group-id: marketplace-search-elasticsearch-indexer
       auto-offset-reset: earliest
@@ -84,6 +93,11 @@ spring:
 
 # Elasticsearch para desenvolvimento
 elasticsearch:
+  host: elasticsearch.pablolab.online
+  port: 9200
+  scheme: http
+  connection-timeout: 10000
+  socket-timeout: 60000
   indices:
     products: products
 

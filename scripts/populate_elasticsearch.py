@@ -14,10 +14,10 @@ import time
 
 # Configuração da API
 API_URL = "http://localhost:8080/api/v1"
-PRODUCTS_BASE_ENDPOINT = f"{API_URL}/search/products"
+PRODUCTS_ENDPOINT = f"{API_URL}/products"
 
 # Configuração do Elasticsearch (para verificação)
-ELASTICSEARCH_URL = "http://localhost:9200"
+ELASTICSEARCH_URL = "https://elasticsearch.pablolab.online:9200"
 INDEX_NAME = "products"
 
 # Configuração do Faker para gerar dados em português
@@ -127,14 +127,53 @@ def generate_product():
     # Gera atributos baseados na categoria
     attributes = []
     if "Eletrônicos" in category["path"]:
-        attributes.extend(["Garantia 1 ano", "Bivolt"])
-    if "Roupas" in category["path"]:
         attributes.extend([
-            f"Tamanho {random.choice(['P', 'M', 'G', 'GG'])}",
-            f"Cor {random.choice(['Preto', 'Branco', 'Azul', 'Vermelho', 'Verde'])}"
+            "Garantia de 1 ano",
+            "Bivolt",
+            f"Cor: {random.choice(['Preto', 'Branco', 'Prata', 'Azul', 'Vermelho'])}",
+            f"Modelo: {fake.bothify('??-###')}"
         ])
-    if "Esportes" in category["path"]:
-        attributes.extend([f"Tamanho {random.randint(35, 44)}", "Material sintético"])
+        if "Smartphones" in category["name"]:
+            attributes.extend([
+                f"Memória: {random.choice(['64GB', '128GB', '256GB', '512GB'])}",
+                f"RAM: {random.choice(['4GB', '6GB', '8GB', '12GB'])}",
+                f"Câmera: {random.choice(['12MP', '48MP', '64MP', '108MP'])}",
+                f"Tela: {random.choice(['5.5 pol', '6.1 pol', '6.4 pol', '6.7 pol'])}"
+            ])
+        elif "Notebooks" in category["name"]:
+            attributes.extend([
+                f"Processador: {random.choice(['Intel i5', 'Intel i7', 'AMD Ryzen 5', 'AMD Ryzen 7'])}",
+                f"RAM: {random.choice(['8GB', '16GB', '32GB'])}",
+                f"Armazenamento: {random.choice(['256GB SSD', '512GB SSD', '1TB SSD', '1TB HDD'])}",
+                f"Tela: {random.choice(['14 pol', '15.6 pol', '17.3 pol'])}"
+            ])
+    elif "Roupas" in category["path"]:
+        attributes.extend([
+            f"Tamanho: {random.choice(['PP', 'P', 'M', 'G', 'GG', 'XGG'])}",
+            f"Cor: {random.choice(['Preto', 'Branco', 'Azul', 'Vermelho', 'Verde', 'Rosa', 'Amarelo'])}",
+            f"Material: {random.choice(['Algodão', 'Poliéster', 'Viscose', 'Linho', 'Jeans'])}",
+            f"Gênero: {random.choice(['Masculino', 'Feminino', 'Unissex'])}"
+        ])
+    elif "Esportes" in category["path"]:
+        attributes.extend([
+            f"Tamanho: {random.randint(35, 44)}",
+            f"Material: {random.choice(['Sintético', 'Couro', 'Tecido', 'Mesh'])}",
+            f"Cor: {random.choice(['Preto', 'Branco', 'Azul', 'Vermelho', 'Verde'])}",
+            f"Tipo: {random.choice(['Corrida', 'Casual', 'Futebol', 'Basquete', 'Caminhada'])}"
+        ])
+    elif "Casa" in category["path"]:
+        attributes.extend([
+            f"Material: {random.choice(['Madeira', 'Metal', 'Plástico', 'Vidro', 'Cerâmica'])}",
+            f"Cor: {random.choice(['Branco', 'Preto', 'Marrom', 'Bege', 'Cinza'])}",
+            f"Dimensões: {random.randint(10, 200)}x{random.randint(10, 200)}cm"
+        ])
+    else:
+        # Atributos genéricos
+        attributes.extend([
+            f"Cor: {random.choice(['Preto', 'Branco', 'Azul', 'Vermelho', 'Verde'])}",
+            f"Material: {random.choice(['Plástico', 'Metal', 'Madeira', 'Tecido'])}",
+            "Produto nacional"
+        ])
     
     # Gera tags
     tags = [fake.word() for _ in range(random.randint(2, 5))]
@@ -142,31 +181,50 @@ def generate_product():
     # Gera métricas
     stock_quantity = random.randint(5, 100)
     total_reviews = random.randint(10, 500)
-    positive_reviews = int(total_reviews * random.uniform(0.6, 0.9))
-    negative_reviews = int(total_reviews * random.uniform(0.05, 0.15))
+    
+    # Calcula reviews de forma que a soma seja exata
+    positive_percentage = random.uniform(0.6, 0.9)
+    negative_percentage = random.uniform(0.05, 0.15)
+    neutral_percentage = 1.0 - positive_percentage - negative_percentage
+    
+    positive_reviews = int(total_reviews * positive_percentage)
+    negative_reviews = int(total_reviews * negative_percentage)
     neutral_reviews = total_reviews - positive_reviews - negative_reviews
     
-    # Monta o payload no formato esperado pela API
+    # Garante que a soma seja exata (ajusta o neutral se necessário)
+    if positive_reviews + negative_reviews + neutral_reviews != total_reviews:
+        neutral_reviews = total_reviews - positive_reviews - negative_reviews
+    
+    # Monta o payload no formato esperado pela API (ProductDTO)
     product = {
         "id": product_id,
         "title": title,
         "description": description,
         "price": price,
         "currency": "BRL",
+        "stock_quantity": stock_quantity,  # Campo correto do ProductDTO
+        "condition": random.choice(["NEW", "USED", "REFURBISHED"]),
+        "is_active": random.choice([True, False]),  # Campo correto do ProductDTO
+        
+        # Categoria (como objeto CategoryDTO)
         "category": {
             "id": category["id"],
             "name": category["name"],
-            "parent_id": category.get("parent_id"),
-            "path": category["path"]
+            "path": category["path"],
+            "parent_id": category.get("parent_id")
         },
+        
+        # Marca (como objeto BrandDTO)
         "brand": {
             "id": brand["id"],
             "name": brand["name"],
             "description": brand["description"]
         },
+        
+        # Vendedor (como objeto SellerDTO)
         "seller": {
             "id": seller["id"],
-            "name": seller["name"],
+            "name": seller["name"],  # Campo correto é 'name', não 'nickname'
             "type": seller["type"],
             "status": seller["status"],
             "reputation": {
@@ -177,29 +235,24 @@ def generate_product():
                 "negative_reviews": negative_reviews,
                 "cancellation_rate": seller["reputation"]["cancellation_rate"],
                 "delivery_performance": seller["reputation"]["delivery_performance"]
-            },
-            "member_since": fake.date_time_between(start_date='-5y', end_date='-1y').isoformat() + 'Z'
+            }
         },
+        
+        # Outros campos
         "images": images,
-        "attributes": attributes,
-        "tags": tags,
-        "stock_quantity": stock_quantity,
-        "condition": random.choice(["NEW", "USED", "REFURBISHED"]),
-        "is_active": random.choice([True, True, True, False])  # 75% ativo
+        "attributes": attributes,  # Set<String> no backend
+        "tags": tags              # Set<String> no backend
     }
     
     return product
 
 def create_product_via_api(product):
-    """Cria um produto via API REST usando o endpoint /products/{id}/index"""
+    """Cria um produto via API REST usando o ProductCommandController endpoint /products"""
     try:
-        product_id = product["id"]
-        endpoint = f"{PRODUCTS_BASE_ENDPOINT}/{product_id}/index"
-        
         headers = {"Content-Type": "application/json"}
-        response = requests.post(endpoint, json=product, headers=headers, timeout=5)
+        response = requests.post(PRODUCTS_ENDPOINT, json=product, headers=headers, timeout=10)
         
-        if response.status_code in [200, 201, 204]:
+        if response.status_code in [201, 200]:
             return True, None
         else:
             return False, f"Status {response.status_code}: {response.text}"
@@ -294,7 +347,7 @@ def main():
     print("🎉 Script finalizado!")
     print()
     print("🌐 URLs úteis:")
-    print(f"   - API Products: {PRODUCTS_BASE_ENDPOINT}")
+    print(f"   - API Products: {PRODUCTS_ENDPOINT}")
     print(f"   - Swagger UI: {API_URL}/swagger-ui/index.html")
     print(f"   - Elasticsearch Search: {ELASTICSEARCH_URL}/{INDEX_NAME}/_search")
     print(f"   - Kibana: http://localhost:5601")

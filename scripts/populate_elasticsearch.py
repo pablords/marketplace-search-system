@@ -287,7 +287,7 @@ def main():
         else:
             print("⚠️  Elasticsearch respondeu mas pode não estar saudável")
     except requests.exceptions.ConnectionError:
-        print("❌ Elasticsearch não está acessível em localhost:9200")
+        print(f"❌ Elasticsearch não está acessível em {ELASTICSEARCH_URL}")
         print("⚠️  Os produtos serão criados mas não poderão ser verificados")
     
     print()

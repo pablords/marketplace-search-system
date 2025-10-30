@@ -48,6 +48,7 @@ public class IndexProductUseCase {
     public CompletableFuture<Void> execute(ProductDTO productDTO) {
         logger.info("Indexing product asynchronously: id={}, title='{}'", 
                    productDTO.getId(), productDTO.getTitle());
+
         
         try {
             Product product = productMapper.toDomain(productDTO);

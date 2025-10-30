@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS products (
     
     -- Vendedor
     seller_id VARCHAR(255),
-    seller_nickname VARCHAR(255),
+    seller_name VARCHAR(255),
     seller_type VARCHAR(50),
     seller_status VARCHAR(50),
     seller_score DECIMAL(5, 2),

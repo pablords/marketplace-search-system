@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.dto.SearchRequestDTO;
 import com.marketplace.search.application.dto.SearchResultDTO;
-import com.marketplace.search.application.handlers.ProductEventHandler;
 import com.marketplace.search.application.usecases.IndexProductUseCase;
 import com.marketplace.search.application.usecases.SearchProductsUseCase;
 
@@ -43,7 +42,7 @@ public class SearchController {
 
   private final SearchProductsUseCase searchProductsUseCase;
   private final IndexProductUseCase indexProductUseCase;
-  private static final Logger logger = LoggerFactory.getLogger(ProductEventHandler.class);
+  private static final Logger logger = LoggerFactory.getLogger(SearchController.class);
 
   @Autowired
   public SearchController(SearchProductsUseCase searchProductsUseCase,

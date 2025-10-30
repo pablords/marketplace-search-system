@@ -71,8 +71,8 @@ public class ProductEntity {
     @Column(name = "seller_id", length = 255)
     private String sellerId;
 
-    @Column(name = "seller_nickname", length = 255)
-    private String sellerNickname;
+    @Column(name = "seller_name", length = 255)
+    private String sellerName;
 
     @Column(name = "seller_type", length = 50)
     private String sellerType;
@@ -253,12 +253,12 @@ public class ProductEntity {
         this.sellerId = sellerId;
     }
 
-    public String getSellerNickname() {
-        return sellerNickname;
+    public String getSellerName() {
+        return sellerName;
     }
 
-    public void setSellerNickname(String sellerNickname) {
-        this.sellerNickname = sellerNickname;
+    public void setSellerName(String sellerName) {
+        this.sellerName = sellerName;
     }
 
     public String getSellerType() {

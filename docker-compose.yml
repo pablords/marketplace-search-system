@@ -1,5 +1,6 @@
 
 
+
 services:
   # PostgreSQL Database
   postgres:
@@ -125,7 +126,7 @@ services:
 
   # Kafka Connect com Debezium
   kafka-connect:
-    image: debezium/connect:2.5
+    image: debezium/connect:3.0.0.Final
     container_name: marketplace-kafka-connect
     depends_on:
       - kafka
@@ -189,6 +190,19 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - marketplace-network
+
+  # Debezium UI
+  debezium-ui:
+    image: quay.io/debezium/debezium-ui:latest
+    container_name: marketplace-debezium-ui
+    depends_on:
+      - kafka-connect
+    ports:
+      - "8084:8080"
+    environment:
+      KAFKA_CONNECT_URIS: http://kafka-connect:8083
     networks:
       - marketplace-network
 

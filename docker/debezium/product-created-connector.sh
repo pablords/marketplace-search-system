@@ -27,10 +27,10 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
     "value.converter.schemas.enable": "false",
     "transforms": "unwrap,route",
     "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
-    "transforms.unwrap.drop.tombstones": "false",
-    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
-    "transforms.route.regex": "dbserver.public.products",
-    "transforms.route.replacement": "product-events"
+    "transforms.route.type": "io.debezium.transforms.EventRouter",
+    "transforms.route.route.by.field": "op",
+    "transforms.route.routes": "c:product.created",
+    "transforms.unwrap.drop.tombstones": "false"
   }
 }'
 

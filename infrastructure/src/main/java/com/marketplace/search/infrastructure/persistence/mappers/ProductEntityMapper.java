@@ -62,7 +62,7 @@ public class ProductEntityMapper {
         // Vendedor
         if (seller != null) {
             entity.setSellerId(seller.getId());
-            entity.setSellerNickname(seller.getName());
+            entity.setSellerName(seller.getName());
             entity.setSellerType(seller.getType().name());
             entity.setSellerStatus(seller.getStatus().name());
             

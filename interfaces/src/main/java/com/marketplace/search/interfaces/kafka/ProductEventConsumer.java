@@ -153,7 +153,7 @@ public class ProductEventConsumer {
         
         SellerDTO sellerDTO = new SellerDTO();
         sellerDTO.setId(payload.getSellerId());
-        sellerDTO.setName(payload.getSellerNickname());
+        sellerDTO.setName(payload.getSellerName());
         productDTO.setSeller(sellerDTO);
         
         return productDTO;
@@ -204,7 +204,7 @@ public class ProductEventConsumer {
         private String categoryName;
         private String brandName;
         private String sellerId;
-        private String sellerNickname;
+        private String sellerName;
         private String sellerReputation;
         private java.util.Map<String, Object> attributes;
         private Integer totalSold;
@@ -248,8 +248,8 @@ public class ProductEventConsumer {
         public String getSellerId() { return sellerId; }
         public void setSellerId(String sellerId) { this.sellerId = sellerId; }
 
-        public String getSellerNickname() { return sellerNickname; }
-        public void setSellerNickname(String sellerNickname) { this.sellerNickname = sellerNickname; }
+        public String getSellerName() { return sellerName; }
+        public void setSellerName(String sellerName) { this.sellerName = sellerName; }
 
         public String getSellerReputation() { return sellerReputation; }
         public void setSellerReputation(String sellerReputation) { this.sellerReputation = sellerReputation; }

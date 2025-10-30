@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS products (
     
     -- Vendedor
     seller_id VARCHAR(255),
-    seller_nickname VARCHAR(255),
+    seller_name VARCHAR(255),
     seller_type VARCHAR(50),
     seller_status VARCHAR(50),
     seller_score DECIMAL(5, 2),
@@ -78,7 +78,7 @@ INSERT INTO products (
     id, title, description, price, currency, available_quantity, condition, status,
     category_id, category_name, category_path,
     brand_id, brand_name, brand_description,
-    seller_id, seller_nickname, seller_type, seller_status,
+    seller_id, seller_name, seller_type, seller_status,
     seller_score, seller_total_reviews, seller_cancellation_rate, seller_delivery_performance,
     total_sold, view_count, conversion_rate, average_rating, review_count,
     attributes

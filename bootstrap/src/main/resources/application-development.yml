@@ -33,7 +33,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none  # Schema gerenciado por migrations ou script SQL
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

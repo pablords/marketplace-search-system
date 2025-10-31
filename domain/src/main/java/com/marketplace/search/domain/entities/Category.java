@@ -1,9 +1,9 @@
-package com.marketplace.search.domain.valueobjects;
+package com.marketplace.search.domain.entities;
+
+import java.util.Objects;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
-import java.util.Objects;
 
 /**
  * Value Object representando uma categoria de produto

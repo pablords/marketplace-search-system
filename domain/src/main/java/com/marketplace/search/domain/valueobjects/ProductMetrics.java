@@ -1,9 +1,9 @@
 package com.marketplace.search.domain.valueobjects;
 
-import jakarta.validation.constraints.Min;
-
 import java.time.Instant;
 import java.util.Objects;
+
+import jakarta.validation.constraints.Min;
 
 /**
  * Value Object representando métricas de performance do produto

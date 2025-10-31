@@ -1,12 +1,27 @@
 package com.marketplace.search.application.mappers;
 
-import com.marketplace.search.application.dto.*;
-import com.marketplace.search.domain.valueobjects.*;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
+import com.marketplace.search.application.dto.ProductDTO;
+import com.marketplace.search.application.dto.SearchFilterDTO;
+import com.marketplace.search.application.dto.SearchMetricsDTO;
+import com.marketplace.search.application.dto.SearchRequestDTO;
+import com.marketplace.search.application.dto.SearchResultDTO;
+import com.marketplace.search.application.dto.UserContextDTO;
+import com.marketplace.search.application.dto.UserLocationDTO;
+import com.marketplace.search.domain.entities.Category;
+import com.marketplace.search.domain.valueobjects.FilterType;
+import com.marketplace.search.domain.valueobjects.SearchFilter;
+import com.marketplace.search.domain.valueobjects.SearchMetrics;
+import com.marketplace.search.domain.valueobjects.SearchQuery;
+import com.marketplace.search.domain.valueobjects.SearchResult;
+import com.marketplace.search.domain.valueobjects.SearchSort;
+import com.marketplace.search.domain.valueobjects.UserContext;
+import com.marketplace.search.domain.valueobjects.UserLocation;
 
 /**
  * Mapper para conversão entre DTOs de busca e Value Objects do domínio

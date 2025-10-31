@@ -9,7 +9,6 @@ import com.marketplace.search.domain.valueobjects.ProductMetrics;
 import com.marketplace.search.domain.valueobjects.ProductStatus;
 import com.marketplace.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.domain.valueobjects.SearchScore;
-import com.marketplace.search.domain.valueobjects.Seller;
 import com.marketplace.search.domain.valueobjects.UserContext;
 
 import jakarta.validation.Valid;

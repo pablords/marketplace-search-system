@@ -1,13 +1,15 @@
 package com.marketplace.search.domain.valueobjects;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import com.marketplace.search.domain.entities.Category;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 /**
  * Value Object contendo informações básicas do produto
@@ -101,7 +103,7 @@ public class ProductInfo {
      * Obtém todas as palavras-chave para indexação
      */
     public Set<String> getSearchableKeywords() {
-        Set<String> keywords = Set.of((title + " " + description + " " + brand.getName())
+        Set<String> keywords = Set.of((title + " " + description + " " + brand.name())
                 .toLowerCase()
                 .replaceAll("[^a-zA-Z0-9\\s]", "")
                 .split("\\s+"));

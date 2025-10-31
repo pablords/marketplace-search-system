@@ -4,14 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.marketplace.search.domain.entities.Category;
 import com.marketplace.search.domain.entities.Product;
+import com.marketplace.search.domain.entities.Seller;
 import com.marketplace.search.domain.valueobjects.Brand;
-import com.marketplace.search.domain.valueobjects.Category;
 import com.marketplace.search.domain.valueobjects.ProductId;
 import com.marketplace.search.domain.valueobjects.ProductInfo;
 import com.marketplace.search.domain.valueobjects.ProductMetrics;
 import com.marketplace.search.domain.valueobjects.ProductStatus;
-import com.marketplace.search.domain.valueobjects.Seller;
 import com.marketplace.search.domain.valueobjects.SellerReputation;
 import com.marketplace.search.infrastructure.elasticsearch.documents.BrandDocument;
 import com.marketplace.search.infrastructure.elasticsearch.documents.CategoryDocument;
@@ -108,9 +108,9 @@ public class ElasticsearchProductMapper {
 
   private BrandDocument mapBrandToDocument(Brand brand) {
     BrandDocument doc = new BrandDocument();
-    doc.setId(brand.getId());
-    doc.setName(brand.getName());
-    doc.setDescription(brand.getDescription());
+    doc.setId(brand.id());
+    doc.setName(brand.name());
+    doc.setDescription(brand.description());
     return doc;
   }
 
@@ -198,7 +198,7 @@ public class ElasticsearchProductMapper {
 
     searchableText.append(product.getInfo().getTitle()).append(" ");
     searchableText.append(product.getInfo().getDescription()).append(" ");
-    searchableText.append(product.getInfo().getBrand().getName()).append(" ");
+    searchableText.append(product.getInfo().getBrand().name()).append(" ");
     searchableText.append(product.getInfo().getCategory().getName()).append(" ");
 
     // Adicionar atributos e tags

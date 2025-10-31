@@ -7,9 +7,9 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 import com.marketplace.search.domain.entities.Product;
+import com.marketplace.search.domain.entities.Seller;
 import com.marketplace.search.domain.valueobjects.ProductInfo;
 import com.marketplace.search.domain.valueobjects.ProductMetrics;
-import com.marketplace.search.domain.valueobjects.Seller;
 import com.marketplace.search.infrastructure.persistence.entities.ProductEntity;
 
 /**
@@ -54,9 +54,9 @@ public class ProductEntityMapper {
         
         // Marca
         if (info.getBrand() != null) {
-            entity.setBrandId(info.getBrand().getId());
-            entity.setBrandName(info.getBrand().getName());
-            entity.setBrandDescription(info.getBrand().getDescription());
+            entity.setBrandId(info.getBrand().id());
+            entity.setBrandName(info.getBrand().name());
+            entity.setBrandDescription(info.getBrand().description());
         }
         
         // Vendedor

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import com.marketplace.search.domain.entities.Category;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -76,7 +78,7 @@ public class SearchQuery {
      */
     public SearchFilter getFilter(String name) {
         return filters.stream()
-                .filter(filter -> filter.getName().equals(name))
+                .filter(filter -> filter.name().equals(name))
                 .findFirst()
                 .orElse(null);
     }

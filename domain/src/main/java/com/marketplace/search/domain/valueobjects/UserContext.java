@@ -3,6 +3,8 @@ package com.marketplace.search.domain.valueobjects;
 import java.util.Objects;
 import java.util.Set;
 
+import com.marketplace.search.domain.entities.Category;
+
 import jakarta.validation.constraints.NotNull;
 
 /**

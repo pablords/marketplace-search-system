@@ -1,44 +1,33 @@
+
 package com.marketplace.search.domain.valueobjects;
+
+import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.util.List;
-import java.util.Objects;
-
 /**
  * Value Object representando um filtro de busca
  */
-public class SearchFilter {
-    
-    @NotNull
-    @NotBlank
-    private final String name;
-    
-    @NotNull
-    private final FilterType type;
-    
-    @NotNull
-    private final List<String> values;
-
-    public SearchFilter(String name, FilterType type, List<String> values) {
-        this.name = validateName(name);
-        this.type = Objects.requireNonNull(type, "Filter type cannot be null");
-        this.values = validateValues(values);
-    }
-
-    private String validateName(String name) {
+public record SearchFilter(
+    @NotNull @NotBlank String name,
+    @NotNull FilterType type,
+    @NotNull List<String> values
+) {
+    public SearchFilter {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Filter name cannot be null or empty");
         }
-        return name.trim();
-    }
-
-    private List<String> validateValues(List<String> values) {
+        if (type == null) {
+            throw new IllegalArgumentException("Filter type cannot be null");
+        }
         if (values == null || values.isEmpty()) {
             throw new IllegalArgumentException("Filter values cannot be null or empty");
         }
-        return List.copyOf(values);
+    }
+
+    public static SearchFilter of(String name, FilterType type, List<String> values) {
+        return new SearchFilter(name.trim(), type, List.copyOf(values));
     }
 
     public static SearchFilter priceRange(String min, String max) {
@@ -78,26 +67,6 @@ public class SearchFilter {
             throw new IllegalStateException("Filter has multiple values, cannot get single value");
         }
         return values.get(0);
-    }
-
-    // Getters
-    public String getName() { return name; }
-    public FilterType getType() { return type; }
-    public List<String> getValues() { return values; }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SearchFilter that = (SearchFilter) o;
-        return Objects.equals(name, that.name) &&
-               type == that.type &&
-               Objects.equals(values, that.values);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, type, values);
     }
 
     @Override

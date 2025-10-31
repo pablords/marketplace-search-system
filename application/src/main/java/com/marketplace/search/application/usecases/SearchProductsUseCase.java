@@ -16,7 +16,6 @@ import com.marketplace.search.application.dto.SearchResultDTO;
 import com.marketplace.search.application.mappers.SearchMapper;
 import com.marketplace.search.domain.repositories.CacheRepository;
 import com.marketplace.search.domain.services.SearchDomainService;
-import com.marketplace.search.domain.valueobjects.SearchFilter;
 import com.marketplace.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.domain.valueobjects.UserContext;
@@ -173,8 +172,8 @@ public class SearchProductsUseCase {
 
         if (!query.getFilters().isEmpty()) {
             String filtersKey = query.getFilters().stream()
-                .sorted(Comparator.comparing(SearchFilter::getName))
-                .map(filter -> filter.getName() + "=" + String.join(",", filter.getValues()))
+                .sorted(Comparator.comparing(f -> f.name().trim()))
+                .map(filter -> filter.name() + "=" + String.join(",", filter.values()))
                 .collect(Collectors.joining("|"));
             builder.append(":f=").append(Integer.toHexString(filtersKey.hashCode()));
         }

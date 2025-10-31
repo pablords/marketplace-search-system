@@ -5,9 +5,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.marketplace.search.domain.entities.Category;
 import com.marketplace.search.domain.entities.Product;
 import com.marketplace.search.domain.repositories.ProductSearchRepository;
-import com.marketplace.search.domain.valueobjects.Category;
 import com.marketplace.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.domain.valueobjects.UserContext;

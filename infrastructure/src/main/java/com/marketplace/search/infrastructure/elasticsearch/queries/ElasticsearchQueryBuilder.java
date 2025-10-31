@@ -5,8 +5,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
+import com.marketplace.search.domain.entities.Category;
 import com.marketplace.search.domain.entities.Product;
-import com.marketplace.search.domain.valueobjects.Category;
 import com.marketplace.search.domain.valueobjects.SearchFilter;
 import com.marketplace.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.domain.valueobjects.SearchSort;
@@ -105,7 +105,7 @@ public class ElasticsearchQueryBuilder {
      * Constrói filtro individual
      */
     private Query buildFilter(SearchFilter filter) {
-        return switch (filter.getType()) {
+        return switch (filter.type()) {
             case TERM -> buildTermFilter(filter);
             case TERMS -> buildTermsFilter(filter);
             case RANGE -> buildRangeFilter(filter);
@@ -116,7 +116,7 @@ public class ElasticsearchQueryBuilder {
     private Query buildTermFilter(SearchFilter filter) {
         return Query.of(q -> q
             .term(t -> t
-                .field(mapFilterField(filter.getName()))
+                .field(mapFilterField(filter.name()))
                 .value(filter.getSingleValue())
             )
         );
@@ -125,9 +125,9 @@ public class ElasticsearchQueryBuilder {
     private Query buildTermsFilter(SearchFilter filter) {
         return Query.of(q -> q
             .terms(t -> t
-                .field(mapFilterField(filter.getName()))
+                .field(mapFilterField(filter.name()))
                 .terms(terms -> terms.value(
-                    filter.getValues().stream()
+                    filter.values().stream()
                         .map(FieldValue::of)
                         .collect(Collectors.toList())
                 ))
@@ -136,13 +136,13 @@ public class ElasticsearchQueryBuilder {
     }
 
     private Query buildRangeFilter(SearchFilter filter) {
-        if (filter.getValues().size() < 2) {
+        if (filter.values().size() < 2) {
             throw new IllegalArgumentException("Range filter requires exactly 2 values");
         }
         
-        String field = mapFilterField(filter.getName());
-        String minValue = filter.getValues().get(0);
-        String maxValue = filter.getValues().get(1);
+        String field = mapFilterField(filter.name());
+        String minValue = filter.values().get(0);
+        String maxValue = filter.values().get(1);
         
         return Query.of(q -> q
             .range(r -> r
@@ -158,7 +158,7 @@ public class ElasticsearchQueryBuilder {
         
         return Query.of(q -> q
             .term(t -> t
-                .field(mapFilterField(filter.getName()))
+                .field(mapFilterField(filter.name()))
                 .value(value)
             )
         );
@@ -243,7 +243,7 @@ public class ElasticsearchQueryBuilder {
                 .should(s -> s
                     .term(t -> t
                         .field("brand.id")
-                        .value(product.getInfo().getBrand().getId())
+                        .value(product.getInfo().getBrand().id())
                         .boost(1.5f)
                     )
                 )

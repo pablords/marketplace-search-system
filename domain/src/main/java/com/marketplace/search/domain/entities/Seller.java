@@ -1,10 +1,14 @@
-package com.marketplace.search.domain.valueobjects;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+package com.marketplace.search.domain.entities;
 
 import java.time.Instant;
 import java.util.Objects;
+
+import com.marketplace.search.domain.valueobjects.SellerReputation;
+import com.marketplace.search.domain.valueobjects.SellerStatus;
+import com.marketplace.search.domain.valueobjects.SellerType;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Value Object representando um vendedor no marketplace

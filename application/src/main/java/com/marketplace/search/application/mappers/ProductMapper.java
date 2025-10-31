@@ -11,14 +11,14 @@ import com.marketplace.search.application.dto.CategoryDTO;
 import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.dto.SellerDTO;
 import com.marketplace.search.application.dto.SellerReputationDTO;
+import com.marketplace.search.domain.entities.Category;
 import com.marketplace.search.domain.entities.Product;
+import com.marketplace.search.domain.entities.Seller;
 import com.marketplace.search.domain.valueobjects.Brand;
-import com.marketplace.search.domain.valueobjects.Category;
 import com.marketplace.search.domain.valueobjects.ProductId;
 import com.marketplace.search.domain.valueobjects.ProductInfo;
 import com.marketplace.search.domain.valueobjects.ProductMetrics;
 import com.marketplace.search.domain.valueobjects.ProductStatus;
-import com.marketplace.search.domain.valueobjects.Seller;
 import com.marketplace.search.domain.valueobjects.SellerReputation;
 
 /**
@@ -110,7 +110,7 @@ public class ProductMapper {
   }
 
   private BrandDTO mapBrandToDTO(Brand brand) {
-    return new BrandDTO(brand.getId(), brand.getName(), brand.getDescription());
+    return new BrandDTO(brand.id(), brand.name(), brand.description());
   }
 
   private Seller mapSeller(SellerDTO dto) {

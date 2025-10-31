@@ -21,9 +21,9 @@ spring:
     add-properties: true
 
   datasource:
-    url: jdbc:postgresql://postgres.pablolab.online:5432/marketplace
-    username: marketplace
-    password: marketplace123
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
@@ -56,12 +56,13 @@ spring:
   
   # Redis para desenvolvimento
   redis:
-    host: localhost
-    port: 6379
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
     database: 1  # Use database 1 for dev
   
   # Cache desabilitado em desenvolvimento
-  cache:
+  cache:  
     type: none
   
   # Resource chain disabled para hot reload
@@ -74,7 +75,7 @@ spring:
   
   # Kafka configuration
   kafka:
-    bootstrap-servers: kafka.pablolab.online:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
       group-id: marketplace-search-elasticsearch-indexer
       auto-offset-reset: earliest
@@ -93,8 +94,8 @@ spring:
 
 # Elasticsearch para desenvolvimento
 elasticsearch:
-  host: elasticsearch.pablolab.online
-  port: 9200
+  host: ${ELASTICSEARCH_HOST}
+  port: ${ELASTICSEARCH_PORT}
   scheme: http
   connection-timeout: 10000
   socket-timeout: 60000

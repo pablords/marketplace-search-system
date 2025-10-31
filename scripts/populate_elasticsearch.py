@@ -179,7 +179,7 @@ def generate_product():
     tags = [fake.word() for _ in range(random.randint(2, 5))]
     
     # Gera métricas
-    stock_quantity = random.randint(5, 100)
+    available_quantity = random.randint(5, 100)
     total_reviews = random.randint(10, 500)
     
     # Calcula reviews de forma que a soma seja exata
@@ -202,7 +202,7 @@ def generate_product():
         "description": description,
         "price": price,
         "currency": "BRL",
-        "stock_quantity": stock_quantity,  # Campo correto do ProductDTO
+        "available_quantity": available_quantity,  # Campo correto do ProductDTO
         "condition": random.choice(["NEW", "USED", "REFURBISHED"]),
         "is_active": random.choice([True, False]),  # Campo correto do ProductDTO
         

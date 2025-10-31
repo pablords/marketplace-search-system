@@ -3,6 +3,9 @@ package com.marketplace.search.domain.entities;
 import java.time.Instant;
 import java.util.Objects;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.marketplace.search.domain.valueobjects.ProductId;
 import com.marketplace.search.domain.valueobjects.ProductInfo;
 import com.marketplace.search.domain.valueobjects.ProductMetrics;
@@ -20,6 +23,8 @@ import jakarta.validation.constraints.NotNull;
  * Agregada root do domínio de produto.
  */
 public class Product {
+
+  private static final Logger logger = LoggerFactory.getLogger(Product.class);
 
   @NotNull
   private final ProductId id;
@@ -195,6 +200,7 @@ public class Product {
         ", title='" + info.getTitle() + '\'' +
         ", seller=" + seller.getName() +
         ", status=" + status +
+        ", productMetrics=" + metrics +
         '}';
   }
 }

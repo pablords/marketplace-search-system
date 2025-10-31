@@ -2,8 +2,10 @@ package com.marketplace.search.domain.services;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.marketplace.search.domain.entities.Product;
-import com.marketplace.search.domain.repositories.ProductIndexRepository;
 import com.marketplace.search.domain.repositories.ProductSearchRepository;
 import com.marketplace.search.domain.valueobjects.Category;
 import com.marketplace.search.domain.valueobjects.SearchQuery;
@@ -16,23 +18,23 @@ import com.marketplace.search.domain.valueobjects.UserContext;
 public class SearchDomainService {
 
   private final ProductSearchRepository searchRepository;
-  private final ProductIndexRepository indexRepository;
+  private static final Logger logger = LoggerFactory.getLogger(SearchDomainService.class);
 
-  public SearchDomainService(ProductSearchRepository searchRepository,
-      ProductIndexRepository indexRepository) {
+  public SearchDomainService(ProductSearchRepository searchRepository) {
     this.searchRepository = searchRepository;
-    this.indexRepository = indexRepository;
   }
 
   /**
    * Executa busca inteligente com ranking personalizado
    */
   public SearchResult smartSearch(SearchQuery query, UserContext userContext) {
-    // Validar se todos os produtos no índice estão disponíveis para busca
     SearchResult initialResult = searchRepository.search(query, userContext);
+    logger.debug("Validar se todos os produtos no índice estão disponíveis para busca {}", initialResult.toString());
 
-    // Aplicar regras de negócio para ranking personalizado
-  List<Product> rankedProducts = applyBusinessRules(initialResult.getProducts(), query, userContext);
+    List<Product> rankedProducts = applyBusinessRules(initialResult.getProducts(), query, userContext);
+    if (!rankedProducts.isEmpty()) {
+      logger.debug("Aplicar regras de negócio para ranking personalizado {}", rankedProducts.get(0).toString());
+    }
 
     return new SearchResult(
         rankedProducts,
@@ -80,12 +82,14 @@ public class SearchDomainService {
    * Valida se um produto deve aparecer nos resultados de busca
    */
   public boolean isProductSearchable(Product product, UserContext userContext) {
-    // Verificações básicas
+
+    // logger.debug("Verificações básicas {}", product.isSearchable());
+    // logger.debug("Vendedor suspenso {}", product.getSeller().isSuspended());
+
     if (!product.isSearchable()) {
       return false;
     }
 
-    // Regras de negócio específicas
     if (product.getSeller().isSuspended()) {
       return false;
     }
@@ -130,6 +134,9 @@ public class SearchDomainService {
   }
 
   private List<Product> applyBusinessRules(List<Product> products, SearchQuery query, UserContext userContext) {
+    int sliceSize = Math.min(3, products.size());
+    List<Product> slice = products.subList(0, sliceSize);
+    logger.debug("Produtos antes de aplicar regras {}", slice);
     return products.stream()
         .filter(product -> isProductSearchable(product, userContext))
         .sorted((p1, p2) -> {

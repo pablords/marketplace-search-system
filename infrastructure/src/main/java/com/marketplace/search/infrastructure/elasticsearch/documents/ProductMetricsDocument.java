@@ -19,7 +19,7 @@ public class ProductMetricsDocument {
     @JsonProperty("average_rating")
     private Double averageRating;
     
-    @JsonProperty("stock_quantity")
+    @JsonProperty("available_quantity")
     private int stockQuantity;
     
     @JsonProperty("conversion_rate")

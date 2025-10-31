@@ -36,6 +36,7 @@ import co.elastic.clients.elasticsearch.core.MgetResponse;
 import co.elastic.clients.elasticsearch.core.UpdateRequest;
 import co.elastic.clients.elasticsearch.core.UpdateResponse;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 
 /**
  * Implementação do repositório de indexação de produtos usando Elasticsearch
@@ -377,8 +378,8 @@ public class ElasticsearchProductIndexRepository implements ProductIndexReposito
      */
     private void createIndexIfNotExists() {
         try {
-            co.elastic.clients.elasticsearch.indices.ExistsRequest existsRequest = 
-                co.elastic.clients.elasticsearch.indices.ExistsRequest.of(e -> e.index(indexName));
+            ExistsRequest existsRequest = 
+                ExistsRequest.of(e -> e.index(indexName));
             
             if (!client.indices().exists(existsRequest).value()) {
                 CreateIndexRequest createRequest = CreateIndexRequest.of(c -> c

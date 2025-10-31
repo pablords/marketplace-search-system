@@ -60,10 +60,10 @@ public class ProductCdcConsumer {
   @KafkaListener(topics = "${kafka.topics.product-events}", groupId = "${kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
   public void consumeProductEvent(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
     try {
-      logger.info("Received CDC event from topic: {}, partition: {}, offset: {}",
+      logger.debug("Received CDC event from topic: {}, partition: {}, offset: {}",
           record.topic(), record.partition(), record.offset());
 
-      logger.info("Raw Kafka message: {}", record.value());
+      logger.debug("Raw Kafka message: {}", record.value());
 
       // Parse o envelope do Debezium
       JsonNode rootNode = objectMapper.readTree(record.value());
@@ -144,6 +144,8 @@ public class ProductCdcConsumer {
 
       // Converte payload do Debezium para ProductDTO
       ProductDTO productDTO = debeziumMapper.toProductDTO(payload);
+      logger.debug("ProductDTO {}", productDTO);
+      
 
       // Dispara indexação assíncrona no Elasticsearch
       // O método retorna CompletableFuture, mas não esperamos o resultado

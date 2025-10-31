@@ -64,7 +64,7 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
         try {
             // Construir query do Elasticsearch
             Query esQuery = queryBuilder.buildQuery(query, userContext);
-            logger.trace("EsQuery: {}", esQuery);
+            logger.debug("EsQuery: {}", esQuery);
             
             // Executar busca
             SearchRequest searchRequest = SearchRequest.of(s -> s
@@ -76,7 +76,7 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
                 .trackTotalHits(th -> th.enabled(true))
             );
 
-            logger.trace("SearchRequest {}", searchRequest);
+            logger.debug("SearchRequest {}", searchRequest);
             
             SearchResponse<ProductDocument> response = elasticsearchClient.search(
                 searchRequest, ProductDocument.class);

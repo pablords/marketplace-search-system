@@ -61,27 +61,32 @@ public class ElasticsearchProductMapper {
   }
 
   public Product toDomain(ProductDocument document) {
-    ProductId id = ProductId.from(document.getId());
+  ProductId id = ProductId.from(document.getId());
 
-    ProductInfo info = new ProductInfo(
-        document.getTitle(),
-        document.getDescription(),
-        document.getPrice(),
-        document.getCurrency(),
-        mapCategoryToDomain(document.getCategory()),
-        mapBrandToDomain(document.getBrand()),
-        document.getImages(),
-        document.getAttributes(),
-        document.getTags());
+  ProductInfo info = new ProductInfo(
+    document.getTitle(),
+    document.getDescription(),
+    document.getPrice(),
+    document.getCurrency(),
+    mapCategoryToDomain(document.getCategory()),
+    mapBrandToDomain(document.getBrand()),
+    document.getImages(),
+    document.getAttributes(),
+    document.getTags());
 
-    Seller seller = mapSellerToDomain(document.getSeller());
-    ProductMetrics metrics = mapMetricsToDomain(document.getMetrics());
-    ProductStatus status = mapStatusToDomain(document.getStatus());
+  Seller seller = mapSellerToDomain(document.getSeller());
+  ProductMetrics metrics = mapMetricsToDomain(document.getMetrics());
+  ProductStatus status = mapStatusToDomain(document.getStatus());
 
-    return new Product(
-        id, info, seller, metrics, status,
-        document.getCreatedAt(),
-        document.getUpdatedAt());
+  return Product.builder()
+    .id(id)
+    .info(info)
+    .seller(seller)
+    .metrics(metrics)
+    .status(status)
+    .createdAt(document.getCreatedAt())
+    .updatedAt(document.getUpdatedAt())
+    .build();
   }
 
   private CategoryDocument mapCategoryToDocument(Category category) {

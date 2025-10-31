@@ -3,9 +3,6 @@ package com.marketplace.search.domain.entities;
 import java.time.Instant;
 import java.util.Objects;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.marketplace.search.domain.valueobjects.ProductId;
 import com.marketplace.search.domain.valueobjects.ProductInfo;
 import com.marketplace.search.domain.valueobjects.ProductMetrics;
@@ -24,7 +21,6 @@ import jakarta.validation.constraints.NotNull;
  */
 public class Product {
 
-  private static final Logger logger = LoggerFactory.getLogger(Product.class);
 
   @NotNull
   private final ProductId id;
@@ -51,16 +47,67 @@ public class Product {
   @NotNull
   private final Instant updatedAt;
 
-  public Product(ProductId id, ProductInfo info, Seller seller,
-      ProductMetrics metrics, ProductStatus status,
-      Instant createdAt, Instant updatedAt) {
-    this.id = Objects.requireNonNull(id, "Product ID cannot be null");
-    this.info = Objects.requireNonNull(info, "Product info cannot be null");
-    this.seller = Objects.requireNonNull(seller, "Seller cannot be null");
-    this.metrics = Objects.requireNonNull(metrics, "Metrics cannot be null");
-    this.status = Objects.requireNonNull(status, "Status cannot be null");
-    this.createdAt = Objects.requireNonNull(createdAt, "Created at cannot be null");
-    this.updatedAt = Objects.requireNonNull(updatedAt, "Updated at cannot be null");
+  private Product(Builder builder) {
+    this.id = Objects.requireNonNull(builder.id, "Product ID cannot be null");
+    this.info = Objects.requireNonNull(builder.info, "Product info cannot be null");
+    this.seller = Objects.requireNonNull(builder.seller, "Seller cannot be null");
+    this.metrics = Objects.requireNonNull(builder.metrics, "Metrics cannot be null");
+    this.status = Objects.requireNonNull(builder.status, "Status cannot be null");
+    this.createdAt = Objects.requireNonNull(builder.createdAt, "Created at cannot be null");
+    this.updatedAt = Objects.requireNonNull(builder.updatedAt, "Updated at cannot be null");
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static class Builder {
+    private ProductId id;
+    private ProductInfo info;
+    private Seller seller;
+    private ProductMetrics metrics;
+    private ProductStatus status;
+    private Instant createdAt;
+    private Instant updatedAt;
+
+    public Builder id(ProductId id) {
+      this.id = id;
+      return this;
+    }
+
+    public Builder info(ProductInfo info) {
+      this.info = info;
+      return this;
+    }
+
+    public Builder seller(Seller seller) {
+      this.seller = seller;
+      return this;
+    }
+
+    public Builder metrics(ProductMetrics metrics) {
+      this.metrics = metrics;
+      return this;
+    }
+
+    public Builder status(ProductStatus status) {
+      this.status = status;
+      return this;
+    }
+
+    public Builder createdAt(Instant createdAt) {
+      this.createdAt = createdAt;
+      return this;
+    }
+
+    public Builder updatedAt(Instant updatedAt) {
+      this.updatedAt = updatedAt;
+      return this;
+    }
+
+    public Product build() {
+      return new Product(this);
+    }
   }
 
   /**

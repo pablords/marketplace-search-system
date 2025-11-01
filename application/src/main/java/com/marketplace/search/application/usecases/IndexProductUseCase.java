@@ -6,15 +6,12 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.mappers.ProductMapper;
 import com.marketplace.search.domain.entities.Product;
-import com.marketplace.search.domain.events.ProductCreatedEvent;
-import com.marketplace.search.domain.events.ProductUpdatedEvent;
 import com.marketplace.search.domain.repositories.ProductIndexRepository;
 import com.marketplace.search.domain.valueobjects.ProductId;
 
@@ -29,14 +26,11 @@ public class IndexProductUseCase {
     
     private final ProductIndexRepository indexRepository;
     private final ProductMapper productMapper;
-    private final ApplicationEventPublisher eventPublisher;
 
     public IndexProductUseCase(ProductIndexRepository indexRepository,
-                              ProductMapper productMapper,
-                              ApplicationEventPublisher eventPublisher) {
+                              ProductMapper productMapper) {
         this.indexRepository = indexRepository;
         this.productMapper = productMapper;
-        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -58,11 +52,9 @@ public class IndexProductUseCase {
             
             if (exists) {
                 indexRepository.updateProduct(product);
-                eventPublisher.publishEvent(new ProductUpdatedEvent(product, null));
                 logger.info("Product updated in index: {}", product.getId());
             } else {
                 indexRepository.indexProduct(product);
-                eventPublisher.publishEvent(new ProductCreatedEvent(product));
                 logger.info("Product indexed: {}", product.getId());
             }
             
@@ -87,10 +79,6 @@ public class IndexProductUseCase {
                 .collect(Collectors.toList());
             
             indexRepository.indexProducts(products);
-            
-            // Publicar eventos para cada produto
-            products.forEach(product -> 
-                eventPublisher.publishEvent(new ProductCreatedEvent(product)));
             
             logger.info("Batch indexing completed: {} products", products.size());
             

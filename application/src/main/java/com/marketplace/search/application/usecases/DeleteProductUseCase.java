@@ -4,11 +4,9 @@ import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import com.marketplace.search.domain.events.ProductDeletedEvent;
 import com.marketplace.search.domain.repositories.ProductIndexRepository;
 import com.marketplace.search.domain.valueobjects.ProductId;
 
@@ -22,12 +20,9 @@ public class DeleteProductUseCase {
     private static final Logger logger = LoggerFactory.getLogger(DeleteProductUseCase.class);
     
     private final ProductIndexRepository indexRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
-    public DeleteProductUseCase(ProductIndexRepository indexRepository,
-                               ApplicationEventPublisher eventPublisher) {
+    public DeleteProductUseCase(ProductIndexRepository indexRepository) {
         this.indexRepository = indexRepository;
-        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -52,9 +47,6 @@ public class DeleteProductUseCase {
             
             // Deletar do índice
             indexRepository.deleteProduct(id);
-            
-            // Publicar evento
-            eventPublisher.publishEvent(new ProductDeletedEvent(productId));
             
             logger.info("Product deleted from index: {}", productId);
             

@@ -70,7 +70,7 @@ public class SearchMapper {
     }
 
     public SearchResultDTO toDTO(SearchResult result) {
-        List<ProductDTO> productDTOs = result.getProducts().stream()
+        List<ProductDTO> productDTOs = result.products().stream()
             .map(product -> {
                 ProductMapper productMapper = new ProductMapper();
                 return productMapper.toDTO(product);
@@ -79,16 +79,16 @@ public class SearchMapper {
             
         SearchResultDTO dto = new SearchResultDTO();
         dto.setProducts(productDTOs);
-        dto.setTotalCount(result.getTotalCount());
-        dto.setPageSize(result.getPageSize());
-        dto.setPageNumber(result.getPageNumber());
+        dto.setTotalCount(result.totalCount());
+        dto.setPageSize(result.pageSize());
+        dto.setPageNumber(result.pageNumber());
         dto.setTotalPages(result.getTotalPages());
         dto.setHasNextPage(result.hasNextPage());
         dto.setHasPreviousPage(result.hasPreviousPage());
-        dto.setExecutionTimeMs(result.getExecutionTime().toMillis());
+        dto.setExecutionTimeMs(result.executionTime().toMillis());
         
-        if (result.getMetrics() != null) {
-            dto.setMetrics(mapMetricsToDTO(result.getMetrics()));
+        if (result.metrics() != null) {
+            dto.setMetrics(mapMetricsToDTO(result.metrics()));
         }
         
         return dto;

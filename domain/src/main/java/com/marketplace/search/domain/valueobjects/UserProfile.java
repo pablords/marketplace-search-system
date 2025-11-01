@@ -1,47 +1,28 @@
 package com.marketplace.search.domain.valueobjects;
 
 import java.time.Instant;
-import java.util.Objects;
 
 /**
  * Value Object representando o perfil do usuário
  */
-public class UserProfile {
-    
-    private final UserTier tier;
-    
-    private final Instant memberSince;
-    
-    private final boolean isPremium;
-    
-    private final int totalPurchases;
-    
-    private final double averageOrderValue;
-    
-    private final UserPreferences preferences;
-
-    public UserProfile(UserTier tier, Instant memberSince, boolean isPremium,
-                      int totalPurchases, double averageOrderValue, UserPreferences preferences) {
-        this.tier = Objects.requireNonNull(tier, "User tier cannot be null");
-        this.memberSince = memberSince;
-        this.isPremium = isPremium;
-        this.totalPurchases = validateTotalPurchases(totalPurchases);
-        this.averageOrderValue = validateAverageOrderValue(averageOrderValue);
-        this.preferences = preferences;
-    }
-
-    private int validateTotalPurchases(int totalPurchases) {
+public record UserProfile(
+    UserTier tier,
+    Instant memberSince,
+    boolean isPremium,
+    int totalPurchases,
+    double averageOrderValue,
+    UserPreferences preferences
+) {
+    public UserProfile {
+        if (tier == null) {
+            throw new IllegalArgumentException("User tier cannot be null");
+        }
         if (totalPurchases < 0) {
             throw new IllegalArgumentException("Total purchases cannot be negative");
         }
-        return totalPurchases;
-    }
-
-    private double validateAverageOrderValue(double averageOrderValue) {
         if (averageOrderValue < 0) {
             throw new IllegalArgumentException("Average order value cannot be negative");
         }
-        return averageOrderValue;
     }
 
     /**
@@ -93,31 +74,6 @@ public class UserProfile {
         return daysSinceMember <= 30;
     }
 
-    // Getters
-    public UserTier getTier() { return tier; }
-    public Instant getMemberSince() { return memberSince; }
-    public boolean isPremium() { return isPremium; }
-    public int getTotalPurchases() { return totalPurchases; }
-    public double getAverageOrderValue() { return averageOrderValue; }
-    public UserPreferences getPreferences() { return preferences; }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        UserProfile that = (UserProfile) o;
-        return isPremium == that.isPremium &&
-               totalPurchases == that.totalPurchases &&
-               Double.compare(that.averageOrderValue, averageOrderValue) == 0 &&
-               tier == that.tier &&
-               Objects.equals(memberSince, that.memberSince);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(tier, memberSince, isPremium, totalPurchases, averageOrderValue);
-    }
-
     @Override
     public String toString() {
         return "UserProfile{" +
@@ -137,20 +93,9 @@ enum UserTier {
     DIAMOND
 }
 
-class UserPreferences {
-    private final boolean allowsPersonalization;
-    private final boolean allowsRecommendations;
-    private final boolean allowsLocationTracking;
-    
-    public UserPreferences(boolean allowsPersonalization, boolean allowsRecommendations, 
-                          boolean allowsLocationTracking) {
-        this.allowsPersonalization = allowsPersonalization;
-        this.allowsRecommendations = allowsRecommendations;
-        this.allowsLocationTracking = allowsLocationTracking;
-    }
-    
-    // Getters
-    public boolean allowsPersonalization() { return allowsPersonalization; }
-    public boolean allowsRecommendations() { return allowsRecommendations; }
-    public boolean allowsLocationTracking() { return allowsLocationTracking; }
+record UserPreferences(
+    boolean allowsPersonalization,
+    boolean allowsRecommendations,
+    boolean allowsLocationTracking
+) {
 }

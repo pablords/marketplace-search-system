@@ -33,7 +33,7 @@ public class ProductEntityMapper {
         entity.setDescription(info.getDescription());
         entity.setPrice(info.getPrice());
         entity.setCurrency(info.getCurrency());
-        entity.setAvailableQuantity(metrics.getStockQuantity());
+        entity.setAvailableQuantity(metrics.stockQuantity());
         
         // Condição baseada em atributos
         String condition = info.getAttributes().stream()
@@ -75,11 +75,11 @@ public class ProductEntityMapper {
         }
         
         // Métricas
-        entity.setTotalSold(metrics.getTotalSales());
-        entity.setViewCount(metrics.getTotalViews());
-        entity.setConversionRate(BigDecimal.valueOf(metrics.getConversionRate()));
-        entity.setAverageRating(BigDecimal.valueOf(metrics.getAverageRating()));
-        entity.setReviewCount(metrics.getTotalReviews());
+        entity.setTotalSold(metrics.totalSales());
+        entity.setViewCount(metrics.totalReviews());
+        entity.setConversionRate(BigDecimal.valueOf(metrics.conversionRate()));
+        entity.setAverageRating(BigDecimal.valueOf(metrics.averageRating()));
+        entity.setReviewCount(metrics.totalReviews());
         
         // Atributos
         Map<String, Object> attributeMap = new HashMap<>();

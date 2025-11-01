@@ -1,68 +1,41 @@
 package com.marketplace.search.domain.valueobjects;
 
 import java.time.Instant;
-import java.util.Objects;
 
 import jakarta.validation.constraints.Min;
 
 /**
  * Value Object representando métricas de performance do produto
  */
-public class ProductMetrics {
-    
-    @Min(0)
-    private final int totalViews;
-    
-    @Min(0)
-    private final int totalSales;
-    
-    @Min(0)
-    private final int totalReviews;
-    
-    @Min(0)
-    private final double averageRating; // 0.0 a 5.0
-    
-    @Min(0)
-    private final int stockQuantity;
-    
-    private final double conversionRate; // 0.0 a 1.0
-    
-    private final Instant lastSale;
-    
-    private final Instant lastView;
-
-    public ProductMetrics(int totalViews, int totalSales, int totalReviews,
-                         double averageRating, int stockQuantity, double conversionRate,
-                         Instant lastSale, Instant lastView) {
-        this.totalViews = validateNonNegative(totalViews, "total views");
-        this.totalSales = validateNonNegative(totalSales, "total sales");
-        this.totalReviews = validateNonNegative(totalReviews, "total reviews");
-        this.averageRating = validateRating(averageRating);
-        this.stockQuantity = validateNonNegative(stockQuantity, "stock quantity");
-        this.conversionRate = validateRate(conversionRate);
-        this.lastSale = lastSale;
-        this.lastView = lastView;
-    }
-
-    private int validateNonNegative(int value, String fieldName) {
-        if (value < 0) {
-            throw new IllegalArgumentException(fieldName + " cannot be negative");
+public record ProductMetrics(
+    @Min(0) int totalViews,
+    @Min(0) int totalSales,
+    @Min(0) int totalReviews,
+    @Min(0) double averageRating,
+    @Min(0) int stockQuantity,
+    double conversionRate,
+    Instant lastSale,
+    Instant lastView
+) {
+    public ProductMetrics {
+        if (totalViews < 0) {
+            throw new IllegalArgumentException("total views cannot be negative");
         }
-        return value;
-    }
-
-    private double validateRating(double rating) {
-        if (rating < 0.0 || rating > 5.0) {
+        if (totalSales < 0) {
+            throw new IllegalArgumentException("total sales cannot be negative");
+        }
+        if (totalReviews < 0) {
+            throw new IllegalArgumentException("total reviews cannot be negative");
+        }
+        if (averageRating < 0.0 || averageRating > 5.0) {
             throw new IllegalArgumentException("Average rating must be between 0.0 and 5.0");
         }
-        return rating;
-    }
-
-    private double validateRate(double rate) {
-        if (rate < 0.0 || rate > 1.0) {
+        if (stockQuantity < 0) {
+            throw new IllegalArgumentException("stock quantity cannot be negative");
+        }
+        if (conversionRate < 0.0 || conversionRate > 1.0) {
             throw new IllegalArgumentException("Conversion rate must be between 0.0 and 1.0");
         }
-        return rate;
     }
 
     /**
@@ -114,35 +87,6 @@ public class ProductMetrics {
 
     public boolean isHighlyRated() {
         return totalReviews >= 10 && averageRating >= 4.5;
-    }
-
-    // Getters
-    public int getTotalViews() { return totalViews; }
-    public int getTotalSales() { return totalSales; }
-    public int getTotalReviews() { return totalReviews; }
-    public double getAverageRating() { return averageRating; }
-    public int getStockQuantity() { return stockQuantity; }
-    public double getConversionRate() { return conversionRate; }
-    public Instant getLastSale() { return lastSale; }
-    public Instant getLastView() { return lastView; }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ProductMetrics that = (ProductMetrics) o;
-        return totalViews == that.totalViews &&
-               totalSales == that.totalSales &&
-               totalReviews == that.totalReviews &&
-               Double.compare(that.averageRating, averageRating) == 0 &&
-               stockQuantity == that.stockQuantity &&
-               Double.compare(that.conversionRate, conversionRate) == 0;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(totalViews, totalSales, totalReviews, averageRating, 
-                          stockQuantity, conversionRate);
     }
 
     @Override

@@ -10,9 +10,7 @@ import com.marketplace.search.domain.valueobjects.SellerType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-/**
- * Value Object representando um vendedor no marketplace
- */
+
 public class Seller {
     
     @NotNull

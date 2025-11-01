@@ -151,7 +151,7 @@ public class Product {
 
   private double calculateTextRelevance(SearchQuery query) {
     // Implementação simplificada - seria mais complexa em produção
-    String searchTerms = query.getTerms().toLowerCase();
+    String searchTerms = query.terms().toLowerCase();
     String title = info.getTitle().toLowerCase();
     String description = info.getDescription().toLowerCase();
 

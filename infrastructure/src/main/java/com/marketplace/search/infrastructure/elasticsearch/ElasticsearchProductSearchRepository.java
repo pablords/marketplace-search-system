@@ -57,7 +57,7 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
 
     @Override
     public SearchResult search(SearchQuery query, UserContext userContext) {
-    logger.debug("Executing search on index '{}': query='{}', limit={}", INDEX_NAME, query.getTerms(), query.getLimit());
+    logger.debug("Executing search on index '{}': query='{}', limit={}", INDEX_NAME, query.terms(), query.limit());
         
         Instant startTime = Instant.now();
         
@@ -70,9 +70,9 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
             SearchRequest searchRequest = SearchRequest.of(s -> s
                 .index(INDEX_NAME)
                 .query(esQuery)
-                .from(query.getOffset())
-                .size(query.getLimit())
-                .sort(queryBuilder.buildSort(query.getSort()))
+                .from(query.offset())
+                .size(query.limit())
+                .sort(queryBuilder.buildSort(query.sort()))
                 .trackTotalHits(th -> th.enabled(true))
             );
 
@@ -89,7 +89,7 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
             var totalHitsMetadata = hitsMetadata != null ? hitsMetadata.total() : null;
 
             if (hitsMetadata == null || hitsMetadata.hits() == null) {
-                logger.warn("Search returned null hits for query '{}'.", query.getTerms());
+                logger.warn("Search returned null hits for query '{}'.", query.terms());
             } else if (totalHitsMetadata != null) {
                 logger.debug("Search hits total: {}", totalHitsMetadata.value());
             }
@@ -119,8 +119,8 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
             return new SearchResult(
                 products,
                 totalCount,
-                query.getLimit(),
-                query.getOffset() / query.getLimit(),
+                query.limit(),
+                query.offset() / query.limit(),
                 executionTime,
                 metrics
             );
@@ -329,7 +329,7 @@ public class ElasticsearchProductSearchRepository implements ProductSearchReposi
 
     @Override
     public long count(SearchQuery query) {
-        logger.debug("Counting products for query: '{}'", query.getTerms());
+        logger.debug("Counting products for query: '{}'", query.terms());
         
         try {
             Query esQuery = queryBuilder.buildQuery(query, null);

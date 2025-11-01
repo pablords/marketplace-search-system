@@ -47,7 +47,7 @@ public class ElasticsearchProductMapper {
     document.setTags(product.getInfo().getTags());
 
     document.setMetrics(mapMetricsToDocument(product.getMetrics()));
-    document.setStatus(mapStatusToDocument(product.getStatus(), product.getMetrics().getStockQuantity()));
+    document.setStatus(mapStatusToDocument(product.getStatus(), product.getMetrics().stockQuantity()));
 
     document.setCreatedAt(product.getCreatedAt());
     document.setUpdatedAt(product.getUpdatedAt());
@@ -149,12 +149,12 @@ public class ElasticsearchProductMapper {
   private ProductMetricsDocument mapMetricsToDocument(ProductMetrics metrics) {
     logger.debug("Metricas de Produto {}", metrics);
     ProductMetricsDocument doc = new ProductMetricsDocument();
-    doc.setTotalViews((long) metrics.getTotalViews());
-    doc.setTotalSales((long) metrics.getTotalSales());
-    doc.setTotalReviews((long) metrics.getTotalReviews());
-    doc.setAverageRating(metrics.getAverageRating());
-    doc.setStockQuantity(metrics.getStockQuantity());
-    doc.setConversionRate(metrics.getConversionRate());
+    doc.setTotalViews((long) metrics.totalReviews());
+    doc.setTotalSales((long) metrics.totalSales());
+    doc.setTotalReviews((long) metrics.totalReviews());
+    doc.setAverageRating(metrics.averageRating());
+    doc.setStockQuantity(metrics.stockQuantity());
+    doc.setConversionRate(metrics.conversionRate());
     return doc;
   }
 

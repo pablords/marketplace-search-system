@@ -70,7 +70,7 @@ public class SearchProductsUseCase {
             storeInCache(cacheKey, resultDTO, result.hasResults());
             
             logger.info("Search completed: found {} products in {}ms", 
-                       result.getProducts().size(), result.getExecutionTime().toMillis());
+                       result.products().size(), result.executionTime().toMillis());
             
             return resultDTO;
             
@@ -102,7 +102,7 @@ public class SearchProductsUseCase {
             storeInCache(cacheKey, resultDTO, result.hasResults());
             
             logger.info("Search with fallback completed: found {} products", 
-                       result.getProducts().size());
+                       result.products().size());
             
             return resultDTO;
             
@@ -161,17 +161,17 @@ public class SearchProductsUseCase {
 
         StringBuilder builder = new StringBuilder(cacheProperties.getKeyPrefix());
         builder.append(":mode=").append(mode);
-        builder.append(":q=").append(query.getTerms());
-        builder.append(":o=").append(query.getOffset());
-        builder.append(":l=").append(query.getLimit());
-        builder.append(":s=").append(query.getSort().name());
+        builder.append(":q=").append(query.terms());
+        builder.append(":o=").append(query.offset());
+        builder.append(":l=").append(query.limit());
+        builder.append(":s=").append(query.sort().name());
 
-        if (query.hasCategoryFilter() && query.getCategory() != null) {
-            builder.append(":c=").append(query.getCategory().getId());
+        if (query.hasCategoryFilter() && query.category() != null) {
+            builder.append(":c=").append(query.category().getId());
         }
 
-        if (!query.getFilters().isEmpty()) {
-            String filtersKey = query.getFilters().stream()
+        if (!query.filters().isEmpty()) {
+            String filtersKey = query.filters().stream()
                 .sorted(Comparator.comparing(f -> f.name().trim()))
                 .map(filter -> filter.name() + "=" + String.join(",", filter.values()))
                 .collect(Collectors.joining("|"));
@@ -179,13 +179,13 @@ public class SearchProductsUseCase {
         }
 
         if (userContext != null) {
-            if (!userContext.isAnonymous() && userContext.getUserId() != null) {
-                builder.append(":u=").append(userContext.getUserId());
-            } else if (userContext.getLocation() != null) {
+            if (!userContext.isAnonymous() && userContext.userId() != null) {
+                builder.append(":u=").append(userContext.userId());
+            } else if (userContext.location() != null) {
                 builder.append(":loc=")
-                        .append(userContext.getLocation().getCountry())
+                        .append(userContext.location().country())
                         .append("-")
-                        .append(userContext.getLocation().getState());
+                        .append(userContext.location().state());
             } else {
                 builder.append(":u=anon");
             }

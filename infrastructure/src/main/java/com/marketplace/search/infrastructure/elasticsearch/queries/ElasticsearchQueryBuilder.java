@@ -33,18 +33,18 @@ public class ElasticsearchQueryBuilder {
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
         
         // Query de texto principal
-        Query textQuery = buildTextQuery(searchQuery.getTerms());
+        Query textQuery = buildTextQuery(searchQuery.terms());
         boolQueryBuilder.must(textQuery);
         
         // Filtros de categoria
         if (searchQuery.hasCategoryFilter()) {
-            Query categoryFilter = buildCategoryFilter(searchQuery.getCategory());
+            Query categoryFilter = buildCategoryFilter(searchQuery.category());
             boolQueryBuilder.filter(categoryFilter);
         }
         
         // Filtros adicionais
         if (searchQuery.hasFilters()) {
-            List<Query> filters = searchQuery.getFilters().stream()
+            List<Query> filters = searchQuery.filters().stream()
                 .map(this::buildFilter)
                 .collect(Collectors.toList());
             boolQueryBuilder.filter(filters);
@@ -193,12 +193,12 @@ public class ElasticsearchQueryBuilder {
         List<Query> boosts = new java.util.ArrayList<>();
         
         // Boost para categorias preferidas
-        if (!userContext.getPreferredCategories().isEmpty()) {
+        if (!userContext.preferredCategories().isEmpty()) {
             Query categoryBoost = Query.of(q -> q
                 .terms(t -> t
                     .field("category.id")
                     .terms(terms -> terms.value(
-                        userContext.getPreferredCategories().stream()
+                        userContext.preferredCategories().stream()
                             .map(FieldValue::of)
                             .collect(Collectors.toList())
                     ))
@@ -209,12 +209,12 @@ public class ElasticsearchQueryBuilder {
         }
         
         // Boost para vendedores com compras anteriores
-        if (!userContext.getPurchaseHistory().isEmpty()) {
+        if (!userContext.purchaseHistory().isEmpty()) {
             Query sellerBoost = Query.of(q -> q
                 .terms(t -> t
                     .field("seller.id")
                     .terms(terms -> terms.value(
-                        userContext.getPurchaseHistory().stream()
+                        userContext.purchaseHistory().stream()
                             .map(FieldValue::of)
                             .collect(Collectors.toList())
                     ))

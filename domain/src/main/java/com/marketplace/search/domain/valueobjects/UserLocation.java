@@ -3,69 +3,36 @@ package com.marketplace.search.domain.valueobjects;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.util.Objects;
-
 /**
  * Value Object representando a localização do usuário
  */
-public class UserLocation {
-    
-    @NotNull
-    @NotBlank
-    private final String country;
-    
-    @NotNull
-    @NotBlank
-    private final String state;
-    
-    @NotNull
-    @NotBlank
-    private final String city;
-    
-    private final String zipCode;
-    
-    private final Double latitude;
-    
-    private final Double longitude;
-
-    public UserLocation(String country, String state, String city, String zipCode, 
-                       Double latitude, Double longitude) {
-        this.country = validateCountry(country);
-        this.state = validateState(state);
-        this.city = validateCity(city);
-        this.zipCode = zipCode;
-        this.latitude = latitude;
-        this.longitude = longitude;
-    }
-
-    private String validateCountry(String country) {
+public record UserLocation(
+    @NotNull @NotBlank String country,
+    @NotNull @NotBlank String state,
+    @NotNull @NotBlank String city,
+    String zipCode,
+    Double latitude,
+    Double longitude
+) {
+    public UserLocation {
         if (country == null || country.trim().isEmpty()) {
             throw new IllegalArgumentException("Country cannot be null or empty");
         }
-        return country.trim().toUpperCase();
-    }
-
-    private String validateState(String state) {
         if (state == null || state.trim().isEmpty()) {
             throw new IllegalArgumentException("State cannot be null or empty");
         }
-        return state.trim();
-    }
-
-    private String validateCity(String city) {
         if (city == null || city.trim().isEmpty()) {
             throw new IllegalArgumentException("City cannot be null or empty");
         }
-        return city.trim();
     }
 
     public static UserLocation of(String country, String state, String city) {
-        return new UserLocation(country, state, city, null, null, null);
+        return new UserLocation(country.trim().toUpperCase(), state.trim(), city.trim(), null, null, null);
     }
 
     public static UserLocation withCoordinates(String country, String state, String city, 
                                              Double latitude, Double longitude) {
-        return new UserLocation(country, state, city, null, latitude, longitude);
+        return new UserLocation(country.trim().toUpperCase(), state.trim(), city.trim(), null, latitude, longitude);
     }
 
     /**
@@ -104,30 +71,6 @@ public class UserLocation {
     public boolean isSameRegion(UserLocation other) {
         return this.country.equals(other.country) && 
                this.state.equalsIgnoreCase(other.state);
-    }
-
-    // Getters
-    public String getCountry() { return country; }
-    public String getState() { return state; }
-    public String getCity() { return city; }
-    public String getZipCode() { return zipCode; }
-    public Double getLatitude() { return latitude; }
-    public Double getLongitude() { return longitude; }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        UserLocation that = (UserLocation) o;
-        return Objects.equals(country, that.country) &&
-               Objects.equals(state, that.state) &&
-               Objects.equals(city, that.city) &&
-               Objects.equals(zipCode, that.zipCode);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(country, state, city, zipCode);
     }
 
     @Override

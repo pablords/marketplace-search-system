@@ -87,7 +87,7 @@ public class ProductMapper {
     dto.setAttributes(product.getInfo().getAttributes());
     dto.setTags(product.getInfo().getTags());
 
-    dto.setStockQuantity(product.getMetrics().getStockQuantity());
+    dto.setStockQuantity(product.getMetrics().stockQuantity());
     dto.setIsActive(product.getStatus().isActive());
 
     return dto;

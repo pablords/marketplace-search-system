@@ -31,18 +31,18 @@ public class SearchDomainService {
     SearchResult initialResult = searchRepository.search(query, userContext);
     logger.debug("Validar se todos os produtos no índice estão disponíveis para busca {}", initialResult.toString());
 
-    List<Product> rankedProducts = applyBusinessRules(initialResult.getProducts(), query, userContext);
+    List<Product> rankedProducts = applyBusinessRules(initialResult.products(), query, userContext);
     if (!rankedProducts.isEmpty()) {
       logger.debug("Aplicar regras de negócio para ranking personalizado {}", rankedProducts.get(0).toString());
     }
 
     return new SearchResult(
         rankedProducts,
-        initialResult.getTotalCount(),
-        initialResult.getPageSize(),
-        initialResult.getPageNumber(),
-        initialResult.getExecutionTime(),
-        initialResult.getMetrics());
+        initialResult.totalCount(),
+        initialResult.pageSize(),
+        initialResult.pageNumber(),
+        initialResult.executionTime(),
+        initialResult.metrics());
   }
 
   /**
@@ -52,7 +52,7 @@ public class SearchDomainService {
     SearchResult result = searchRepository.search(originalQuery, userContext);
 
     // Se não encontrou resultados suficientes, tenta busca mais ampla
-    if (result.getProducts().size() < 3) {
+    if (result.products().size() < 3) {
       SearchQuery fallbackQuery = createFallbackQuery(originalQuery);
       result = searchRepository.search(fallbackQuery, userContext);
     }
@@ -95,7 +95,7 @@ public class SearchDomainService {
     }
 
     // Verificações baseadas na localização do usuário
-    if (userContext != null && userContext.getLocation() != null) {
+    if (userContext != null && userContext.location() != null) {
       // Aqui poderia ter regras de entrega por região, etc.
     }
 
@@ -152,12 +152,12 @@ public class SearchDomainService {
   private SearchQuery createFallbackQuery(SearchQuery originalQuery) {
     // Simplifica a query removendo filtros muito específicos
     return new SearchQuery(
-        originalQuery.getTerms(),
+        originalQuery.terms(),
         null, // Remove filtro de categoria
         List.of(), // Remove todos os filtros
-        originalQuery.getSort(),
-        originalQuery.getOffset(),
-        originalQuery.getLimit() * 2 // Aumenta o limite
+        originalQuery.sort(),
+        originalQuery.offset(),
+        originalQuery.limit() * 2 // Aumenta o limite
     );
   }
 

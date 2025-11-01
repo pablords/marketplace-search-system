@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -59,7 +60,7 @@ public class ElasticsearchConfig {
         objectMapper.registerModule(new JavaTimeModule());
         
         // Desabilitar serialização de datas como timestamps (usar ISO-8601)
-        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         
         // Ignorar campos desconhecidos no JSON (ex: seller_id, brand_id, etc)
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

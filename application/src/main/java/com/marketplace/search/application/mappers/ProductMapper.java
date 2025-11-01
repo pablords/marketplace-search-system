@@ -20,6 +20,8 @@ import com.marketplace.search.domain.valueobjects.ProductInfo;
 import com.marketplace.search.domain.valueobjects.ProductMetrics;
 import com.marketplace.search.domain.valueobjects.ProductStatus;
 import com.marketplace.search.domain.valueobjects.SellerReputation;
+import com.marketplace.search.domain.valueobjects.SellerStatus;
+import com.marketplace.search.domain.valueobjects.SellerType;
 
 /**
  * Mapper para conversão entre Product e ProductDTO
@@ -28,46 +30,46 @@ import com.marketplace.search.domain.valueobjects.SellerReputation;
 public class ProductMapper {
 
   public Product toDomain(ProductDTO dto) {
-  ProductId id = ProductId.from(dto.getId());
+    ProductId id = ProductId.from(dto.getId());
 
-  ProductInfo info = new ProductInfo(
-    dto.getTitle(),
-    dto.getDescription() != null ? dto.getDescription() : "",
-    dto.getPrice(),
-    dto.getCurrency(),
-    mapCategory(dto.getCategory()),
-    mapBrand(dto.getBrand()),
-    dto.getImages() != null ? dto.getImages() : List.of(),
-    dto.getAttributes() != null ? dto.getAttributes() : Set.of(),
-    dto.getTags() != null ? dto.getTags() : Set.of());
+    ProductInfo info = new ProductInfo(
+        dto.getTitle(),
+        dto.getDescription() != null ? dto.getDescription() : "",
+        dto.getPrice(),
+        dto.getCurrency(),
+        mapCategory(dto.getCategory()),
+        mapBrand(dto.getBrand()),
+        dto.getImages() != null ? dto.getImages() : List.of(),
+        dto.getAttributes() != null ? dto.getAttributes() : Set.of(),
+        dto.getTags() != null ? dto.getTags() : Set.of());
 
-  Seller seller = mapSeller(dto.getSeller());
+    Seller seller = mapSeller(dto.getSeller());
 
-  ProductMetrics metrics = new ProductMetrics(
-    0, // totalViews - seria obtido de outra fonte
-    0, // totalSales
-    0, // totalReviews
-    0.0, // averageRating
-    dto.getStockQuantity() != null ? dto.getStockQuantity() : 0,
-    0.0, // conversionRate
-    null, // lastSale
-    null // lastView
-  );
+    ProductMetrics metrics = new ProductMetrics(
+        0, // totalViews - seria obtido de outra fonte
+        0, // totalSales
+        0, // totalReviews
+        0.0, // averageRating
+        dto.getStockQuantity() != null ? dto.getStockQuantity() : 0,
+        0.0, // conversionRate
+        null, // lastSale
+        null // lastView
+    );
 
-  ProductStatus status = ProductStatus.active(
-    dto.getStockQuantity() != null && dto.getStockQuantity() > 0);
+    ProductStatus status = ProductStatus.active(
+        dto.getStockQuantity() != null && dto.getStockQuantity() > 0);
 
-  Instant now = Instant.now();
+    Instant now = Instant.now();
 
-  return Product.builder()
-    .id(id)
-    .info(info)
-    .seller(seller)
-    .metrics(metrics)
-    .status(status)
-    .createdAt(now)
-    .updatedAt(now)
-    .build();
+    return Product.builder()
+        .id(id)
+        .info(info)
+        .seller(seller)
+        .metrics(metrics)
+        .status(status)
+        .createdAt(now)
+        .updatedAt(now)
+        .build();
   }
 
   public ProductDTO toDTO(Product product) {
@@ -161,25 +163,25 @@ public class ProductMapper {
         reputation.getDeliveryPerformance());
   }
 
-  private com.marketplace.search.domain.valueobjects.SellerType mapSellerType(String type) {
+  private SellerType mapSellerType(String type) {
     if (type == null)
-      return com.marketplace.search.domain.valueobjects.SellerType.REGULAR;
+      return SellerType.REGULAR;
 
     try {
-      return com.marketplace.search.domain.valueobjects.SellerType.valueOf(type.toUpperCase());
+      return SellerType.valueOf(type.toUpperCase());
     } catch (IllegalArgumentException e) {
-      return com.marketplace.search.domain.valueobjects.SellerType.REGULAR;
+      return SellerType.REGULAR;
     }
   }
 
-  private com.marketplace.search.domain.valueobjects.SellerStatus mapSellerStatus(String status) {
+  private SellerStatus mapSellerStatus(String status) {
     if (status == null)
-      return com.marketplace.search.domain.valueobjects.SellerStatus.ACTIVE;
+      return SellerStatus.ACTIVE;
 
     try {
-      return com.marketplace.search.domain.valueobjects.SellerStatus.valueOf(status.toUpperCase());
+      return SellerStatus.valueOf(status.toUpperCase());
     } catch (IllegalArgumentException e) {
-      return com.marketplace.search.domain.valueobjects.SellerStatus.ACTIVE;
+      return SellerStatus.ACTIVE;
     }
   }
 }

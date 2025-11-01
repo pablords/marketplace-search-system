@@ -295,7 +295,7 @@ def main():
     print("=" * 60)
     
     # Gera e cria produtos
-    total_products = 100
+    total_products = 1
     created = 0
     failed = 0
     

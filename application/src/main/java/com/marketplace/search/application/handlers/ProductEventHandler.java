@@ -92,7 +92,7 @@ public class ProductEventHandler {
     logger.debug("Processando criação/atualização do produto: {}", productData.getId());
 
     ProductDTO productDTO = mapProductDataToDTO(productData);
-    indexProductUseCase.execute(productDTO);
+    indexProductUseCase.executeAsync(productDTO);
     return CompletableFuture.completedFuture(null);
   }
 

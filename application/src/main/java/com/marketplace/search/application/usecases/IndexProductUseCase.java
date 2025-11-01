@@ -39,7 +39,7 @@ public class IndexProductUseCase {
      * A indexação acontece em background usando o threadpool configurado.
      */
     @Async("asyncIndexingExecutor")
-    public CompletableFuture<Void> execute(ProductDTO productDTO) {
+    public CompletableFuture<Void> executeAsync(ProductDTO productDTO) {
         logger.info("Indexing product asynchronously: id={}, title='{}'", 
                    productDTO.getId(), productDTO.getTitle());
 

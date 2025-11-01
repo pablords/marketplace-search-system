@@ -3,10 +3,12 @@ package com.marketplace.search.application.usecases;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.marketplace.search.application.config.SearchCacheProperties;
@@ -77,6 +79,19 @@ public class SearchProductsUseCase {
         } catch (Exception e) {
             logger.error("Error executing search for query: {}", request.getQuery(), e);
             throw new SearchException("Failed to execute search", e);
+        }
+    }
+
+    /**
+     * Executa busca de forma assíncrona
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SearchResultDTO> executeAsync(SearchRequestDTO request) {
+        try {
+            SearchResultDTO result = execute(request);
+            return CompletableFuture.completedFuture(result);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
         }
     }
 

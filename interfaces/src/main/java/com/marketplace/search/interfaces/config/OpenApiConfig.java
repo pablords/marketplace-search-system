@@ -24,6 +24,7 @@ public class OpenApiConfig {
     @Value("${spring.application.name:marketplace-search}")
     private String applicationName;
 
+
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()

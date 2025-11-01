@@ -1,13 +1,13 @@
 package com.marketplace.search.interfaces.rest;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,12 +23,6 @@ import com.marketplace.search.application.dto.SearchResultDTO;
 import com.marketplace.search.application.usecases.IndexProductUseCase;
 import com.marketplace.search.application.usecases.SearchProductsUseCase;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -37,110 +31,72 @@ import jakarta.validation.constraints.NotBlank;
 @RestController
 @RequestMapping("/search")
 @Validated
-@Tag(name = "Search", description = "API de busca de produtos")
-public class SearchController {
+public class SearchController implements SearchApi {
 
   private final SearchProductsUseCase searchProductsUseCase;
   private final IndexProductUseCase indexProductUseCase;
   private static final Logger logger = LoggerFactory.getLogger(SearchController.class);
 
-  @Autowired
-  public SearchController(SearchProductsUseCase searchProductsUseCase,
+  public SearchController(
+      SearchProductsUseCase searchProductsUseCase,
       IndexProductUseCase indexProductUseCase) {
     this.searchProductsUseCase = searchProductsUseCase;
     this.indexProductUseCase = indexProductUseCase;
   }
 
   @GetMapping("/products")
-  @Operation(summary = "Buscar produtos", description = "Realiza busca de produtos com filtros e ordenação")
-  @ApiResponse(responseCode = "200", description = "Busca realizada com sucesso", content = @Content(schema = @Schema(implementation = SearchResultDTO.class)))
-  @ApiResponse(responseCode = "400", description = "Parâmetros de busca inválidos")
-  @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
-  @Async("taskExecutor")
   public CompletableFuture<ResponseEntity<SearchResultDTO>> searchProducts(
-      @Parameter(description = "Termo de busca", example = "smartphone samsung") @RequestParam(required = false) String query,
+      @RequestParam(required = false) String query,
+      @RequestParam(required = false) String categoryId,
+      @RequestParam(required = false) String brand,
+      @RequestParam(required = false) Double minPrice,
+      @RequestParam(required = false) Double maxPrice,
+      @RequestParam(required = false) String condition,
+      @RequestParam(required = false) String sellerId,
+      @RequestParam(defaultValue = "0") @Min(0) Integer page,
+      @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
+      @RequestParam(defaultValue = "relevance") String sortBy,
+      @RequestParam(defaultValue = "desc") String sortDirection,
+      @RequestParam(required = false) String userId) {
 
-      @Parameter(description = "ID da categoria", example = "electronics") @RequestParam(required = false) String categoryId,
+    logger.info("Received search request: query={}", query);
 
-      @Parameter(description = "Nome da marca", example = "Samsung") @RequestParam(required = false) String brand,
-
-      @Parameter(description = "Preço mínimo", example = "100.0") @RequestParam(required = false) Double minPrice,
-
-      @Parameter(description = "Preço máximo", example = "1000.0") @RequestParam(required = false) Double maxPrice,
-
-      @Parameter(description = "Condição do produto", example = "NEW") @RequestParam(required = false) String condition,
-
-      @Parameter(description = "ID do vendedor", example = "seller123") @RequestParam(required = false) String sellerId,
-
-      @Parameter(description = "Página (base 0)", example = "0") @RequestParam(defaultValue = "0") @Min(0) Integer page,
-
-      @Parameter(description = "Tamanho da página", example = "20") @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
-
-      @Parameter(description = "Campo de ordenação", example = "relevance") @RequestParam(defaultValue = "relevance") String sortBy,
-
-      @Parameter(description = "Direção da ordenação", example = "desc") @RequestParam(defaultValue = "desc") String sortDirection,
-
-      @Parameter(description = "ID do usuário (para personalização)", example = "user123") @RequestParam(required = false) String userId) {
-
-    logger.info("Received query {}", query);
     SearchRequestDTO searchRequest = new SearchRequestDTO();
     searchRequest.setQuery(query);
     // Mapear outros parâmetros para o SearchRequestDTO conforme necessário
 
-    return CompletableFuture.supplyAsync(() -> {
-      try {
-        SearchResultDTO result = searchProductsUseCase.execute(searchRequest);
-        return ResponseEntity.ok(result);
-      } catch (Exception e) {
-        SearchResultDTO errorResult = new SearchResultDTO();
-        errorResult.setProducts(java.util.Collections.emptyList());
-        errorResult.setTotalCount(0L);
-        errorResult.setTotalPages(0);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResult);
-      }
-    });
+    return searchProductsUseCase.executeAsync(searchRequest)
+        .thenApply(ResponseEntity::ok)
+        .exceptionally(ex -> {
+          logger.error("Error executing search", ex);
+          SearchResultDTO errorResult = new SearchResultDTO();
+          errorResult.setProducts(java.util.Collections.emptyList());
+          errorResult.setTotalCount(0L);
+          errorResult.setTotalPages(0);
+          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResult);
+        });
   }
 
   @PostMapping("/products/{productId}/index")
-  @Operation(summary = "Indexar produto", description = "Adiciona ou atualiza produto no índice de busca")
-  @ApiResponse(responseCode = "202", description = "Produto indexado com sucesso")
-  @ApiResponse(responseCode = "400", description = "Dados do produto inválidos")
-  @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
-  @Async("indexingExecutor") // ← Usar executor específico para indexação
   public CompletableFuture<ResponseEntity<Void>> indexProduct(
-      @Parameter(description = "ID do produto", example = "prod123") @PathVariable @NotBlank String productId,
-
+      @PathVariable @NotBlank String productId,
       @Valid @RequestBody ProductDTO product) {
 
-    return CompletableFuture.supplyAsync(() -> {
-      try {
-        indexProductUseCase.execute(product);
-        return ResponseEntity.accepted().build();
-      } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-      }
-    });
+    return indexProductUseCase.executeAsync(product)
+        .thenApply(v -> ResponseEntity.accepted().<Void>build())
+        .exceptionally(ex -> {
+          logger.error("Error indexing product", ex);
+          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        });
   }
 
   @GetMapping("/suggestions")
-  @Operation(summary = "Obter sugestões", description = "Retorna sugestões de busca baseadas no termo parcial")
-  @ApiResponse(responseCode = "200", description = "Sugestões obtidas com sucesso")
-  public ResponseEntity<java.util.List<String>> getSuggestions(
-      @Parameter(description = "Termo parcial", example = "smartph") @RequestParam @NotBlank String term,
-
-      @Parameter(description = "Número máximo de sugestões", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(20) Integer limit) {
+  public ResponseEntity<List<String>> getSuggestions(
+      @RequestParam @NotBlank String term,
+      @RequestParam(defaultValue = "10") @Min(1) @Max(20) Integer limit) {
 
     // Implementação das sugestões será adicionada posteriormente
-    return ResponseEntity.ok(java.util.Collections.emptyList());
+    return ResponseEntity.ok(Collections.emptyList());
   }
 
-  @GetMapping("/health")
-  @Operation(summary = "Health check", description = "Verifica se o serviço de busca está funcionando")
-  public ResponseEntity<java.util.Map<String, Object>> health() {
-    java.util.Map<String, Object> health = new java.util.HashMap<>();
-    health.put("status", "UP");
-    health.put("service", "search-api");
-    health.put("timestamp", java.time.Instant.now());
-    return ResponseEntity.ok(health);
-  }
 }

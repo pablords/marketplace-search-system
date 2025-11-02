@@ -111,36 +111,41 @@ public class ProductEventHandler {
   }
 
   private ProductDTO mapProductDataToDTO(ProductData data) {
-    ProductDTO dto = new ProductDTO();
-    dto.setId(data.getId());
-    dto.setTitle(data.getTitle());
-    dto.setDescription(data.getDescription());
-    dto.setPrice(data.getPrice() != null ? new BigDecimal(data.getPrice()) : null);
-    dto.setCurrency(data.getCurrency());
-    dto.setStockQuantity(data.getAvailableQuantity());
-    dto.setCondition(data.getCondition());
-    dto.setIsActive("ACTIVE".equals(data.getStatus()));
-    
     // Category
-    CategoryDTO category = new CategoryDTO();
-    category.setId(data.getCategoryId());
-    category.setName(data.getCategoryName());
-    category.setPath(data.getCategoryPath());
-    dto.setCategory(category);
+    CategoryDTO category = new CategoryDTO(
+        data.getCategoryId(), 
+        data.getCategoryName(), 
+        null, 
+        data.getCategoryPath()
+    );
     
     // Brand
-    BrandDTO brand = new BrandDTO();
-    brand.setId(data.getBrandId());
-    brand.setName(data.getBrandName());
-    dto.setBrand(brand);
+    BrandDTO brand = new BrandDTO(
+        data.getBrandId(), 
+        data.getBrandName(), 
+        data.getDescription()
+    );
     
     // Seller
-    SellerDTO seller = new SellerDTO();
-    seller.setId(data.getSellerId());
-    seller.setName(data.getSellerName());
-    dto.setSeller(seller);
+    SellerDTO seller = SellerDTO.builder()
+        .id(data.getSellerId())
+        .name(data.getSellerName())
+        .build();
     
-    return dto;
+    // Product usando builder
+    return ProductDTO.builder()
+        .id(data.getId())
+        .title(data.getTitle())
+        .description(data.getDescription())
+        .price(data.getPrice() != null ? new BigDecimal(data.getPrice()) : null)
+        .currency(data.getCurrency())
+        .category(category)
+        .brand(brand)
+        .seller(seller)
+        .stockQuantity(data.getAvailableQuantity())
+        .condition(data.getCondition())
+        .isActive("ACTIVE".equals(data.getStatus()))
+        .build();
   }
 
 }

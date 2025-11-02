@@ -1,51 +1,34 @@
 package com.marketplace.search.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * DTO para marca
+ * DTO para marca (implementado como um Record)
  */
-public class BrandDTO {
-    
-    @NotNull
-    @NotBlank
-    @JsonProperty("id")
-    private String id;
-    
-    @NotNull
-    @NotBlank
-    @JsonProperty("name")
-    private String name;
-    
-    @JsonProperty("description")
-    private String description;
+public record BrandDTO(
 
-    // Constructors
-    public BrandDTO() {}
+    @NotNull @NotBlank @JsonProperty("id") String id,
 
-    public BrandDTO(String id, String name, String description) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-    }
+    @NotNull @NotBlank @JsonProperty("name") String name,
 
-    // Getters and Setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    @JsonProperty("description") String description
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
-    @Override
-    public String toString() {
-        return "BrandDTO{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                '}';
-    }
+) {
+  /**
+   * Sobrescrevemos o toString() para manter o formato exato da classe original,
+   * que omitia o campo 'description'.
+   *
+   * Nota: Se você quisesse o toString() padrão do record,
+   * que inclui todos os campos, basta remover este método.
+   */
+  @Override
+  public String toString() {
+    return "BrandDTO{" +
+        "id='" + id + '\'' +
+        ", name='" + name + '\'' +
+        '}';
+  }
 }

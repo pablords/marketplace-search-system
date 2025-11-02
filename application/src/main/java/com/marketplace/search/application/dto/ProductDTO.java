@@ -13,197 +13,146 @@ import jakarta.validation.constraints.Positive;
 /**
  * DTO para criação/atualização de produto
  */
-public class ProductDTO {
+public record ProductDTO(
 
-  @NotNull
-  @NotBlank
-  @JsonProperty("id")
-  private String id;
+    @NotNull @NotBlank @JsonProperty("id") String id,
 
-  @NotNull
-  @NotBlank
-  @JsonProperty("title")
-  private String title;
+    @NotNull @NotBlank @JsonProperty("title") String title,
 
-  @JsonProperty("description")
-  private String description;
+    @JsonProperty("description") String description,
 
-  @NotNull
-  @Positive
-  @JsonProperty("price")
-  private BigDecimal price;
+    @NotNull @Positive @JsonProperty("price") BigDecimal price,
 
-  @NotNull
-  @JsonProperty("currency")
-  private String currency;
+    @NotNull @JsonProperty("currency") String currency,
 
-  @NotNull
-  @JsonProperty("category")
-  private CategoryDTO category;
+    @NotNull @JsonProperty("category") CategoryDTO category,
 
-  @NotNull
-  @JsonProperty("brand")
-  private BrandDTO brand;
+    @NotNull @JsonProperty("brand") BrandDTO brand,
 
-  @NotNull
-  @JsonProperty("seller")
-  private SellerDTO seller;
+    @NotNull @JsonProperty("seller") SellerDTO seller,
 
-  @JsonProperty("images")
-  private List<String> images;
+    @JsonProperty("images") List<String> images,
 
-  @JsonProperty("attributes")
-  private Set<String> attributes;
+    @JsonProperty("attributes") Set<String> attributes,
 
-  @JsonProperty("tags")
-  private Set<String> tags;
+    @JsonProperty("tags") Set<String> tags,
 
-  @JsonProperty("available_quantity")
-  private Integer stockQuantity;
+    @JsonProperty("available_quantity") Integer stockQuantity,
 
-  @JsonProperty("condition")
-  private String condition;
+    @JsonProperty("condition") String condition,
 
-  @JsonProperty("is_active")
-  private Boolean isActive;
+    @JsonProperty("is_active") Boolean isActive
 
-  // Constructors
-  public ProductDTO() {
+) {
+
+  public static Builder builder() {
+    return new Builder();
   }
 
-  public ProductDTO(String id, String title, String description, BigDecimal price,
-      String currency, CategoryDTO category, BrandDTO brand, SellerDTO seller) {
-    this.id = id;
-    this.title = title;
-    this.description = description;
-    this.price = price;
-    this.currency = currency;
-    this.category = category;
-    this.brand = brand;
-    this.seller = seller;
-  }
+  public static class Builder {
 
-  // Getters and Setters
-  public String getId() {
-    return id;
-  }
+    private String id;
+    private String title;
+    private String description;
+    private BigDecimal price;
+    private String currency;
+    private CategoryDTO category;
+    private BrandDTO brand;
+    private SellerDTO seller;
+    private List<String> images;
+    private Set<String> attributes;
+    private Set<String> tags;
+    private Integer stockQuantity;
+    private String condition;
+    private Boolean isActive;
 
-  public void setId(String id) {
-    this.id = id;
-  }
+    public Builder id(String id) {
+      this.id = id;
+      return this;
+    }
 
-  public String getTitle() {
-    return title;
-  }
+    public Builder title(String title) {
+      this.title = title;
+      return this;
+    }
 
-  public void setTitle(String title) {
-    this.title = title;
-  }
+    public Builder description(String description) {
+      this.description = description;
+      return this;
+    }
 
-  public String getDescription() {
-    return description;
-  }
+    public Builder price(BigDecimal price) {
+      this.price = price;
+      return this;
+    }
 
-  public void setDescription(String description) {
-    this.description = description;
-  }
+    public Builder currency(String currency) {
+      this.currency = currency;
+      return this;
+    }
 
-  public BigDecimal getPrice() {
-    return price;
-  }
+    public Builder category(CategoryDTO category) {
+      this.category = category;
+      return this;
+    }
 
-  public void setPrice(BigDecimal price) {
-    this.price = price;
-  }
+    public Builder brand(BrandDTO brand) {
+      this.brand = brand;
+      return this;
+    }
 
-  public String getCurrency() {
-    return currency;
-  }
+    public Builder seller(SellerDTO seller) {
+      this.seller = seller;
+      return this;
+    }
 
-  public void setCurrency(String currency) {
-    this.currency = currency;
-  }
+    public Builder images(List<String> images) {
+      this.images = images;
+      return this;
+    }
 
-  public CategoryDTO getCategory() {
-    return category;
-  }
+    public Builder attributes(Set<String> attributes) {
+      this.attributes = attributes;
+      return this;
+    }
 
-  public void setCategory(CategoryDTO category) {
-    this.category = category;
-  }
+    public Builder tags(Set<String> tags) {
+      this.tags = tags;
+      return this;
+    }
 
-  public BrandDTO getBrand() {
-    return brand;
-  }
+    public Builder stockQuantity(Integer stockQuantity) {
+      this.stockQuantity = stockQuantity;
+      return this;
+    }
 
-  public void setBrand(BrandDTO brand) {
-    this.brand = brand;
-  }
+    public Builder condition(String condition) {
+      this.condition = condition;
+      return this;
+    }
 
-  public SellerDTO getSeller() {
-    return seller;
-  }
+    public Builder isActive(Boolean isActive) {
+      this.isActive = isActive;
+      return this;
+    }
 
-  public void setSeller(SellerDTO seller) {
-    this.seller = seller;
-  }
-
-  public List<String> getImages() {
-    return images;
-  }
-
-  public void setImages(List<String> images) {
-    this.images = images;
-  }
-
-  public Set<String> getAttributes() {
-    return attributes;
-  }
-
-  public void setAttributes(Set<String> attributes) {
-    this.attributes = attributes;
-  }
-
-  public Set<String> getTags() {
-    return tags;
-  }
-
-  public void setTags(Set<String> tags) {
-    this.tags = tags;
-  }
-
-  public Integer getStockQuantity() {
-    return stockQuantity;
-  }
-
-  public void setStockQuantity(Integer stockQuantity) {
-    this.stockQuantity = stockQuantity;
-  }
-
-  public String getCondition() {
-    return condition;
-  }
-
-  public void setCondition(String condition) {
-    this.condition = condition;
-  }
-
-  public Boolean getIsActive() {
-    return isActive;
-  }
-
-  public void setIsActive(Boolean isActive) {
-    this.isActive = isActive;
-  }
-
-  @Override
-  public String toString() {
-    return "ProductDTO{" +
-        "id='" + id + '\'' +
-        ", title='" + title + '\'' +
-        ", price=" + price +
-        ", currency='" + currency + '\'' +
-        ", stockQuantity='" + stockQuantity + '\'' +
-        '}';
+    public ProductDTO build() {
+      return new ProductDTO(
+          id,
+          title,
+          description,
+          price,
+          currency,
+          category,
+          brand,
+          seller,
+          images,
+          attributes,
+          tags,
+          stockQuantity,
+          condition,
+          isActive
+      );
+    }
   }
 }

@@ -11,71 +11,78 @@ import java.util.List;
 /**
  * DTO para requisição de busca
  */
-public class SearchRequestDTO {
+public record SearchRequestDTO(
     
-    @NotNull
-    @NotBlank
-    @JsonProperty("query")
+    @NotNull @NotBlank @JsonProperty("query") String query,
+    
+    @JsonProperty("category_id") String categoryId,
+    
+    @JsonProperty("filters") List<SearchFilterDTO> filters,
+    
+    @JsonProperty("sort") String sort,
+    
+    @Min(0) @JsonProperty("offset") int offset,
+    
+    @Min(1) @Max(100) @JsonProperty("limit") int limit,
+    
+    @JsonProperty("user_context") UserContextDTO userContext
+
+) {
+  
+  public SearchRequestDTO(String query) {
+    this(query, null, null, "RELEVANCE", 0, 20, null);
+  }
+  
+  public static Builder builder() {
+    return new Builder();
+  }
+  
+  public static class Builder {
     private String query;
-    
-    @JsonProperty("category_id")
     private String categoryId;
-    
-    @JsonProperty("filters")
     private List<SearchFilterDTO> filters;
-    
-    @JsonProperty("sort")
     private String sort = "RELEVANCE";
-    
-    @Min(0)
-    @JsonProperty("offset")
     private int offset = 0;
-    
-    @Min(1)
-    @Max(100)
-    @JsonProperty("limit")
     private int limit = 20;
-    
-    @JsonProperty("user_context")
     private UserContextDTO userContext;
-
-    // Constructors
-    public SearchRequestDTO() {}
-
-    public SearchRequestDTO(String query) {
-        this.query = query;
+    
+    public Builder query(String query) {
+      this.query = query;
+      return this;
     }
-
-    // Getters and Setters
-    public String getQuery() { return query; }
-    public void setQuery(String query) { this.query = query; }
-
-    public String getCategoryId() { return categoryId; }
-    public void setCategoryId(String categoryId) { this.categoryId = categoryId; }
-
-    public List<SearchFilterDTO> getFilters() { return filters; }
-    public void setFilters(List<SearchFilterDTO> filters) { this.filters = filters; }
-
-    public String getSort() { return sort; }
-    public void setSort(String sort) { this.sort = sort; }
-
-    public int getOffset() { return offset; }
-    public void setOffset(int offset) { this.offset = offset; }
-
-    public int getLimit() { return limit; }
-    public void setLimit(int limit) { this.limit = limit; }
-
-    public UserContextDTO getUserContext() { return userContext; }
-    public void setUserContext(UserContextDTO userContext) { this.userContext = userContext; }
-
-    @Override
-    public String toString() {
-        return "SearchRequestDTO{" +
-                "query='" + query + '\'' +
-                ", categoryId='" + categoryId + '\'' +
-                ", sort='" + sort + '\'' +
-                ", offset=" + offset +
-                ", limit=" + limit +
-                '}';
+    
+    public Builder categoryId(String categoryId) {
+      this.categoryId = categoryId;
+      return this;
     }
+    
+    public Builder filters(List<SearchFilterDTO> filters) {
+      this.filters = filters;
+      return this;
+    }
+    
+    public Builder sort(String sort) {
+      this.sort = sort;
+      return this;
+    }
+    
+    public Builder offset(int offset) {
+      this.offset = offset;
+      return this;
+    }
+    
+    public Builder limit(int limit) {
+      this.limit = limit;
+      return this;
+    }
+    
+    public Builder userContext(UserContextDTO userContext) {
+      this.userContext = userContext;
+      return this;
+    }
+    
+    public SearchRequestDTO build() {
+      return new SearchRequestDTO(query, categoryId, filters, sort, offset, limit, userContext);
+    }
+  }
 }

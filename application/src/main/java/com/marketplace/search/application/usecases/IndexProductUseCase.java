@@ -41,7 +41,7 @@ public class IndexProductUseCase {
     @Async("asyncIndexingExecutor")
     public CompletableFuture<Void> executeAsync(ProductDTO productDTO) {
         logger.info("Indexing product asynchronously: id={}, title='{}'", 
-                   productDTO.getId(), productDTO.getTitle());
+                   productDTO.id(), productDTO.title());
 
         
         try {
@@ -61,9 +61,9 @@ public class IndexProductUseCase {
             return CompletableFuture.completedFuture(null);
             
         } catch (Exception e) {
-            logger.error("Error indexing product: {}", productDTO.getId(), e);
+            logger.error("Error indexing product: {}", productDTO.id(), e);
             return CompletableFuture.failedFuture(
-                new IndexingException("Failed to index product: " + productDTO.getId(), e));
+                new IndexingException("Failed to index product: " + productDTO.id(), e));
         }
     }
 

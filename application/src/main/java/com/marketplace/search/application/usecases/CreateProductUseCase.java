@@ -39,7 +39,7 @@ public class CreateProductUseCase {
     @Transactional
     public void execute(ProductDTO productDTO) {
         logger.info("Received request for create product: id={}, title='{}'",
-            productDTO.getId(), productDTO.getTitle());
+            productDTO.id(), productDTO.title());
 
         // Converte DTO para domínio
         Product product = productMapper.toDomain(productDTO);
@@ -48,7 +48,7 @@ public class CreateProductUseCase {
         productRepository.save(product);
 
         logger.info("Product {} saved to PostgreSQL. Debezium will capture and publish to Kafka.", 
-            productDTO.getId());
+            productDTO.id());
     }
 }
 

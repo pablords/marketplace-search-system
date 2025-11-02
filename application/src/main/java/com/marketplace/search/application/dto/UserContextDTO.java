@@ -7,58 +7,67 @@ import java.util.Set;
 /**
  * DTO para contexto do usuário
  */
-public class UserContextDTO {
+public record UserContextDTO(
     
-    @JsonProperty("user_id")
+    @JsonProperty("user_id") String userId,
+    
+    @JsonProperty("location") UserLocationDTO location,
+    
+    @JsonProperty("preferred_categories") Set<String> preferredCategories,
+    
+    @JsonProperty("purchase_history") Set<String> purchaseHistory,
+    
+    @JsonProperty("search_history") Set<String> searchHistory,
+    
+    @JsonProperty("view_history") Set<String> viewHistory
+
+) {
+  
+  public static Builder builder() {
+    return new Builder();
+  }
+  
+  public static class Builder {
     private String userId;
-    
-    @JsonProperty("location")
     private UserLocationDTO location;
-    
-    @JsonProperty("preferred_categories")
     private Set<String> preferredCategories;
-    
-    @JsonProperty("purchase_history")
     private Set<String> purchaseHistory;
-    
-    @JsonProperty("search_history")
     private Set<String> searchHistory;
-    
-    @JsonProperty("view_history")
     private Set<String> viewHistory;
-
-    // Constructors
-    public UserContextDTO() {}
-
-    public UserContextDTO(String userId, UserLocationDTO location) {
-        this.userId = userId;
-        this.location = location;
+    
+    public Builder userId(String userId) {
+      this.userId = userId;
+      return this;
     }
-
-    // Getters and Setters
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-
-    public UserLocationDTO getLocation() { return location; }
-    public void setLocation(UserLocationDTO location) { this.location = location; }
-
-    public Set<String> getPreferredCategories() { return preferredCategories; }
-    public void setPreferredCategories(Set<String> preferredCategories) { this.preferredCategories = preferredCategories; }
-
-    public Set<String> getPurchaseHistory() { return purchaseHistory; }
-    public void setPurchaseHistory(Set<String> purchaseHistory) { this.purchaseHistory = purchaseHistory; }
-
-    public Set<String> getSearchHistory() { return searchHistory; }
-    public void setSearchHistory(Set<String> searchHistory) { this.searchHistory = searchHistory; }
-
-    public Set<String> getViewHistory() { return viewHistory; }
-    public void setViewHistory(Set<String> viewHistory) { this.viewHistory = viewHistory; }
-
-    @Override
-    public String toString() {
-        return "UserContextDTO{" +
-                "userId='" + userId + '\'' +
-                ", location=" + location +
-                '}';
+    
+    public Builder location(UserLocationDTO location) {
+      this.location = location;
+      return this;
     }
+    
+    public Builder preferredCategories(Set<String> preferredCategories) {
+      this.preferredCategories = preferredCategories;
+      return this;
+    }
+    
+    public Builder purchaseHistory(Set<String> purchaseHistory) {
+      this.purchaseHistory = purchaseHistory;
+      return this;
+    }
+    
+    public Builder searchHistory(Set<String> searchHistory) {
+      this.searchHistory = searchHistory;
+      return this;
+    }
+    
+    public Builder viewHistory(Set<String> viewHistory) {
+      this.viewHistory = viewHistory;
+      return this;
+    }
+    
+    public UserContextDTO build() {
+      return new UserContextDTO(userId, location, preferredCategories, 
+                                purchaseHistory, searchHistory, viewHistory);
+    }
+  }
 }

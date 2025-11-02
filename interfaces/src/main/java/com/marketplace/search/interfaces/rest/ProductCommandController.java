@@ -38,7 +38,7 @@ public class ProductCommandController implements ProductApi {
 
         createProductUseCase.execute(productDTO);
 
-        URI location = URI.create("/products/" + productDTO.getId());
+        URI location = URI.create("/products/" + productDTO.id());
         return ResponseEntity.created(location).build();
     }
 }

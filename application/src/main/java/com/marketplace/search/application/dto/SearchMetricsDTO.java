@@ -5,55 +5,67 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * DTO para métricas de busca
  */
-public class SearchMetricsDTO {
+public record SearchMetricsDTO(
     
-    @JsonProperty("queries_per_second")
+    @JsonProperty("queries_per_second") int queriesPerSecond,
+    
+    @JsonProperty("average_score") double averageScore,
+    
+    @JsonProperty("indexed_documents") int indexedDocuments,
+    
+    @JsonProperty("index_size") long indexSize,
+    
+    @JsonProperty("used_cache") boolean usedCache,
+    
+    @JsonProperty("shard_info") String shardInfo
+
+) {
+  
+  public static Builder builder() {
+    return new Builder();
+  }
+  
+  public static class Builder {
     private int queriesPerSecond;
-    
-    @JsonProperty("average_score")
     private double averageScore;
-    
-    @JsonProperty("indexed_documents")
     private int indexedDocuments;
-    
-    @JsonProperty("index_size")
     private long indexSize;
-    
-    @JsonProperty("used_cache")
     private boolean usedCache;
-    
-    @JsonProperty("shard_info")
     private String shardInfo;
-
-    // Constructors
-    public SearchMetricsDTO() {}
-
-    // Getters and Setters
-    public int getQueriesPerSecond() { return queriesPerSecond; }
-    public void setQueriesPerSecond(int queriesPerSecond) { this.queriesPerSecond = queriesPerSecond; }
-
-    public double getAverageScore() { return averageScore; }
-    public void setAverageScore(double averageScore) { this.averageScore = averageScore; }
-
-    public int getIndexedDocuments() { return indexedDocuments; }
-    public void setIndexedDocuments(int indexedDocuments) { this.indexedDocuments = indexedDocuments; }
-
-    public long getIndexSize() { return indexSize; }
-    public void setIndexSize(long indexSize) { this.indexSize = indexSize; }
-
-    public boolean isUsedCache() { return usedCache; }
-    public void setUsedCache(boolean usedCache) { this.usedCache = usedCache; }
-
-    public String getShardInfo() { return shardInfo; }
-    public void setShardInfo(String shardInfo) { this.shardInfo = shardInfo; }
-
-    @Override
-    public String toString() {
-        return "SearchMetricsDTO{" +
-                "qps=" + queriesPerSecond +
-                ", avgScore=" + averageScore +
-                ", documents=" + indexedDocuments +
-                ", cache=" + usedCache +
-                '}';
+    
+    public Builder queriesPerSecond(int queriesPerSecond) {
+      this.queriesPerSecond = queriesPerSecond;
+      return this;
     }
+    
+    public Builder averageScore(double averageScore) {
+      this.averageScore = averageScore;
+      return this;
+    }
+    
+    public Builder indexedDocuments(int indexedDocuments) {
+      this.indexedDocuments = indexedDocuments;
+      return this;
+    }
+    
+    public Builder indexSize(long indexSize) {
+      this.indexSize = indexSize;
+      return this;
+    }
+    
+    public Builder usedCache(boolean usedCache) {
+      this.usedCache = usedCache;
+      return this;
+    }
+    
+    public Builder shardInfo(String shardInfo) {
+      this.shardInfo = shardInfo;
+      return this;
+    }
+    
+    public SearchMetricsDTO build() {
+      return new SearchMetricsDTO(queriesPerSecond, averageScore, indexedDocuments, 
+                                  indexSize, usedCache, shardInfo);
+    }
+  }
 }

@@ -30,34 +30,34 @@ import com.marketplace.search.domain.valueobjects.SellerType;
 public class ProductMapper {
 
   public Product toDomain(ProductDTO dto) {
-    ProductId id = ProductId.from(dto.getId());
+    ProductId id = ProductId.from(dto.id());
 
     ProductInfo info = new ProductInfo(
-        dto.getTitle(),
-        dto.getDescription() != null ? dto.getDescription() : "",
-        dto.getPrice(),
-        dto.getCurrency(),
-        mapCategory(dto.getCategory()),
-        mapBrand(dto.getBrand()),
-        dto.getImages() != null ? dto.getImages() : List.of(),
-        dto.getAttributes() != null ? dto.getAttributes() : Set.of(),
-        dto.getTags() != null ? dto.getTags() : Set.of());
+        dto.title(),
+        dto.description() != null ? dto.description() : "",
+        dto.price(),
+        dto.currency(),
+        mapCategory(dto.category()),
+        mapBrand(dto.brand()),
+        dto.images() != null ? dto.images() : List.of(),
+        dto.attributes() != null ? dto.attributes() : Set.of(),
+        dto.tags() != null ? dto.tags() : Set.of());
 
-    Seller seller = mapSeller(dto.getSeller());
+    Seller seller = mapSeller(dto.seller());
 
     ProductMetrics metrics = new ProductMetrics(
         0, // totalViews - seria obtido de outra fonte
         0, // totalSales
         0, // totalReviews
         0.0, // averageRating
-        dto.getStockQuantity() != null ? dto.getStockQuantity() : 0,
+        dto.stockQuantity() != null ? dto.stockQuantity() : 0,
         0.0, // conversionRate
         null, // lastSale
         null // lastView
     );
 
     ProductStatus status = ProductStatus.active(
-        dto.getStockQuantity() != null && dto.getStockQuantity() > 0);
+        dto.stockQuantity() != null && dto.stockQuantity() > 0);
 
     Instant now = Instant.now();
 
@@ -73,30 +73,25 @@ public class ProductMapper {
   }
 
   public ProductDTO toDTO(Product product) {
-    ProductDTO dto = new ProductDTO();
-
-    dto.setId(product.getId().getValue());
-    dto.setTitle(product.getInfo().getTitle());
-    dto.setDescription(product.getInfo().getDescription());
-    dto.setPrice(product.getInfo().getPrice());
-    dto.setCurrency(product.getInfo().getCurrency());
-
-    dto.setCategory(mapCategoryToDTO(product.getInfo().getCategory()));
-    dto.setBrand(mapBrandToDTO(product.getInfo().getBrand()));
-    dto.setSeller(mapSellerToDTO(product.getSeller()));
-
-    dto.setImages(product.getInfo().getImages());
-    dto.setAttributes(product.getInfo().getAttributes());
-    dto.setTags(product.getInfo().getTags());
-
-    dto.setStockQuantity(product.getMetrics().stockQuantity());
-    dto.setIsActive(product.getStatus().isActive());
-
-    return dto;
+    return ProductDTO.builder()
+        .id(product.getId().getValue())
+        .title(product.getInfo().getTitle())
+        .description(product.getInfo().getDescription())
+        .price(product.getInfo().getPrice())
+        .currency(product.getInfo().getCurrency())
+        .category(mapCategoryToDTO(product.getInfo().getCategory()))
+        .brand(mapBrandToDTO(product.getInfo().getBrand()))
+        .seller(mapSellerToDTO(product.getSeller()))
+        .images(product.getInfo().getImages())
+        .attributes(product.getInfo().getAttributes())
+        .tags(product.getInfo().getTags())
+        .stockQuantity(product.getMetrics().stockQuantity())
+        .isActive(product.getStatus().isActive())
+        .build();
   }
 
   private Category mapCategory(CategoryDTO dto) {
-    return new Category(dto.getId(), dto.getName(), dto.getParentId(), dto.getPath());
+    return new Category(dto.id(), dto.name(), dto.parentId(), dto.path());
   }
 
   private CategoryDTO mapCategoryToDTO(Category category) {
@@ -108,7 +103,7 @@ public class ProductMapper {
   }
 
   private Brand mapBrand(BrandDTO dto) {
-    return new Brand(dto.getId(), dto.getName(), dto.getDescription());
+    return new Brand(dto.id(), dto.name(), dto.description());
   }
 
   private BrandDTO mapBrandToDTO(Brand brand) {
@@ -116,40 +111,38 @@ public class ProductMapper {
   }
 
   private Seller mapSeller(SellerDTO dto) {
-    SellerReputation reputation = dto.getReputation() != null ? mapSellerReputation(dto.getReputation())
+    SellerReputation reputation = dto.reputation() != null ? mapSellerReputation(dto.reputation())
         : new SellerReputation(5.0, 0, 0, 0, 0, 0.0, 1.0);
 
     return new Seller(
-        dto.getId(),
-        dto.getName(),
-        mapSellerType(dto.getType()),
+        dto.id(),
+        dto.name(),
+        mapSellerType(dto.type()),
         reputation,
-        mapSellerStatus(dto.getStatus()),
-        dto.getMemberSince() != null ? Instant.parse(dto.getMemberSince()) : null);
+        mapSellerStatus(dto.status()),
+        dto.memberSince() != null ? Instant.parse(dto.memberSince()) : null);
   }
 
   private SellerDTO mapSellerToDTO(Seller seller) {
-    SellerDTO dto = new SellerDTO();
-    dto.setId(seller.getId());
-    dto.setName(seller.getName());
-    dto.setType(seller.getType().name());
-    dto.setStatus(seller.getStatus().name());
-    dto.setReputation(mapSellerReputationToDTO(seller.getReputation()));
-    if (seller.getMemberSince() != null) {
-      dto.setMemberSince(seller.getMemberSince().toString());
-    }
-    return dto;
+    return SellerDTO.builder()
+        .id(seller.getId())
+        .name(seller.getName())
+        .type(seller.getType().name())
+        .status(seller.getStatus().name())
+        .reputation(mapSellerReputationToDTO(seller.getReputation()))
+        .memberSince(seller.getMemberSince() != null ? seller.getMemberSince().toString() : null)
+        .build();
   }
 
   private SellerReputation mapSellerReputation(SellerReputationDTO dto) {
     return new SellerReputation(
-        dto.getScore() != null ? dto.getScore() : 5.0,
-        dto.getTotalReviews() != null ? dto.getTotalReviews() : 0,
-        dto.getPositiveReviews() != null ? dto.getPositiveReviews() : 0,
-        dto.getNeutralReviews() != null ? dto.getNeutralReviews() : 0,
-        dto.getNegativeReviews() != null ? dto.getNegativeReviews() : 0,
-        dto.getCancellationRate() != null ? dto.getCancellationRate() : 0.0,
-        dto.getDeliveryPerformance() != null ? dto.getDeliveryPerformance() : 1.0);
+        dto.score() != null ? dto.score() : 5.0,
+        dto.totalReviews() != null ? dto.totalReviews() : 0,
+        dto.positiveReviews() != null ? dto.positiveReviews() : 0,
+        dto.neutralReviews() != null ? dto.neutralReviews() : 0,
+        dto.negativeReviews() != null ? dto.negativeReviews() : 0,
+        dto.cancellationRate() != null ? dto.cancellationRate() : 0.0,
+        dto.deliveryPerformance() != null ? dto.deliveryPerformance() : 1.0);
   }
 
   private SellerReputationDTO mapSellerReputationToDTO(SellerReputation reputation) {

@@ -61,18 +61,20 @@ public class SearchController implements SearchApi {
 
     logger.info("Received search request: query={}", query);
 
-    SearchRequestDTO searchRequest = new SearchRequestDTO();
-    searchRequest.setQuery(query);
+    SearchRequestDTO searchRequest = SearchRequestDTO.builder()
+        .query(query)
+        .build();
     // Mapear outros parâmetros para o SearchRequestDTO conforme necessário
 
     return searchProductsUseCase.executeAsync(searchRequest)
         .thenApply(ResponseEntity::ok)
         .exceptionally(ex -> {
           logger.error("Error executing search", ex);
-          SearchResultDTO errorResult = new SearchResultDTO();
-          errorResult.setProducts(java.util.Collections.emptyList());
-          errorResult.setTotalCount(0L);
-          errorResult.setTotalPages(0);
+          SearchResultDTO errorResult = SearchResultDTO.builder()
+              .products(Collections.emptyList())
+              .totalCount(0L)
+              .totalPages(0)
+              .build();
           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResult);
         });
   }

@@ -7,66 +7,66 @@ import jakarta.validation.constraints.NotNull;
 /**
  * DTO para vendedor
  */
-public class SellerDTO {
+public record SellerDTO(
     
-    @NotNull
-    @NotBlank
-    @JsonProperty("id")
+    @NotNull @NotBlank @JsonProperty("id") String id,
+    
+    @NotNull @NotBlank @JsonProperty("name") String name,
+    
+    @JsonProperty("type") String type,
+    
+    @JsonProperty("reputation") SellerReputationDTO reputation,
+    
+    @JsonProperty("status") String status,
+    
+    @JsonProperty("member_since") String memberSince
+
+) {
+  
+  public static Builder builder() {
+    return new Builder();
+  }
+  
+  public static class Builder {
     private String id;
-    
-    @NotNull
-    @NotBlank
-    @JsonProperty("name")
     private String name;
-    
-    @JsonProperty("type")
     private String type;
-    
-    @JsonProperty("reputation")
     private SellerReputationDTO reputation;
-    
-    @JsonProperty("status")
     private String status;
-    
-    @JsonProperty("member_since")
     private String memberSince;
-
-    // Constructors
-    public SellerDTO() {}
-
-    public SellerDTO(String id, String name, String type, String status) {
-        this.id = id;
-        this.name = name;
-        this.type = type;
-        this.status = status;
+    
+    public Builder id(String id) {
+      this.id = id;
+      return this;
     }
-
-    // Getters and Setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
-
-    public SellerReputationDTO getReputation() { return reputation; }
-    public void setReputation(SellerReputationDTO reputation) { this.reputation = reputation; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
-    public String getMemberSince() { return memberSince; }
-    public void setMemberSince(String memberSince) { this.memberSince = memberSince; }
-
-    @Override
-    public String toString() {
-        return "SellerDTO{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", type='" + type + '\'' +
-                ", status='" + status + '\'' +
-                '}';
+    
+    public Builder name(String name) {
+      this.name = name;
+      return this;
     }
+    
+    public Builder type(String type) {
+      this.type = type;
+      return this;
+    }
+    
+    public Builder reputation(SellerReputationDTO reputation) {
+      this.reputation = reputation;
+      return this;
+    }
+    
+    public Builder status(String status) {
+      this.status = status;
+      return this;
+    }
+    
+    public Builder memberSince(String memberSince) {
+      this.memberSince = memberSince;
+      return this;
+    }
+    
+    public SellerDTO build() {
+      return new SellerDTO(id, name, type, reputation, status, memberSince);
+    }
+  }
 }

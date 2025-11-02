@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
+import com.marketplace.search.application.usecases.SearchException;
+
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
@@ -76,18 +78,36 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
             IllegalArgumentException ex, WebRequest request) {
         
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error("Invalid Argument")
-                .message(ex.getMessage())
-                .path(request.getDescription(false))
-                .build();
+                String message = ex.getMessage();
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                                .timestamp(Instant.now())
+                                .status(HttpStatus.BAD_REQUEST.value())
+                                .error("Invalid Argument")
+                                .message(message)
+                                .path(request.getDescription(false))
+                                .build();
 
-        logger.warn("Argumento inválido: {}", ex.getMessage());
+                logger.warn("Argumento inválido: {}", message);
 
-        return ResponseEntity.badRequest().body(errorResponse);
+                return ResponseEntity.badRequest().body(errorResponse);
     }
+
+        @ExceptionHandler(SearchException.class)
+        public ResponseEntity<ErrorResponse> handleSearchException(SearchException ex, WebRequest request) {
+                // Se a causa for um IllegalArgumentException, delega para o handler apropriado
+                if (ex.getCause() instanceof IllegalArgumentException iae) {
+                        return handleIllegalArgumentException(iae, request);
+                }
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                                .timestamp(Instant.now())
+                                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                                .error("Search Error")
+                                .message(ex.getMessage())
+                                .path(request.getDescription(false))
+                                .build();
+                logger.error("Erro de busca: {}", ex.getMessage(), ex);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(

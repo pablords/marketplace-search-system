@@ -61,22 +61,17 @@ public class SearchController implements SearchApi {
 
     logger.info("Received search request: query={}", query);
 
+    if (query == null || query.trim().isEmpty()) {
+      throw new IllegalArgumentException("Search terms cannot be null or empty");
+    }
+
     SearchRequestDTO searchRequest = SearchRequestDTO.builder()
-        .query(query)
+        .query(query.trim())
         .build();
-    // Mapear outros parâmetros para o SearchRequestDTO conforme necessário
+    // Mapear outros parâmetros para o SearchRequestDTO conforme necessário (TODO)
 
     return searchProductsUseCase.executeAsync(searchRequest)
-        .thenApply(ResponseEntity::ok)
-        .exceptionally(ex -> {
-          logger.error("Error executing search", ex);
-          SearchResultDTO errorResult = SearchResultDTO.builder()
-              .products(Collections.emptyList())
-              .totalCount(0L)
-              .totalPages(0)
-              .build();
-          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResult);
-        });
+        .thenApply(ResponseEntity::ok);
   }
 
   @PostMapping("/products/{productId}/index")

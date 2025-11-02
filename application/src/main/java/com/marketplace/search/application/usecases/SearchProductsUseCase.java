@@ -238,12 +238,3 @@ public class SearchProductsUseCase {
     return dto;
   }
 }
-
-/**
- * Exceção específica para erros de busca.
- */
-class SearchException extends RuntimeException {
-  public SearchException(String message, Throwable cause) {
-    super(message, cause);
-  }
-}

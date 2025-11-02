@@ -83,8 +83,8 @@ public class SearchDomainService {
    */
   public boolean isProductSearchable(Product product, UserContext userContext) {
 
-    // logger.debug("Verificações básicas {}", product.isSearchable());
-    // logger.debug("Vendedor suspenso {}", product.getSeller().isSuspended());
+    logger.debug("Verificações básicas {}", product.isSearchable());
+    logger.debug("Vendedor suspenso {}", product.getSeller().isSuspended());
 
     if (!product.isSearchable()) {
       return false;

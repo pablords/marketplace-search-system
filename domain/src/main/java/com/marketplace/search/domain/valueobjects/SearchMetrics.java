@@ -6,107 +6,126 @@ import java.util.Objects;
  * Value Object contendo métricas da execução da busca
  */
 public class SearchMetrics {
-    
-    private final int queriesPerSecond;
-    
-    private final double averageScore;
-    
-    private final int indexedDocuments;
-    
-    private final long indexSize;
-    
-    private final boolean usedCache;
-    
-    private final String shardInfo;
 
-    public SearchMetrics(int queriesPerSecond, double averageScore, int indexedDocuments,
-                        long indexSize, boolean usedCache, String shardInfo) {
-        this.queriesPerSecond = validateQps(queriesPerSecond);
-        this.averageScore = validateScore(averageScore);
-        this.indexedDocuments = validateIndexedDocuments(indexedDocuments);
-        this.indexSize = validateIndexSize(indexSize);
-        this.usedCache = usedCache;
-        this.shardInfo = shardInfo;
+  private final int queriesPerSecond;
+
+  private final double averageScore;
+
+  private final int indexedDocuments;
+
+  private final long indexSize;
+
+  private final boolean usedCache;
+
+  private final String shardInfo;
+
+  public SearchMetrics(int queriesPerSecond, double averageScore, int indexedDocuments,
+      long indexSize, boolean usedCache, String shardInfo) {
+    this.queriesPerSecond = validateQps(queriesPerSecond);
+    this.averageScore = validateScore(averageScore);
+    this.indexedDocuments = validateIndexedDocuments(indexedDocuments);
+    this.indexSize = validateIndexSize(indexSize);
+    this.usedCache = usedCache;
+    this.shardInfo = shardInfo;
+  }
+
+  private int validateQps(int qps) {
+    if (qps < 0) {
+      throw new IllegalArgumentException("QPS cannot be negative");
     }
+    return qps;
+  }
 
-    private int validateQps(int qps) {
-        if (qps < 0) {
-            throw new IllegalArgumentException("QPS cannot be negative");
-        }
-        return qps;
+  private double validateScore(double score) {
+    if (Double.isNaN(score) || Double.isInfinite(score)) {
+      return 0.0;
     }
-
-    private double validateScore(double score) {
-        if (Double.isNaN(score) || Double.isInfinite(score)) {
-            return 0.0;
-        }
-        if (score < 0.0) {
-            return 0.0;
-        }
-        if (score > 1.0) {
-            return 1.0;
-        }
-        return score;
+    if (score < 0.0) {
+      return 0.0;
     }
-
-    private int validateIndexedDocuments(int documents) {
-        if (documents < 0) {
-            throw new IllegalArgumentException("Indexed documents cannot be negative");
-        }
-        return documents;
+    if (score > 1.0) {
+      return 1.0;
     }
+    return score;
+  }
 
-    private long validateIndexSize(long size) {
-        if (size < 0) {
-            throw new IllegalArgumentException("Index size cannot be negative");
-        }
-        return size;
+  private int validateIndexedDocuments(int documents) {
+    if (documents < 0) {
+      throw new IllegalArgumentException("Indexed documents cannot be negative");
     }
+    return documents;
+  }
 
-    public static SearchMetrics empty() {
-        return new SearchMetrics(0, 0.0, 0, 0, false, null);
+  private long validateIndexSize(long size) {
+    if (size < 0) {
+      throw new IllegalArgumentException("Index size cannot be negative");
     }
+    return size;
+  }
 
-    public boolean isHighLoad() {
-        return queriesPerSecond > 1000;
-    }
+  public static SearchMetrics empty() {
+    return new SearchMetrics(0, 0.0, 0, 0, false, null);
+  }
 
-    public boolean hasGoodQuality() {
-        return averageScore > 0.7;
-    }
+  public boolean isHighLoad() {
+    return queriesPerSecond > 1000;
+  }
 
-    // Getters
-    public int getQueriesPerSecond() { return queriesPerSecond; }
-    public double getAverageScore() { return averageScore; }
-    public int getIndexedDocuments() { return indexedDocuments; }
-    public long getIndexSize() { return indexSize; }
-    public boolean isUsedCache() { return usedCache; }
-    public String getShardInfo() { return shardInfo; }
+  public boolean hasGoodQuality() {
+    return averageScore > 0.7;
+  }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SearchMetrics that = (SearchMetrics) o;
-        return queriesPerSecond == that.queriesPerSecond &&
-               Double.compare(that.averageScore, averageScore) == 0 &&
-               indexedDocuments == that.indexedDocuments &&
-               indexSize == that.indexSize &&
-               usedCache == that.usedCache;
-    }
+  // Getters
+  public int getQueriesPerSecond() {
+    return queriesPerSecond;
+  }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(queriesPerSecond, averageScore, indexedDocuments, indexSize, usedCache);
-    }
+  public double getAverageScore() {
+    return averageScore;
+  }
 
-    @Override
-    public String toString() {
-        return "SearchMetrics{" +
-                "qps=" + queriesPerSecond +
-                ", avgScore=" + averageScore +
-                ", documents=" + indexedDocuments +
-                ", cache=" + usedCache +
-                '}';
-    }
+  public int getIndexedDocuments() {
+    return indexedDocuments;
+  }
+
+  public long getIndexSize() {
+    return indexSize;
+  }
+
+  public boolean isUsedCache() {
+    return usedCache;
+  }
+
+  public String getShardInfo() {
+    return shardInfo;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+    SearchMetrics that = (SearchMetrics) o;
+    return queriesPerSecond == that.queriesPerSecond &&
+        Double.compare(that.averageScore, averageScore) == 0 &&
+        indexedDocuments == that.indexedDocuments &&
+        indexSize == that.indexSize &&
+        usedCache == that.usedCache;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(queriesPerSecond, averageScore, indexedDocuments, indexSize, usedCache);
+  }
+
+  @Override
+  public String toString() {
+    return "SearchMetrics{" +
+        "qps=" + queriesPerSecond +
+        ", avgScore=" + averageScore +
+        ", documents=" + indexedDocuments +
+        ", cache=" + usedCache +
+        '}';
+  }
 }

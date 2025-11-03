@@ -12,15 +12,16 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.marketplace.search.application.config.SearchCacheProperties;
-import com.marketplace.search.application.dto.SearchMetricsDTO;
-import com.marketplace.search.application.dto.SearchRequestDTO;
-import com.marketplace.search.application.dto.SearchResultDTO;
+import com.marketplace.search.application.exceptions.SearchException;
 import com.marketplace.search.application.mappers.SearchMapper;
 import com.marketplace.search.domain.repositories.CacheRepository;
 import com.marketplace.search.domain.services.SearchDomainService;
 import com.marketplace.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.domain.valueobjects.UserContext;
+import com.marketplace.search.interfaces.rest.dtos.SearchMetricsDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchRequestDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
 
 /**
  * Caso de uso para busca de produtos
@@ -216,25 +217,39 @@ public class SearchProductsUseCase {
   }
 
   private SearchResultDTO markAsCached(SearchResultDTO dto) {
+    logger.debug("isCacheEnabled {}", isCacheEnabled());
     if (dto == null) {
       return null;
     }
 
-    dto.builder()
-        .executionTimeMs(0)
-        .build();
-
+    // Records são imutáveis, precisamos criar novas instâncias
     SearchMetricsDTO metrics = dto.metrics();
     if (metrics == null) {
       metrics = SearchMetricsDTO.builder()
-      .build();
-
-      dto.builder()
-          .metrics(metrics)
+          .usedCache(isCacheEnabled())
+          .build();
+    } else {
+      metrics = SearchMetricsDTO.builder()
+          .queriesPerSecond(metrics.queriesPerSecond())
+          .averageScore(metrics.averageScore())
+          .indexedDocuments(metrics.indexedDocuments())
+          .indexSize(metrics.indexSize())
+          .usedCache(isCacheEnabled())
+          .shardInfo(metrics.shardInfo())
           .build();
     }
-    metrics.builder().usedCache(isCacheEnabled());
 
-    return dto;
+    // Criar novo DTO com metrics atualizado e executionTime zerado
+    return SearchResultDTO.builder()
+        .products(dto.products())
+        .totalCount(dto.totalCount())
+        .pageSize(dto.pageSize())
+        .pageNumber(dto.pageNumber())
+        .totalPages(dto.totalPages())
+        .hasNextPage(dto.hasNextPage())
+        .hasPreviousPage(dto.hasPreviousPage())
+        .executionTimeMs(0)
+        .metrics(metrics)
+        .build();
   }
 }

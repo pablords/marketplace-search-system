@@ -9,11 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.mappers.ProductMapper;
 import com.marketplace.search.domain.entities.Product;
 import com.marketplace.search.domain.repositories.ProductIndexRepository;
 import com.marketplace.search.domain.valueobjects.ProductId;
+import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
 
 /**
  * Caso de uso para indexação de produtos.

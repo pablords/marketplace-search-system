@@ -1,4 +1,4 @@
-package com.marketplace.search.application.dto;
+package com.marketplace.search.interfaces.rest.dtos;
 
 import java.math.BigDecimal;
 import java.util.List;

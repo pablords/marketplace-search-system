@@ -1,4 +1,4 @@
-package com.marketplace.search.interfaces.rest;
+package com.marketplace.search.interfaces.rest.controllers;
 
 import java.net.URI;
 
@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.marketplace.search.application.dto.ProductDTO;
 import com.marketplace.search.application.usecases.CreateProductUseCase;
+import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
 
 import jakarta.validation.Valid;
 
@@ -22,7 +22,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/products")
 @Validated
-public class ProductCommandController implements ProductApi {
+public class ProductCommandController implements ProductApiDoc {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductCommandController.class);
 

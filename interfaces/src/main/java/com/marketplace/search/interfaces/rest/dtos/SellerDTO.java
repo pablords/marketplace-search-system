@@ -1,6 +1,7 @@
-package com.marketplace.search.application.dto;
+package com.marketplace.search.interfaces.rest.dtos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 

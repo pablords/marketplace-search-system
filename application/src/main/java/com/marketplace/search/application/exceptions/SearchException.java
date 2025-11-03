@@ -1,4 +1,4 @@
-package com.marketplace.search.application.usecases;
+package com.marketplace.search.application.exceptions;
 
 /**
  * Exceção específica para erros de busca.

@@ -1,4 +1,4 @@
-package com.marketplace.search.interfaces.rest;
+package com.marketplace.search.interfaces.rest.controllers;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.marketplace.search.application.dto.ProductDTO;
-import com.marketplace.search.application.dto.SearchResultDTO;
+import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,7 +23,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
 @Tag(name = "Search", description = "API de busca de produtos")
-public interface SearchApi {
+public interface SearchApiDoc {
 
   @Operation(summary = "Buscar produtos", description = "Realiza busca de produtos com filtros e ordenação")
   @ApiResponse(responseCode = "200", description = "Busca realizada com sucesso", content = @Content(schema = @Schema(implementation = SearchResultDTO.class)))

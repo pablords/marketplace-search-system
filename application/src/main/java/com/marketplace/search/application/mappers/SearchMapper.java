@@ -6,13 +6,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import com.marketplace.search.application.dto.ProductDTO;
-import com.marketplace.search.application.dto.SearchFilterDTO;
-import com.marketplace.search.application.dto.SearchMetricsDTO;
-import com.marketplace.search.application.dto.SearchRequestDTO;
-import com.marketplace.search.application.dto.SearchResultDTO;
-import com.marketplace.search.application.dto.UserContextDTO;
-import com.marketplace.search.application.dto.UserLocationDTO;
 import com.marketplace.search.domain.entities.Category;
 import com.marketplace.search.domain.valueobjects.FilterType;
 import com.marketplace.search.domain.valueobjects.SearchFilter;
@@ -22,6 +15,13 @@ import com.marketplace.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.domain.valueobjects.SearchSort;
 import com.marketplace.search.domain.valueobjects.UserContext;
 import com.marketplace.search.domain.valueobjects.UserLocation;
+import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchFilterDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchMetricsDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchRequestDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
+import com.marketplace.search.interfaces.rest.dtos.UserContextDTO;
+import com.marketplace.search.interfaces.rest.dtos.UserLocationDTO;
 
 /**
  * Mapper para conversão entre DTOs de busca e Value Objects do domínio

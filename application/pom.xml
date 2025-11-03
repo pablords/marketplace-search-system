@@ -22,6 +22,12 @@
             <artifactId>domain</artifactId>
         </dependency>
 
+        <!-- Interfaces -->
+        <dependency>
+            <groupId>com.marketplace.search</groupId>
+            <artifactId>interfaces</artifactId>
+        </dependency>
+
         <!-- Spring -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

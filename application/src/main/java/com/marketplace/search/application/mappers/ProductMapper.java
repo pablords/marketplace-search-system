@@ -6,11 +6,6 @@ import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
-import com.marketplace.search.application.dto.BrandDTO;
-import com.marketplace.search.application.dto.CategoryDTO;
-import com.marketplace.search.application.dto.ProductDTO;
-import com.marketplace.search.application.dto.SellerDTO;
-import com.marketplace.search.application.dto.SellerReputationDTO;
 import com.marketplace.search.domain.entities.Category;
 import com.marketplace.search.domain.entities.Product;
 import com.marketplace.search.domain.entities.Seller;
@@ -22,6 +17,11 @@ import com.marketplace.search.domain.valueobjects.ProductStatus;
 import com.marketplace.search.domain.valueobjects.SellerReputation;
 import com.marketplace.search.domain.valueobjects.SellerStatus;
 import com.marketplace.search.domain.valueobjects.SellerType;
+import com.marketplace.search.interfaces.rest.dtos.BrandDTO;
+import com.marketplace.search.interfaces.rest.dtos.CategoryDTO;
+import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
+import com.marketplace.search.interfaces.rest.dtos.SellerDTO;
+import com.marketplace.search.interfaces.rest.dtos.SellerReputationDTO;
 
 /**
  * Mapper para conversão entre Product e ProductDTO

@@ -1,4 +1,4 @@
-package com.marketplace.search.interfaces.rest;
+package com.marketplace.search.interfaces.rest.controllers;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.marketplace.search.application.dto.ProductDTO;
-import com.marketplace.search.application.dto.SearchRequestDTO;
-import com.marketplace.search.application.dto.SearchResultDTO;
 import com.marketplace.search.application.usecases.IndexProductUseCase;
 import com.marketplace.search.application.usecases.SearchProductsUseCase;
+import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchRequestDTO;
+import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -31,7 +31,7 @@ import jakarta.validation.constraints.NotBlank;
 @RestController
 @RequestMapping("/search")
 @Validated
-public class SearchController implements SearchApi {
+public class SearchController implements SearchApiDoc {
 
   private final SearchProductsUseCase searchProductsUseCase;
   private final IndexProductUseCase indexProductUseCase;

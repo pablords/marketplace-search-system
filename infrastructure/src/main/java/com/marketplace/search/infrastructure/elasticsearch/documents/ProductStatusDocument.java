@@ -6,32 +6,48 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Documento para status do produto no Elasticsearch
  */
 public class ProductStatusDocument {
-    
-    @JsonProperty("is_active")
-    private Boolean isActive;
-    
-    @JsonProperty("is_suspended")
-    private Boolean isSuspended;
-    
-    @JsonProperty("has_stock")
-    private Boolean hasStock;
 
-    // Constructors
-    public ProductStatusDocument() {}
+  @JsonProperty("is_active")
+  private Boolean isActive;
 
-    public ProductStatusDocument(Boolean isActive, Boolean isSuspended, Boolean hasStock) {
-        this.isActive = isActive;
-        this.isSuspended = isSuspended;
-        this.hasStock = hasStock;
-    }
+  @JsonProperty("is_suspended")
+  private Boolean isSuspended;
 
-    // Getters and Setters
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+  @JsonProperty("has_stock")
+  private Boolean hasStock;
 
-    public Boolean getIsSuspended() { return isSuspended; }
-    public void setIsSuspended(Boolean isSuspended) { this.isSuspended = isSuspended; }
+  // Constructors
+  public ProductStatusDocument() {
+  }
 
-    public Boolean getHasStock() { return hasStock; }
-    public void setHasStock(Boolean hasStock) { this.hasStock = hasStock; }
+  public ProductStatusDocument(Boolean isActive, Boolean isSuspended, Boolean hasStock) {
+    this.isActive = isActive;
+    this.isSuspended = isSuspended;
+    this.hasStock = hasStock;
+  }
+
+  // Getters and Setters
+  public Boolean getIsActive() {
+    return isActive;
+  }
+
+  public void setIsActive(Boolean isActive) {
+    this.isActive = isActive;
+  }
+
+  public Boolean getIsSuspended() {
+    return isSuspended;
+  }
+
+  public void setIsSuspended(Boolean isSuspended) {
+    this.isSuspended = isSuspended;
+  }
+
+  public Boolean getHasStock() {
+    return hasStock;
+  }
+
+  public void setHasStock(Boolean hasStock) {
+    this.hasStock = hasStock;
+  }
 }

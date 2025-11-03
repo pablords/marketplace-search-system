@@ -16,11 +16,13 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.marketplace.search.application.dto.BrandDTO;
-import com.marketplace.search.application.dto.CategoryDTO;
-import com.marketplace.search.application.dto.ProductDTO;
-import com.marketplace.search.application.dto.SellerDTO;
+import com.marketplace.search.application.events.DebeziumCDCEvent;
+import com.marketplace.search.application.handlers.payloads.ProductPayload;
 import com.marketplace.search.application.usecases.IndexProductUseCase;
+import com.marketplace.search.interfaces.rest.dtos.BrandDTO;
+import com.marketplace.search.interfaces.rest.dtos.CategoryDTO;
+import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
+import com.marketplace.search.interfaces.rest.dtos.SellerDTO;
 
 @Component
 public class ProductEventHandler {
@@ -49,7 +51,7 @@ public class ProductEventHandler {
       logger.info("Recebido evento CDC - Topic: {}, Partition: {}, Offset: {}, Timestamp: {}",
           topic, partition, record.offset(), Instant.ofEpochMilli(timestamp));
 
-      DebeziumCdcEvent cdcEvent = objectMapper.readValue(message, DebeziumCdcEvent.class);
+      DebeziumCDCEvent cdcEvent = objectMapper.readValue(message, DebeziumCDCEvent.class);
       
       logger.info("Operação CDC: {}, Table: {}", cdcEvent.getOperation(), 
           cdcEvent.getSource() != null ? cdcEvent.getSource().getTable() : "unknown");
@@ -82,8 +84,8 @@ public class ProductEventHandler {
     }
   }
 
-  private CompletableFuture<Void> processProductUpsert(DebeziumCdcEvent cdcEvent) {
-    ProductData productData = cdcEvent.getAfter();
+  private CompletableFuture<Void> processProductUpsert(DebeziumCDCEvent cdcEvent) {
+    ProductPayload productData = cdcEvent.getAfter();
     if (productData == null) {
       logger.warn("Evento CDC sem dados 'after', ignorando");
       return CompletableFuture.completedFuture(null);
@@ -96,8 +98,8 @@ public class ProductEventHandler {
     return CompletableFuture.completedFuture(null);
   }
 
-  private CompletableFuture<Void> processProductDeletion(DebeziumCdcEvent cdcEvent) {
-    ProductData productData = cdcEvent.getBefore();
+  private CompletableFuture<Void> processProductDeletion(DebeziumCDCEvent cdcEvent) {
+    ProductPayload productData = cdcEvent.getBefore();
     if (productData == null) {
       logger.warn("Evento CDC de deleção sem dados 'before', ignorando");
       return CompletableFuture.completedFuture(null);
@@ -110,7 +112,7 @@ public class ProductEventHandler {
     return CompletableFuture.completedFuture(null);
   }
 
-  private ProductDTO mapProductDataToDTO(ProductData data) {
+  private ProductDTO mapProductDataToDTO(ProductPayload data) {
     // Category
     CategoryDTO category = new CategoryDTO(
         data.getCategoryId(), 

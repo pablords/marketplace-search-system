@@ -1,10 +1,10 @@
-package com.marketplace.search.application.handlers;
+package com.marketplace.search.application.handlers.payloads;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ProductData {
+public class ProductPayload {
   @JsonProperty("id")
   private String id;
 

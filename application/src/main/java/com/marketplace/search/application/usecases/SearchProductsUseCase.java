@@ -50,7 +50,7 @@ public class SearchProductsUseCase {
   /**
    * Executa busca padrão de produtos
    */
-  public SearchResultQuery execute(SearchRequestQuery request) {
+  private SearchResultQuery execute(SearchRequestQuery request) {
     logger.info("Executing search: query='{}', limit={}, offset={}",
         request.query(), request.limit(), request.offset());
 

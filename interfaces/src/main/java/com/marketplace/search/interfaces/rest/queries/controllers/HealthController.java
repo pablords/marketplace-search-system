@@ -1,4 +1,4 @@
-package com.marketplace.search.interfaces.rest.controllers;
+package com.marketplace.search.interfaces.rest.queries.controllers;
 
 import java.time.Instant;
 import java.util.HashMap;

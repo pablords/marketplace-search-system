@@ -9,11 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import com.marketplace.search.application.commands.ProductCommand;
 import com.marketplace.search.application.mappers.ProductMapper;
 import com.marketplace.search.domain.entities.Product;
 import com.marketplace.search.domain.repositories.ProductIndexRepository;
 import com.marketplace.search.domain.valueobjects.ProductId;
-import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
 
 /**
  * Caso de uso para indexação de produtos.
@@ -39,7 +39,7 @@ public class IndexProductUseCase {
      * A indexação acontece em background usando o threadpool configurado.
      */
     @Async("asyncIndexingExecutor")
-    public CompletableFuture<Void> executeAsync(ProductDTO productDTO) {
+    public CompletableFuture<Void> executeAsync(ProductCommand productDTO) {
         logger.info("Indexing product asynchronously: id={}, title='{}'", 
                    productDTO.id(), productDTO.title());
 
@@ -70,7 +70,7 @@ public class IndexProductUseCase {
     /**
      * Indexa múltiplos produtos em lote
      */
-    public void executeBatch(List<ProductDTO> productDTOs) {
+    public void executeBatch(List<ProductCommand> productDTOs) {
         logger.info("Indexing batch of {} products", productDTOs.size());
         
         try {

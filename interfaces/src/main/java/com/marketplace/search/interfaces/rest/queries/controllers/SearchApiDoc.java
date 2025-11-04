@@ -1,14 +1,11 @@
-package com.marketplace.search.interfaces.rest.controllers;
+package com.marketplace.search.interfaces.rest.queries.controllers;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
 import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +14,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -54,14 +50,7 @@ public interface SearchApiDoc {
 
       @Parameter(description = "ID do usuário (para personalização)", example = "user123") @RequestParam(required = false) String userId);
 
-  @Operation(summary = "Indexar produto", description = "Adiciona ou atualiza produto no índice de busca")
-  @ApiResponse(responseCode = "202", description = "Produto indexado com sucesso")
-  @ApiResponse(responseCode = "400", description = "Dados do produto inválidos")
-  @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
-  CompletableFuture<ResponseEntity<Void>> indexProduct(
-      @Parameter(description = "ID do produto", example = "prod123") @PathVariable @NotBlank String productId,
 
-      @Valid @RequestBody ProductDTO product);
 
   @Operation(summary = "Obter sugestões", description = "Retorna sugestões de busca baseadas no termo parcial")
   @ApiResponse(responseCode = "200", description = "Sugestões obtidas com sucesso")

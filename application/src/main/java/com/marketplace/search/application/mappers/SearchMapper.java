@@ -6,6 +6,13 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
+import com.marketplace.search.application.queries.ProductData;
+import com.marketplace.search.application.queries.SearchFilterData;
+import com.marketplace.search.application.queries.SearchMetricsData;
+import com.marketplace.search.application.queries.SearchRequestQuery;
+import com.marketplace.search.application.queries.SearchResultQuery;
+import com.marketplace.search.application.queries.UserContextData;
+import com.marketplace.search.application.queries.UserLocationData;
 import com.marketplace.search.domain.entities.Category;
 import com.marketplace.search.domain.valueobjects.FilterType;
 import com.marketplace.search.domain.valueobjects.SearchFilter;
@@ -15,21 +22,15 @@ import com.marketplace.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.domain.valueobjects.SearchSort;
 import com.marketplace.search.domain.valueobjects.UserContext;
 import com.marketplace.search.domain.valueobjects.UserLocation;
-import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
-import com.marketplace.search.interfaces.rest.dtos.SearchFilterDTO;
-import com.marketplace.search.interfaces.rest.dtos.SearchMetricsDTO;
-import com.marketplace.search.interfaces.rest.dtos.SearchRequestDTO;
-import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
-import com.marketplace.search.interfaces.rest.dtos.UserContextDTO;
-import com.marketplace.search.interfaces.rest.dtos.UserLocationDTO;
+
 
 /**
  * Mapper para conversão entre DTOs de busca e Value Objects do domínio
  */
-@Component
+@Component("SearchMapperApplication")
 public class SearchMapper {
 
-  public SearchQuery toDomain(SearchRequestDTO dto) {
+  public SearchQuery toDomain(SearchRequestQuery dto) {
     Category category = dto.categoryId() != null ? new Category(dto.categoryId(), "Unknown", null, "unknown") : null;
 
     List<SearchFilter> filters = dto.filters() != null ? dto.filters().stream()
@@ -47,7 +48,7 @@ public class SearchMapper {
         dto.limit());
   }
 
-  public UserContext mapUserContext(UserContextDTO dto) {
+  public UserContext mapUserContext(UserContextData dto) {
     if (dto == null)
       return null;
 
@@ -65,15 +66,15 @@ public class SearchMapper {
     );
   }
 
-  public SearchResultDTO toDTO(SearchResult result) {
-    List<ProductDTO> productDTOs = result.products().stream()
+  public SearchResultQuery toDTO(SearchResult result) {
+    List<ProductData> productDTOs = result.products().stream()
         .map(product -> {
           ProductMapper productMapper = new ProductMapper();
           return productMapper.toDTO(product);
         })
         .collect(Collectors.toList());
 
-    return SearchResultDTO.builder()
+    return SearchResultQuery.builder()
         .products(productDTOs)
         .totalCount(result.totalCount())
         .pageSize(result.pageSize())
@@ -87,7 +88,7 @@ public class SearchMapper {
 
   }
 
-  private SearchFilter mapFilter(SearchFilterDTO dto) {
+  private SearchFilter mapFilter(SearchFilterData dto) {
     FilterType type = mapFilterType(dto.type());
     return new SearchFilter(dto.name(), type, dto.values());
   }
@@ -114,7 +115,7 @@ public class SearchMapper {
     }
   }
 
-  private UserLocation mapUserLocation(UserLocationDTO dto) {
+  private UserLocation mapUserLocation(UserLocationData dto) {
     return new UserLocation(
         dto.country() != null ? dto.country() : "BR",
         dto.state() != null ? dto.state() : "SP",
@@ -124,8 +125,8 @@ public class SearchMapper {
         dto.longitude());
   }
 
-  private SearchMetricsDTO mapMetricsToDTO(SearchMetrics metrics) {
-    return SearchMetricsDTO.builder()
+  private SearchMetricsData mapMetricsToDTO(SearchMetrics metrics) {
+    return SearchMetricsData.builder()
         .queriesPerSecond(metrics.getQueriesPerSecond())
         .averageScore(metrics.getAverageScore())
         .indexedDocuments(metrics.getIndexedDocuments())

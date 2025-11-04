@@ -1,11 +1,19 @@
 package com.marketplace.search.application.mappers;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
+import com.marketplace.search.application.commands.ProductCommand;
+import com.marketplace.search.application.handlers.payloads.ProductPayload;
+import com.marketplace.search.application.queries.BrandData;
+import com.marketplace.search.application.queries.CategoryData;
+import com.marketplace.search.application.queries.ProductData;
+import com.marketplace.search.application.queries.SellerData;
+import com.marketplace.search.application.queries.SellerReputationData;
 import com.marketplace.search.domain.entities.Category;
 import com.marketplace.search.domain.entities.Product;
 import com.marketplace.search.domain.entities.Seller;
@@ -17,19 +25,50 @@ import com.marketplace.search.domain.valueobjects.ProductStatus;
 import com.marketplace.search.domain.valueobjects.SellerReputation;
 import com.marketplace.search.domain.valueobjects.SellerStatus;
 import com.marketplace.search.domain.valueobjects.SellerType;
-import com.marketplace.search.interfaces.rest.dtos.BrandDTO;
-import com.marketplace.search.interfaces.rest.dtos.CategoryDTO;
-import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
-import com.marketplace.search.interfaces.rest.dtos.SellerDTO;
-import com.marketplace.search.interfaces.rest.dtos.SellerReputationDTO;
 
 /**
  * Mapper para conversão entre Product e ProductDTO
  */
-@Component
+@Component("ProductMapperApplication")
 public class ProductMapper {
 
-  public Product toDomain(ProductDTO dto) {
+  public ProductCommand mapProductDataToDTO(ProductPayload data) {
+    // Category
+    CategoryData category = new CategoryData(
+        data.getCategoryId(),
+        data.getCategoryName(),
+        null,
+        data.getCategoryPath());
+
+    // Brand
+    BrandData brand = new BrandData(
+        data.getBrandId(),
+        data.getBrandName(),
+        data.getDescription());
+
+    // Seller
+    SellerData seller = SellerData.builder()
+        .id(data.getSellerId())
+        .name(data.getSellerName())
+        .build();
+
+    // Product usando builder
+    return ProductCommand.builder()
+        .id(data.getId())
+        .title(data.getTitle())
+        .description(data.getDescription())
+        .price(data.getPrice() != null ? new BigDecimal(data.getPrice()) : null)
+        .currency(data.getCurrency())
+        .category(category)
+        .brand(brand)
+        .seller(seller)
+        .stockQuantity(data.getAvailableQuantity())
+        .condition(data.getCondition())
+        .isActive("ACTIVE".equals(data.getStatus()))
+        .build();
+  }
+
+  public Product toDomain(ProductCommand dto) {
     ProductId id = ProductId.from(dto.id());
 
     ProductInfo info = new ProductInfo(
@@ -72,8 +111,8 @@ public class ProductMapper {
         .build();
   }
 
-  public ProductDTO toDTO(Product product) {
-    return ProductDTO.builder()
+  public ProductData toDTO(Product product) {
+    return ProductData.builder()
         .id(product.getId().getValue())
         .title(product.getInfo().getTitle())
         .description(product.getInfo().getDescription())
@@ -90,27 +129,27 @@ public class ProductMapper {
         .build();
   }
 
-  private Category mapCategory(CategoryDTO dto) {
+  private Category mapCategory(CategoryData dto) {
     return new Category(dto.id(), dto.name(), dto.parentId(), dto.path());
   }
 
-  private CategoryDTO mapCategoryToDTO(Category category) {
-    return new CategoryDTO(
+  private CategoryData mapCategoryToDTO(Category category) {
+    return new CategoryData(
         category.getId(),
         category.getName(),
         category.getParentId(),
         category.getPath());
   }
 
-  private Brand mapBrand(BrandDTO dto) {
+  private Brand mapBrand(BrandData dto) {
     return new Brand(dto.id(), dto.name(), dto.description());
   }
 
-  private BrandDTO mapBrandToDTO(Brand brand) {
-    return new BrandDTO(brand.id(), brand.name(), brand.description());
+  private BrandData mapBrandToDTO(Brand brand) {
+    return new BrandData(brand.id(), brand.name(), brand.description());
   }
 
-  private Seller mapSeller(SellerDTO dto) {
+  private Seller mapSeller(SellerData dto) {
     SellerReputation reputation = dto.reputation() != null ? mapSellerReputation(dto.reputation())
         : new SellerReputation(5.0, 0, 0, 0, 0, 0.0, 1.0);
 
@@ -123,8 +162,8 @@ public class ProductMapper {
         dto.memberSince() != null ? Instant.parse(dto.memberSince()) : null);
   }
 
-  private SellerDTO mapSellerToDTO(Seller seller) {
-    return SellerDTO.builder()
+  private SellerData mapSellerToDTO(Seller seller) {
+    return SellerData.builder()
         .id(seller.getId())
         .name(seller.getName())
         .type(seller.getType().name())
@@ -134,7 +173,7 @@ public class ProductMapper {
         .build();
   }
 
-  private SellerReputation mapSellerReputation(SellerReputationDTO dto) {
+  private SellerReputation mapSellerReputation(SellerReputationData dto) {
     return new SellerReputation(
         dto.score() != null ? dto.score() : 5.0,
         dto.totalReviews() != null ? dto.totalReviews() : 0,
@@ -145,8 +184,8 @@ public class ProductMapper {
         dto.deliveryPerformance() != null ? dto.deliveryPerformance() : 1.0);
   }
 
-  private SellerReputationDTO mapSellerReputationToDTO(SellerReputation reputation) {
-    return new SellerReputationDTO(
+  private SellerReputationData mapSellerReputationToDTO(SellerReputation reputation) {
+    return new SellerReputationData(
         reputation.getScore(),
         reputation.getTotalReviews(),
         reputation.getPositiveReviews(),

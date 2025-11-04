@@ -14,14 +14,15 @@ import org.springframework.stereotype.Service;
 import com.marketplace.search.application.config.SearchCacheProperties;
 import com.marketplace.search.application.exceptions.SearchException;
 import com.marketplace.search.application.mappers.SearchMapper;
+import com.marketplace.search.application.queries.SearchMetricsData;
+import com.marketplace.search.application.queries.SearchRequestQuery;
+import com.marketplace.search.application.queries.SearchResultQuery;
 import com.marketplace.search.domain.repositories.CacheRepository;
 import com.marketplace.search.domain.services.SearchDomainService;
 import com.marketplace.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.domain.valueobjects.UserContext;
-import com.marketplace.search.interfaces.rest.dtos.SearchMetricsDTO;
-import com.marketplace.search.interfaces.rest.dtos.SearchRequestDTO;
-import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
+
 
 /**
  * Caso de uso para busca de produtos
@@ -49,7 +50,7 @@ public class SearchProductsUseCase {
   /**
    * Executa busca padrão de produtos
    */
-  public SearchResultDTO execute(SearchRequestDTO request) {
+  public SearchResultQuery execute(SearchRequestQuery request) {
     logger.info("Executing search: query='{}', limit={}, offset={}",
         request.query(), request.limit(), request.offset());
 
@@ -59,7 +60,7 @@ public class SearchProductsUseCase {
       UserContext userContext = searchMapper.mapUserContext(request.userContext());
 
       String cacheKey = buildCacheKey(query, userContext, "standard");
-      SearchResultDTO cachedResult = getFromCache(cacheKey);
+      SearchResultQuery cachedResult = getFromCache(cacheKey);
       if (cachedResult != null) {
         return cachedResult;
       }
@@ -68,7 +69,7 @@ public class SearchProductsUseCase {
       SearchResult result = searchDomainService.smartSearch(query, userContext);
 
       // Mapear resultado para DTO
-      SearchResultDTO resultDTO = searchMapper.toDTO(result);
+      SearchResultQuery resultDTO = searchMapper.toDTO(result);
 
       storeInCache(cacheKey, resultDTO, result.hasResults());
 
@@ -87,9 +88,9 @@ public class SearchProductsUseCase {
    * Executa busca de forma assíncrona
    */
   @Async("taskExecutor")
-  public CompletableFuture<SearchResultDTO> executeAsync(SearchRequestDTO request) {
+  public CompletableFuture<SearchResultQuery> executeAsync(SearchRequestQuery request) {
     try {
-      SearchResultDTO result = execute(request);
+      SearchResultQuery result = execute(request);
       return CompletableFuture.completedFuture(result);
     } catch (Exception e) {
       return CompletableFuture.failedFuture(e);
@@ -99,7 +100,7 @@ public class SearchProductsUseCase {
   /**
    * Executa busca com fallback automático
    */
-  public SearchResultDTO executeWithFallback(SearchRequestDTO request) {
+  public SearchResultQuery executeWithFallback(SearchRequestQuery request) {
     logger.info("Executing search with fallback: query='{}'", request.query());
 
     try {
@@ -107,13 +108,13 @@ public class SearchProductsUseCase {
       UserContext userContext = searchMapper.mapUserContext(request.userContext());
 
       String cacheKey = buildCacheKey(query, userContext, "fallback");
-      SearchResultDTO cachedResult = getFromCache(cacheKey);
+      SearchResultQuery cachedResult = getFromCache(cacheKey);
       if (cachedResult != null) {
         return cachedResult;
       }
 
       SearchResult result = searchDomainService.searchWithFallback(query, userContext);
-      SearchResultDTO resultDTO = searchMapper.toDTO(result);
+      SearchResultQuery resultDTO = searchMapper.toDTO(result);
 
       storeInCache(cacheKey, resultDTO, result.hasResults());
 
@@ -128,13 +129,13 @@ public class SearchProductsUseCase {
     }
   }
 
-  private SearchResultDTO getFromCache(String cacheKey) {
+  private SearchResultQuery getFromCache(String cacheKey) {
     if (!isCacheEnabled() || cacheKey == null) {
       return null;
     }
 
     try {
-      Optional<SearchResultDTO> cached = cacheRepository.get(cacheKey, SearchResultDTO.class);
+      Optional<SearchResultQuery> cached = cacheRepository.get(cacheKey, SearchResultQuery.class);
       if (cached.isPresent()) {
         logger.debug("Cache hit for key {}", cacheKey);
         return markAsCached(cached.get());
@@ -146,7 +147,7 @@ public class SearchProductsUseCase {
     return null;
   }
 
-  private void storeInCache(String cacheKey, SearchResultDTO resultDTO, boolean hasResults) {
+  private void storeInCache(String cacheKey, SearchResultQuery resultDTO, boolean hasResults) {
     if (!isCacheEnabled() || cacheKey == null || resultDTO == null) {
       return;
     }
@@ -216,20 +217,20 @@ public class SearchProductsUseCase {
     return cacheProperties != null && cacheProperties.isEnabled() && cacheProperties.hasValidSearchTtl();
   }
 
-  private SearchResultDTO markAsCached(SearchResultDTO dto) {
+  private SearchResultQuery markAsCached(SearchResultQuery dto) {
     logger.debug("isCacheEnabled {}", isCacheEnabled());
     if (dto == null) {
       return null;
     }
 
     // Records são imutáveis, precisamos criar novas instâncias
-    SearchMetricsDTO metrics = dto.metrics();
+    SearchMetricsData metrics = dto.metrics();
     if (metrics == null) {
-      metrics = SearchMetricsDTO.builder()
+      metrics = SearchMetricsData.builder()
           .usedCache(isCacheEnabled())
           .build();
     } else {
-      metrics = SearchMetricsDTO.builder()
+      metrics = SearchMetricsData.builder()
           .queriesPerSecond(metrics.queriesPerSecond())
           .averageScore(metrics.averageScore())
           .indexedDocuments(metrics.indexedDocuments())
@@ -240,7 +241,7 @@ public class SearchProductsUseCase {
     }
 
     // Criar novo DTO com metrics atualizado e executionTime zerado
-    return SearchResultDTO.builder()
+    return SearchResultQuery.builder()
         .products(dto.products())
         .totalCount(dto.totalCount())
         .pageSize(dto.pageSize())

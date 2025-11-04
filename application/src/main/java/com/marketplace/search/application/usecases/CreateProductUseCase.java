@@ -5,10 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.marketplace.search.application.commands.ProductCommand;
 import com.marketplace.search.application.mappers.ProductMapper;
 import com.marketplace.search.domain.entities.Product;
 import com.marketplace.search.domain.repositories.ProductRepository;
-import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
 
 /**
  * Caso de uso responsável por orquestrar o fluxo de criação de um produto.
@@ -37,7 +37,7 @@ public class CreateProductUseCase {
      * @param productDTO dados do produto informado pelo cliente
      */
     @Transactional
-    public void execute(ProductDTO productDTO) {
+    public void execute(ProductCommand productDTO) {
         logger.info("Received request for create product: id={}, title='{}'",
             productDTO.id(), productDTO.title());
 

@@ -1,6 +1,5 @@
 package com.marketplace.search.application.handlers;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
@@ -16,25 +15,24 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.marketplace.search.application.commands.ProductCommand;
 import com.marketplace.search.application.events.DebeziumCDCEvent;
 import com.marketplace.search.application.handlers.payloads.ProductPayload;
+import com.marketplace.search.application.mappers.ProductMapper;
 import com.marketplace.search.application.usecases.IndexProductUseCase;
-import com.marketplace.search.interfaces.rest.dtos.BrandDTO;
-import com.marketplace.search.interfaces.rest.dtos.CategoryDTO;
-import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
-import com.marketplace.search.interfaces.rest.dtos.SellerDTO;
 
 @Component
 public class ProductEventHandler {
   private static final Logger logger = LoggerFactory.getLogger(ProductEventHandler.class);
-
+  private final ProductMapper productMapper;
   private final IndexProductUseCase indexProductUseCase;
   private final ObjectMapper objectMapper;
 
   @Autowired
-  public ProductEventHandler(IndexProductUseCase indexProductUseCase, ObjectMapper objectMapper) {
+  public ProductEventHandler(IndexProductUseCase indexProductUseCase, ObjectMapper objectMapper, ProductMapper productMapper) {
     this.indexProductUseCase = indexProductUseCase;
     this.objectMapper = objectMapper;
+    this.productMapper = productMapper;
   }
 
   @KafkaListener(topics = "${kafka.topics.product-events}", groupId = "${kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
@@ -52,8 +50,8 @@ public class ProductEventHandler {
           topic, partition, record.offset(), Instant.ofEpochMilli(timestamp));
 
       DebeziumCDCEvent cdcEvent = objectMapper.readValue(message, DebeziumCDCEvent.class);
-      
-      logger.info("Operação CDC: {}, Table: {}", cdcEvent.getOperation(), 
+
+      logger.info("Operação CDC: {}, Table: {}", cdcEvent.getOperation(),
           cdcEvent.getSource() != null ? cdcEvent.getSource().getTable() : "unknown");
 
       CompletableFuture<Void> processingFuture = switch (cdcEvent.getOperation()) {
@@ -93,7 +91,7 @@ public class ProductEventHandler {
 
     logger.debug("Processando criação/atualização do produto: {}", productData.getId());
 
-    ProductDTO productDTO = mapProductDataToDTO(productData);
+    ProductCommand productDTO = productMapper.mapProductDataToDTO(productData);
     indexProductUseCase.executeAsync(productDTO);
     return CompletableFuture.completedFuture(null);
   }
@@ -110,44 +108,6 @@ public class ProductEventHandler {
     // TODO: Implementar remoção do índice
     // return deleteProductUseCase.execute(productData.getId());
     return CompletableFuture.completedFuture(null);
-  }
-
-  private ProductDTO mapProductDataToDTO(ProductPayload data) {
-    // Category
-    CategoryDTO category = new CategoryDTO(
-        data.getCategoryId(), 
-        data.getCategoryName(), 
-        null, 
-        data.getCategoryPath()
-    );
-    
-    // Brand
-    BrandDTO brand = new BrandDTO(
-        data.getBrandId(), 
-        data.getBrandName(), 
-        data.getDescription()
-    );
-    
-    // Seller
-    SellerDTO seller = SellerDTO.builder()
-        .id(data.getSellerId())
-        .name(data.getSellerName())
-        .build();
-    
-    // Product usando builder
-    return ProductDTO.builder()
-        .id(data.getId())
-        .title(data.getTitle())
-        .description(data.getDescription())
-        .price(data.getPrice() != null ? new BigDecimal(data.getPrice()) : null)
-        .currency(data.getCurrency())
-        .category(category)
-        .brand(brand)
-        .seller(seller)
-        .stockQuantity(data.getAvailableQuantity())
-        .condition(data.getCondition())
-        .isActive("ACTIVE".equals(data.getStatus()))
-        .build();
   }
 
 }

@@ -1,4 +1,4 @@
-package com.marketplace.search.interfaces.rest.controllers;
+package com.marketplace.search.interfaces.rest.queries.controllers;
 
 import java.util.Collections;
 import java.util.List;
@@ -6,24 +6,20 @@ import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.marketplace.search.application.usecases.IndexProductUseCase;
+import com.marketplace.search.application.queries.SearchRequestQuery;
+import com.marketplace.search.application.queries.SearchResultQuery;
 import com.marketplace.search.application.usecases.SearchProductsUseCase;
-import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
 import com.marketplace.search.interfaces.rest.dtos.SearchRequestDTO;
 import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
+import com.marketplace.search.interfaces.rest.queries.mappers.SearchMapper;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -31,17 +27,18 @@ import jakarta.validation.constraints.NotBlank;
 @RestController
 @RequestMapping("/search")
 @Validated
-public class SearchController implements SearchApiDoc {
+public class SearchQueryController implements SearchApiDoc {
 
   private final SearchProductsUseCase searchProductsUseCase;
-  private final IndexProductUseCase indexProductUseCase;
-  private static final Logger logger = LoggerFactory.getLogger(SearchController.class);
 
-  public SearchController(
+  private final SearchMapper searchMapper;
+  private static final Logger logger = LoggerFactory.getLogger(SearchQueryController.class);
+
+  public SearchQueryController(
       SearchProductsUseCase searchProductsUseCase,
-      IndexProductUseCase indexProductUseCase) {
+      SearchMapper searchMapper) {
     this.searchProductsUseCase = searchProductsUseCase;
-    this.indexProductUseCase = indexProductUseCase;
+    this.searchMapper = searchMapper;
   }
 
   @GetMapping("/products")
@@ -68,24 +65,20 @@ public class SearchController implements SearchApiDoc {
     SearchRequestDTO searchRequest = SearchRequestDTO.builder()
         .query(query.trim())
         .build();
-    // Mapear outros parâmetros para o SearchRequestDTO conforme necessário (TODO)
 
-    return searchProductsUseCase.executeAsync(searchRequest)
-        .thenApply(ResponseEntity::ok);
-  }
+    SearchRequestQuery searchQuery = searchMapper.toqQuery(searchRequest);
 
-  @PostMapping("/products/{productId}/index")
-  public CompletableFuture<ResponseEntity<Void>> indexProduct(
-      @PathVariable @NotBlank String productId,
-      @Valid @RequestBody ProductDTO product) {
-
-    return indexProductUseCase.executeAsync(product)
-        .thenApply(v -> ResponseEntity.accepted().<Void>build())
-        .exceptionally(ex -> {
-          logger.error("Error indexing product", ex);
-          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    CompletableFuture<SearchResultQuery> searchResult = searchProductsUseCase.executeAsync(searchQuery)
+        .thenApply(result -> {
+          logger.info("Search completed: totalResults={}", result.totalCount());
+          return result;
         });
+
+    SearchResultDTO resultDTO = searchMapper.toDto(searchResult.join());
+
+    return CompletableFuture.completedFuture(ResponseEntity.ok(resultDTO));
   }
+
 
   @GetMapping("/suggestions")
   public ResponseEntity<List<String>> getSuggestions(

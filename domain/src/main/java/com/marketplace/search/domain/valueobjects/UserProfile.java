@@ -85,17 +85,5 @@ public record UserProfile(
     }
 }
 
-enum UserTier {
-    BRONZE,
-    SILVER,
-    GOLD,
-    PLATINUM,
-    DIAMOND
-}
 
-record UserPreferences(
-    boolean allowsPersonalization,
-    boolean allowsRecommendations,
-    boolean allowsLocationTracking
-) {
-}
+

@@ -3,7 +3,9 @@ package com.marketplace.search.domain.entities;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.TemporalAmount;
 import java.util.List;
 import java.util.Set;
 
@@ -11,13 +13,23 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.marketplace.search.domain.valueobjects.Brand;
+import com.marketplace.search.domain.valueobjects.FilterType;
 import com.marketplace.search.domain.valueobjects.ProductId;
 import com.marketplace.search.domain.valueobjects.ProductInfo;
 import com.marketplace.search.domain.valueobjects.ProductMetrics;
 import com.marketplace.search.domain.valueobjects.ProductStatus;
+import com.marketplace.search.domain.valueobjects.SearchFilter;
+import com.marketplace.search.domain.valueobjects.SearchQuery;
+import com.marketplace.search.domain.valueobjects.SearchScore;
+import com.marketplace.search.domain.valueobjects.SearchSort;
 import com.marketplace.search.domain.valueobjects.SellerReputation;
 import com.marketplace.search.domain.valueobjects.SellerStatus;
 import com.marketplace.search.domain.valueobjects.SellerType;
+import com.marketplace.search.domain.valueobjects.UserContext;
+import com.marketplace.search.domain.valueobjects.UserLocation;
+import com.marketplace.search.domain.valueobjects.UserPreferences;
+import com.marketplace.search.domain.valueobjects.UserProfile;
+import com.marketplace.search.domain.valueobjects.UserTier;
 
 public class ProductTest {
   Product product;
@@ -69,5 +81,31 @@ public class ProductTest {
     assertEquals(product.getInfo().getDescription(), productInfo.getDescription());
     assertEquals(product.getInfo().getPrice(), productInfo.getPrice());
     assertEquals(product.getInfo().getCurrency(), productInfo.getCurrency());
+  }
+
+  @Test
+  public void shouldCalculateRelevanceScore() {
+    // Implement test logic here
+    UserLocation location = new UserLocation("US", "NY", "New York", "10001", 40.7128, -74.0060);
+    UserTier tier = UserTier.GOLD;
+    TemporalAmount amountToSubtract = Duration.ofDays(365);
+    UserProfile profile = new UserProfile(tier, Instant.now().minus(amountToSubtract), true, 100, 600.0,
+        new UserPreferences(true, true, false));
+
+    UserContext userContext = new UserContext("user-001", location,
+        Set.of("cat-001", "cat-002"),
+        Set.of("seller-002", "seller-003"),
+        Set.of("laptop", "electronics"),
+        Set.of("prod-002", "prod-003"),
+        profile);
+
+    FilterType type = FilterType.TERM;
+    List<String> values = List.of("sampleValue");
+    List<SearchFilter> filters = List.of(new SearchFilter("value", type, values));
+    SearchSort sort = SearchSort.RELEVANCE;
+    SearchQuery query = new SearchQuery("pr", category, filters, sort, 0, 10);
+    SearchScore searchScore = product.calculateRelevanceScore(query, userContext);
+    System.out.println("RES " + searchScore);
+    assertEquals(searchScore.getValue(), 0.62075);
   }
 }

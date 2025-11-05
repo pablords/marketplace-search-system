@@ -1,5 +1,6 @@
 package com.marketplace.search.domain.entities;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -19,7 +20,6 @@ import jakarta.validation.constraints.NotNull;
  * Agregada root do domínio de produto.
  */
 public class Product {
-
 
   @NotNull
   private final ProductId id;
@@ -175,7 +175,7 @@ public class Product {
   }
 
   private double calculateFreshnessPenalty() {
-    long daysSinceUpdate = java.time.Duration.between(updatedAt, Instant.now()).toDays();
+    long daysSinceUpdate = Duration.between(updatedAt, Instant.now()).toDays();
     return daysSinceUpdate > 30 ? 0.1 : 0.0; // Penalidade por produtos não atualizados
   }
 

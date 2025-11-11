@@ -59,13 +59,6 @@ jobs:
       - name: Generate Coverage Report
         run: mvn jacoco:report
 
-      # Armazena o artefato gerado (módulo bootstrap)
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: search-system-application
-          path: bootstrap/target/search-system-bootstrap-*.jar
-
   code-quality:
     name: Code Quality Analysis
     runs-on: ubuntu-latest
@@ -112,16 +105,32 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Faz download do artefato gerado
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
+      # Configura a versão do Java (necessário para o build no Docker)
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          name: search-system-application
-          path: bootstrap/target/
+          java-version: "17"
+          distribution: "temurin"
 
-      # Debug para verificar a versão
-      - name: Debug Version
-        run: echo "VERSION=${{ needs.build.outputs.VERSION }}"
+      # Cache do Maven
+      - name: Cache Maven Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # Build da aplicação novamente (para gerar o JAR)
+      - name: Build Application
+        run: mvn clean package -DskipTests
+
+      # Debug para verificar o JAR gerado
+      - name: Verify JAR
+        run: |
+          echo "Listing bootstrap/target directory:"
+          ls -la bootstrap/target/
+          echo "VERSION=${{ needs.build.outputs.VERSION }}"
 
       # Login no Docker Hub
       - name: Login to Docker Hub

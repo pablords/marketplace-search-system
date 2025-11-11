@@ -1,12 +1,10 @@
 # Multi-stage build for Java application
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM maven:3.9-eclipse-temurin-17-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and pom files
-COPY mvnw .
-COPY .mvn .mvn
+# Copy pom files for dependency resolution
 COPY pom.xml .
 COPY domain/pom.xml domain/
 COPY application/pom.xml application/
@@ -14,8 +12,8 @@ COPY infrastructure/pom.xml infrastructure/
 COPY interfaces/pom.xml interfaces/
 COPY bootstrap/pom.xml bootstrap/
 
-# Download dependencies
-RUN ./mvnw dependency:go-offline -B
+# Download dependencies (cached layer)
+RUN mvn dependency:go-offline -B
 
 # Copy source code
 COPY domain/src domain/src
@@ -25,7 +23,7 @@ COPY interfaces/src interfaces/src
 COPY bootstrap/src bootstrap/src
 
 # Build application
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine

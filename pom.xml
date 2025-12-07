@@ -48,6 +48,7 @@
     <module>infrastructure</module>
     <module>interfaces</module>
     <module>bootstrap</module>
+    <module>catalog-service</module>
   </modules>
 
   <dependencyManagement>
@@ -67,19 +68,34 @@
         <artifactId>domain</artifactId>
         <version>${project.version}</version>
       </dependency>
+
       <dependency>
         <groupId>com.marketplace.search</groupId>
         <artifactId>application</artifactId>
         <version>${project.version}</version>
       </dependency>
+
       <dependency>
         <groupId>com.marketplace.search</groupId>
         <artifactId>infrastructure</artifactId>
         <version>${project.version}</version>
       </dependency>
+
       <dependency>
         <groupId>com.marketplace.search</groupId>
         <artifactId>interfaces</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.marketplace.search</groupId>
+        <artifactId>bootstrap</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.marketplace.search.catalog</groupId>
+        <artifactId>catalog-service</artifactId>
         <version>${project.version}</version>
       </dependency>
 

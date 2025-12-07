@@ -8,6 +8,7 @@ spring:
         - ../application/src/main/java
         - ../infrastructure/src/main/java
         - ../interfaces/src/main/java
+      additional-exclude: static/**, public/**, templates/**, target/**
       poll-interval: 1000ms
       quiet-period: 400ms
     livereload:
@@ -49,8 +50,8 @@ spring:
       continue-on-error: true  # Continua mesmo se houver erros (tabela já existe)
       separator: ";"
   
-  # Redis para desenvolvimento
   data:
+    # Redis para desenvolvimento
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}

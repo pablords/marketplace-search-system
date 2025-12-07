@@ -46,6 +46,30 @@
             "options": {
                 "cwd": "${workspaceFolder}"
             }
+        },
+        {
+            "label": "docker: stop services",
+            "type": "shell",
+            "command": "docker-compose",
+            "args": ["down"],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "maven: compile catalog",
+            "type": "shell",
+            "command": "mvn -pl catalog-service -DskipTests=true compile",
+            "group": "build",
+            "presentation": { "reveal": "silent" },
+            "problemMatcher": []
+        },
+        {
+            "label": "prelaunch-catalog",
+            "dependsOn": ["env: load variables"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
         }
     ]
 }

@@ -54,6 +54,20 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/bootstrap",
             "preLaunchTask": "maven: compile"
+        },
+        {
+            "type": "java",
+            "name": "Run Catalog with Maven",
+            "request": "launch",
+            "mainClass": "com.marketplace.search.catalog.bootstrap.CatalogApp",
+            "args": ["--spring.profiles.active=development"],
+            "vmArgs": ["-Dspring.devtools.restart.enabled=true"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/catalog-service/bootstrap",
+            "preLaunchTask": "prelaunch-catalog",
+            "envFile": "${workspaceFolder}/.env"
+            
         }
+
     ]
 }

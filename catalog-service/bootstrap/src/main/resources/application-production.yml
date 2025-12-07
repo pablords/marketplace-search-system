@@ -13,26 +13,6 @@ spring:
           max-active: 50
           max-idle: 20
 
-# Elasticsearch para produção
-elasticsearch:
-  host: ${ELASTICSEARCH_HOST}
-  port: ${ELASTICSEARCH_PORT:9200}
-  scheme: ${ELASTICSEARCH_SCHEME:https}
-  username: ${ELASTICSEARCH_USERNAME}
-  password: ${ELASTICSEARCH_PASSWORD}
-  indices:
-    products: ${ELASTICSEARCH_PRODUCTS_INDEX:products}
-
-# Kafka para produção
-kafka:
-  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
-  producer:
-    batch-size: 32768
-    linger-ms: 20
-    buffer-memory: 67108864
-  consumer:
-    max-poll-records: 1000
-
 # Logging para produção
 logging:
   level:
@@ -59,20 +39,3 @@ server:
   tomcat:
     max-threads: 200
     min-spare-threads: 20
-
-# Application config para produção
-marketplace:
-  search:
-    cache:
-      enabled: true
-      default-ttl: PT2H  # 2 hours
-      search-results-ttl: PT30M  # 30 minutes
-      popular-searches-ttl: PT48H  # 48 hours
-      key-prefix: search:results
-    
-    indexing:
-      batch-size: 5000
-    
-    analytics:
-      enabled: true
-      sample-rate: 0.05  # 5% sampling for production

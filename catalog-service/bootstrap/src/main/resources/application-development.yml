@@ -18,8 +18,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    username: ${POSTGRES_USER:catalog}
+    password: ${POSTGRES_PASSWORD:catalog}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
@@ -42,13 +42,13 @@ spring:
     open-in-view: false
   
   # Configuração para executar scripts SQL na inicialização
-  sql:
-    init:
-      mode: always  # Executa sempre (embedded, always, never)
-      schema-locations: classpath:data/create_products_table.sql
-      data-locations: classpath:data/insert_sample_products.sql
-      continue-on-error: true  # Continua mesmo se houver erros (tabela já existe)
-      separator: ";"
+  # sql:
+  #   init:
+  #     mode: always  # Executa sempre (embedded, always, never)
+  #     schema-locations: classpath:data/create_products_table.sql
+  #     data-locations: classpath:data/insert_sample_products.sql
+  #     continue-on-error: true  # Continua mesmo se houver erros (tabela já existe)
+  #     separator: ";"
   
   data:
     # Redis para desenvolvimento
@@ -70,41 +70,7 @@ spring:
       chain:
         cache: false
   
-  # Kafka configuration
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
-    consumer:
-      group-id: marketplace-search-elasticsearch-indexer
-      auto-offset-reset: earliest
-      enable-auto-commit: false
-      max-poll-records: 100
-      properties:
-        session.timeout.ms: 30000
-        max.poll.interval.ms: 300000
-    producer:
-      client-id: marketplace-search-producer
-      acks: all
-      retries: 3
-      properties:
-        enable.idempotence: true
-        max.in.flight.requests.per.connection: 5
 
-# Elasticsearch para desenvolvimento
-elasticsearch:
-  host: ${ELASTICSEARCH_HOST}
-  port: ${ELASTICSEARCH_PORT}
-  scheme: http
-  connection-timeout: 10000
-  socket-timeout: 60000
-  indices:
-    products: products
-
-# Kafka topics para desenvolvimento
-kafka:
-  topics:
-    product-events: marketplace.public.products
-  consumer:
-    group-id: marketplace-search-elasticsearch-indexer
 
 # Logging mais verboso para desenvolvimento
 logging:
@@ -129,12 +95,3 @@ management:
       exposure:
         include: health,info,metrics,prometheus,loggers
       base-path: /actuator
-
-# Application config para desenvolvimento
-marketplace:
-  search:
-    cache:
-      enabled: true
-    analytics:
-      enabled: true
-      sample-rate: 1.0  # 100% sampling for development

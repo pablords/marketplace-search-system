@@ -3,15 +3,15 @@
 
 services:
   # PostgreSQL Database
-  postgres:
+  catalog-db:
     image: postgres:15-alpine
-    container_name: marketplace-postgres
+    container_name: catalog-db
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: marketplace
-      POSTGRES_USER: marketplace
-      POSTGRES_PASSWORD: marketplace123
+      POSTGRES_DB: catalog
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: catalog
     command:
       - "postgres"
       - "-c"
@@ -22,7 +22,7 @@ services:
     networks:
       - marketplace-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U marketplace"]
+      test: ["CMD-SHELL", "pg_isready -U catalog"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -126,11 +126,11 @@ services:
 
   # Kafka Connect com Debezium
   kafka-connect:
-    image: debezium/connect:3.0.0.Final
+    image: debezium/connect:2.6.0.Final
     container_name: marketplace-kafka-connect
     depends_on:
       - kafka
-      - postgres
+      - catalog-db
     ports:
       - "8083:8083"
     environment:

@@ -93,4 +93,4 @@ postgres-data/
 
 .venv
 
-data/
+data/products.json

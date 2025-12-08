@@ -7,11 +7,12 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 import com.marketplace.search.catalog.application.commands.ProductCommand;
-import com.marketplace.search.catalog.application.dtos.BrandDTO;
-import com.marketplace.search.catalog.application.dtos.CategoryDTO;
-import com.marketplace.search.catalog.application.dtos.ProductDTO;
-import com.marketplace.search.catalog.application.dtos.SellerDTO;
-import com.marketplace.search.catalog.application.dtos.SellerReputationDTO;
+import com.marketplace.search.catalog.application.payloads.BrandPaylod;
+import com.marketplace.search.catalog.application.payloads.CategoryPayload;
+import com.marketplace.search.catalog.application.payloads.ProductMetricsPayload;
+import com.marketplace.search.catalog.application.payloads.ProductPayload;
+import com.marketplace.search.catalog.application.payloads.SellerPayload;
+import com.marketplace.search.catalog.application.payloads.SellerReputationPaylod;
 import com.marketplace.search.catalog.domain.entities.Category;
 import com.marketplace.search.catalog.domain.entities.Product;
 import com.marketplace.search.catalog.domain.entities.Seller;
@@ -23,8 +24,6 @@ import com.marketplace.search.catalog.domain.valueobjects.ProductStatus;
 import com.marketplace.search.catalog.domain.valueobjects.SellerReputation;
 import com.marketplace.search.catalog.domain.valueobjects.SellerStatus;
 import com.marketplace.search.catalog.domain.valueobjects.SellerType;
-
-
 
 /**
  * Mapper para conversão entre Product e ProductDTO
@@ -48,17 +47,6 @@ public class ProductMapper {
 
     Seller seller = mapSeller(dto.seller());
 
-    ProductMetrics metrics = new ProductMetrics(
-        0, // totalViews - seria obtido de outra fonte
-        0, // totalSales
-        0, // totalReviews
-        0.0, // averageRating
-        dto.stockQuantity() != null ? dto.stockQuantity() : 0,
-        0.0, // conversionRate
-        null, // lastSale
-        null // lastView
-    );
-
     ProductStatus status = ProductStatus.active(
         dto.stockQuantity() != null && dto.stockQuantity() > 0);
 
@@ -68,15 +56,15 @@ public class ProductMapper {
         .id(id)
         .info(info)
         .seller(seller)
-        .metrics(metrics)
+        .metrics(mapProductMetrics(dto.productMetrics()))
         .status(status)
         .createdAt(now)
         .updatedAt(now)
         .build();
   }
 
-  public ProductDTO toDTO(Product product) {
-    return ProductDTO.builder()
+  public ProductPayload toDTO(Product product) {
+    return ProductPayload.builder()
         .id(product.getId().getValue())
         .title(product.getInfo().getTitle())
         .description(product.getInfo().getDescription())
@@ -93,27 +81,27 @@ public class ProductMapper {
         .build();
   }
 
-  private Category mapCategory(CategoryDTO dto) {
+  private Category mapCategory(CategoryPayload dto) {
     return new Category(dto.id(), dto.name(), dto.parentId(), dto.path());
   }
 
-  private CategoryDTO mapCategoryToDTO(Category category) {
-    return new CategoryDTO(
+  private CategoryPayload mapCategoryToDTO(Category category) {
+    return new CategoryPayload(
         category.getId(),
         category.getName(),
         category.getParentId(),
         category.getPath());
   }
 
-  private Brand mapBrand(BrandDTO dto) {
+  private Brand mapBrand(BrandPaylod dto) {
     return new Brand(dto.id(), dto.name(), dto.description());
   }
 
-  private BrandDTO mapBrandToDTO(Brand brand) {
-    return new BrandDTO(brand.id(), brand.name(), brand.description());
+  private BrandPaylod mapBrandToDTO(Brand brand) {
+    return new BrandPaylod(brand.id(), brand.name(), brand.description());
   }
 
-  private Seller mapSeller(SellerDTO dto) {
+  private Seller mapSeller(SellerPayload dto) {
     SellerReputation reputation = dto.reputation() != null ? mapSellerReputation(dto.reputation())
         : new SellerReputation(5.0, 0, 0, 0, 0, 0.0, 1.0);
 
@@ -126,8 +114,8 @@ public class ProductMapper {
         dto.memberSince() != null ? Instant.parse(dto.memberSince()) : null);
   }
 
-  private SellerDTO mapSellerToDTO(Seller seller) {
-    return SellerDTO.builder()
+  private SellerPayload mapSellerToDTO(Seller seller) {
+    return SellerPayload.builder()
         .id(seller.getId())
         .name(seller.getName())
         .type(seller.getType().name())
@@ -137,7 +125,7 @@ public class ProductMapper {
         .build();
   }
 
-  private SellerReputation mapSellerReputation(SellerReputationDTO dto) {
+  private SellerReputation mapSellerReputation(SellerReputationPaylod dto) {
     return new SellerReputation(
         dto.score() != null ? dto.score() : 5.0,
         dto.totalReviews() != null ? dto.totalReviews() : 0,
@@ -148,8 +136,8 @@ public class ProductMapper {
         dto.deliveryPerformance() != null ? dto.deliveryPerformance() : 1.0);
   }
 
-  private SellerReputationDTO mapSellerReputationToDTO(SellerReputation reputation) {
-    return new SellerReputationDTO(
+  private SellerReputationPaylod mapSellerReputationToDTO(SellerReputation reputation) {
+    return new SellerReputationPaylod(
         reputation.getScore(),
         reputation.getTotalReviews(),
         reputation.getPositiveReviews(),
@@ -179,5 +167,24 @@ public class ProductMapper {
     } catch (IllegalArgumentException e) {
       return SellerStatus.ACTIVE;
     }
+  }
+
+  private ProductMetrics mapProductMetrics(ProductMetricsPayload dto) {
+    if (dto == null) {
+      return null;
+    }
+
+    return ProductMetrics.builder()
+        .totalViews(dto.totalViews())
+        .totalSales(dto.totalSales())
+        .totalReviews(dto.totalReviews())
+        .averageRating(dto.averageRating())
+        .stockQuantity(dto.stockQuantity())
+        .lastSale(dto.lastSale())
+        .lastView(dto.lastView())
+        .popularity(dto.popularity())
+        .quality(dto.quality())
+        .ctr(dto.ctr())
+        .build();
   }
 }

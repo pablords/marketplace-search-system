@@ -15,7 +15,10 @@ public record ProductMetrics(
     @Min(0) int stockQuantity,
     double conversionRate,
     Instant lastSale,
-    Instant lastView) {
+    Instant lastView,
+    @Min(0) int popularity,
+    @Min(0) double quality,
+    @Min(0) double ctr) {
   public ProductMetrics {
     if (totalViews < 0) {
       throw new IllegalArgumentException("total views cannot be negative");
@@ -99,4 +102,97 @@ public record ProductMetrics(
         ", stockQuantity=" + stockQuantity +
         '}';
   }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static class Builder {
+    private int totalViews;
+    private int totalSales;
+    private int totalReviews;
+    private double averageRating;
+    private int stockQuantity;
+    private double conversionRate;
+    private Instant lastSale;
+    private Instant lastView;
+    private int popularity;
+    private double quality;
+    private double ctr;
+
+
+    public Builder totalViews(int totalViews) {
+      this.totalViews = totalViews;
+      return this;
+    }
+
+    public Builder totalSales(int totalSales) {
+      this.totalSales = totalSales;
+      return this;
+    }
+
+    public Builder totalReviews(int totalReviews) {
+      this.totalReviews = totalReviews;
+      return this;
+    }
+
+    public Builder averageRating(double averageRating) {
+      this.averageRating = averageRating;
+      return this;
+    }
+
+    public Builder stockQuantity(int stockQuantity) {
+      this.stockQuantity = stockQuantity;
+      return this;
+    }
+
+    public Builder conversionRate(double conversionRate) {
+      this.conversionRate = conversionRate;
+      return this;
+    }
+
+    public Builder lastSale(Instant lastSale) {
+      this.lastSale = lastSale;
+      return this;
+    }
+
+    public Builder lastView(Instant lastView) {
+      this.lastView = lastView;
+      return this;
+    }
+
+    public Builder popularity(int popularity) {
+      this.popularity = popularity;
+      return this;
+    }
+
+    public Builder quality(double quality) {
+      this.quality = quality;
+      return this;
+    }
+
+    public Builder ctr(double ctr) {
+      this.ctr = ctr;
+      return this;
+    }
+
+
+
+    public ProductMetrics build() {
+      return new ProductMetrics(
+          totalViews,
+          totalSales,
+          totalReviews,
+          averageRating,
+          stockQuantity,
+          conversionRate,
+          lastSale,
+          lastView,
+          popularity,
+          quality,
+          ctr);
+    }
+
+  }
+
 }

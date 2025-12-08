@@ -86,8 +86,8 @@ public class ProductPayload {
   @JsonProperty("view_count")
   private Integer viewCount;
 
-  @JsonProperty("conversion_rate")
-  private String conversionRate;
+  @JsonProperty("ctr")
+  private String ctr;
 
   @JsonProperty("average_rating")
   private String averageRating;
@@ -321,12 +321,12 @@ public class ProductPayload {
     this.viewCount = viewCount;
   }
 
-  public String getConversionRate() {
-    return conversionRate;
+  public String getCtr() {
+    return ctr;
   }
 
-  public void setConversionRate(String conversionRate) {
-    this.conversionRate = conversionRate;
+  public void setCtr(String ctr) {
+    this.ctr = ctr;
   }
 
   public String getAverageRating() {

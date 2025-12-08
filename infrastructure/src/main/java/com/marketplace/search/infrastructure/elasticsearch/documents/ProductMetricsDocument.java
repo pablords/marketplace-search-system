@@ -22,8 +22,8 @@ public class ProductMetricsDocument {
   @JsonProperty("available_quantity")
   private int stockQuantity;
 
-  @JsonProperty("conversion_rate")
-  private double conversionRate;
+  @JsonProperty("ctr")
+  private double ctr;
 
   // Constructors
   public ProductMetricsDocument() {
@@ -37,13 +37,13 @@ public class ProductMetricsDocument {
   }
 
   public ProductMetricsDocument(Long totalSales, Long totalViews, Long totalReviews,
-      Double averageRating, int stockQuantity, double conversionRate) {
+      Double averageRating, int stockQuantity, double ctr) {
     this.totalSales = totalSales;
     this.totalViews = totalViews;
     this.totalReviews = totalReviews;
     this.averageRating = averageRating;
     this.stockQuantity = stockQuantity;
-    this.conversionRate = conversionRate;
+    this.ctr = ctr;
   }
 
   // Getters and Setters
@@ -87,11 +87,11 @@ public class ProductMetricsDocument {
     this.stockQuantity = stockQuantity;
   }
 
-  public double getConversionRate() {
-    return conversionRate;
+  public double getCtr() {
+    return ctr;
   }
 
-  public void setConversionRate(double conversionRate) {
-    this.conversionRate = conversionRate;
+  public void setCtr(double ctr) {
+    this.ctr = ctr;
   }
 }

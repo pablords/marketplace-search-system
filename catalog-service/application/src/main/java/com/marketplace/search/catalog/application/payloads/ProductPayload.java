@@ -1,4 +1,4 @@
-package com.marketplace.search.catalog.application.dtos;
+package com.marketplace.search.catalog.application.payloads;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-public record ProductDTO(
+public record ProductPayload(
     @NotNull @NotBlank @JsonProperty("id") String id,
 
     @NotNull @NotBlank @JsonProperty("title") String title,
@@ -21,11 +21,11 @@ public record ProductDTO(
 
     @NotNull @JsonProperty("currency") String currency,
 
-    @NotNull @JsonProperty("category") CategoryDTO category,
+    @NotNull @JsonProperty("category") CategoryPayload category,
 
-    @NotNull @JsonProperty("brand") BrandDTO brand,
+    @NotNull @JsonProperty("brand") BrandPaylod brand,
 
-    @NotNull @JsonProperty("seller") SellerDTO seller,
+    @NotNull @JsonProperty("seller") SellerPayload seller,
 
     @JsonProperty("images") List<String> images,
 
@@ -50,9 +50,9 @@ public record ProductDTO(
     private String description;
     private BigDecimal price;
     private String currency;
-    private CategoryDTO category;
-    private BrandDTO brand;
-    private SellerDTO seller;
+    private CategoryPayload category;
+    private BrandPaylod brand;
+    private SellerPayload seller;
     private List<String> images;
     private Set<String> attributes;
     private Set<String> tags;
@@ -85,17 +85,17 @@ public record ProductDTO(
       return this;
     }
 
-    public Builder category(CategoryDTO category) {
+    public Builder category(CategoryPayload category) {
       this.category = category;
       return this;
     }
 
-    public Builder brand(BrandDTO brand) {
+    public Builder brand(BrandPaylod brand) {
       this.brand = brand;
       return this;
     }
 
-    public Builder seller(SellerDTO seller) {
+    public Builder seller(SellerPayload seller) {
       this.seller = seller;
       return this;
     }
@@ -130,8 +130,8 @@ public record ProductDTO(
       return this;
     }
 
-    public ProductDTO build() {
-      return new ProductDTO(
+    public ProductPayload build() {
+      return new ProductPayload(
           id,
           title,
           description,

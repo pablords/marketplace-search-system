@@ -13,7 +13,9 @@ import com.marketplace.search.indexing.application.commands.ProductCommand;
 import com.marketplace.search.indexing.application.exceptions.IndexingException;
 import com.marketplace.search.indexing.application.mappers.ProductMapper;
 import com.marketplace.search.indexing.domain.entities.Product;
+import com.marketplace.search.indexing.domain.repositories.CacheRepository;
 import com.marketplace.search.indexing.domain.repositories.ProductIndexRepository;
+
 /**
  * Caso de uso para indexação de produtos.
  * Executa operações de indexação de forma assíncrona para não bloquear o
@@ -26,11 +28,13 @@ public class IndexProductUseCase {
 
     private final ProductIndexRepository indexRepository;
     private final ProductMapper productMapper;
+    private final CacheRepository cacheRepository;
 
     public IndexProductUseCase(ProductIndexRepository indexRepository,
-            ProductMapper productMapper) {
+            ProductMapper productMapper, CacheRepository cacheRepository) {
         this.indexRepository = indexRepository;
         this.productMapper = productMapper;
+        this.cacheRepository = cacheRepository;
     }
 
     /**
@@ -46,17 +50,15 @@ public class IndexProductUseCase {
 
         try {
             Product product = productMapper.toDomain(productDTO);
+            // ProductFeatures features = new ProductFeatures(
+            //         product.getId(),
+            //         product.getInfo().getPrice(),
+            //         product.getSeller().getReputationScore(),
+            //         product.getMetrics().getPopularityScore()   
+            // // ... outros campos numéricos
+            // );
 
-            // Verificar se produto já existe no índice
-            boolean exists = indexRepository.exists(product.getId());
-
-            if (exists) {
-                indexRepository.updateProduct(product);
-                logger.info("Product updated in index: {}", product.getId());
-            } else {
-                indexRepository.indexProduct(product);
-                logger.info("Product indexed: {}", product.getId());
-            }
+            indexRepository.indexProduct(product);
 
             return CompletableFuture.completedFuture(null);
 

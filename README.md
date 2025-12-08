@@ -10,7 +10,7 @@ O projeto segue **Arquitetura Hexagonal (Ports & Adapters)** organizada em módu
 search-system/
 ├── domain/          # 🔵 Domínio - Entities, Value Objects, Repositories
 ├── application/     # 🟡 Aplicação - Use Cases, DTOs, Mappers
-├── infrastructure/  # 🟢 Infraestrutura - Elasticsearch, Kafka, Redis
+├── infrastructure/  # 🟢 Infraestrutura - OpenSearch, Kafka, Redis
 ├── interfaces/      # 🟠 Interfaces - REST API, Consumers
 └── bootstrap/       # ⚫ Bootstrap - Configuração e inicialização
 ```
@@ -18,7 +18,7 @@ search-system/
 ## 🚀 Tecnologias
 
 - **Java 17** + **Spring Boot 3.2.0**
-- **Elasticsearch 8.11.3** - Motor de busca principal
+- **OpenSearch 8.11.3** - Motor de busca principal
 - **Apache Kafka 3.6.1** - Eventos e CDC em tempo real
 - **Redis 7** - Cache de alta performance
 - **Maven** - Gerenciamento de dependências
@@ -60,7 +60,7 @@ cd search-system
 ### 2. Subir Infraestrutura
 
 ```bash
-# Subir todos os serviços (PostgreSQL, Redis, Elasticsearch, Kafka, etc.)
+# Subir todos os serviços (PostgreSQL, Redis, OpenSearch, Kafka, etc.)
 docker-compose up -d
 
 # Verificar se os serviços estão rodando
@@ -111,7 +111,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
 
-# Elasticsearch
+# OpenSearch
 ELASTICSEARCH_HOST=localhost
 ELASTICSEARCH_PORT=9200
 ELASTICSEARCH_USERNAME=
@@ -126,7 +126,7 @@ KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 ### Acessar Dashboards
 
 - **Aplicação**: http://localhost:8080/api/v1/actuator
-- **Elasticsearch**: http://localhost:9200
+- **OpenSearch**: http://localhost:9200
 - **Kibana**: http://localhost:5601
 - **Kafka UI**: http://localhost:8081
 - **Prometheus**: http://localhost:9090
@@ -198,9 +198,9 @@ ProductEventHandler (Kafka integration)
 
 ### Infrastructure Layer
 ```java
-// Elasticsearch
-ElasticsearchProductSearchRepository
-ProductDocument, ElasticsearchQueryBuilder
+// OpenSearch
+OpenSearchProductSearchRepository
+ProductDocument, OpenSearchQueryBuilder
 
 // Cache
 RedisCacheRepository
@@ -232,7 +232,7 @@ mvn test -Dtest="*PerformanceTest"
 
 ### Otimizações
 - **Cache Redis** - TTL inteligente por tipo de consulta
-- **Elasticsearch** - Índices otimizados e queries eficientes
+- **OpenSearch** - Índices otimizados e queries eficientes
 - **Kafka** - Batching para indexação em massa
 - **Connection Pooling** - Configurações ajustadas para alta carga
 
@@ -292,7 +292,7 @@ graph TD
     end
 
     subgraph "Core da Busca"
-        ELASTIC[Elasticsearch Cluster]
+        ELASTIC[OpenSearch Cluster]
     end
 
     subgraph "Cache & Features"

@@ -1,4 +1,4 @@
-package com.marketplace.search.indexing.infrastructure.repositories;
+package com.marketplace.search.indexing.infrastructure.opensearch.repositories;
 
 import java.util.HashMap;
 import java.util.List;

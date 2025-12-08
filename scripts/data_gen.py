@@ -9,6 +9,7 @@ import random
 from faker import Faker
 import requests
 import time
+from datetime import datetime, timedelta
 
 
 
@@ -44,12 +45,12 @@ BRANDS_DB = {
 }
 
 CATEGORIES_DB = [
-    {"id": "cat_smartphones", "name": "Smartphones", "path": "/eletronicos/smartphones", "parent_id": "cat_eletronicos"},
-    {"id": "cat_notebooks", "name": "Notebooks", "path": "/eletronicos/notebooks", "parent_id": "cat_eletronicos"},
-    {"id": "cat_tv", "name": "TV e Áudio", "path": "/eletronicos/tv-audio", "parent_id": "cat_eletronicos"},
-    {"id": "cat_moveis", "name": "Móveis", "path": "/casa/moveis", "parent_id": "cat_casa"},
-    {"id": "cat_decoracao", "name": "Decoração", "path": "/casa/decoracao", "parent_id": "cat_casa"},
-    {"id": "cat_roupas", "name": "Roupas e Calçados", "path": "/moda/roupas", "parent_id": "cat_moda"},
+    {"id": "CAT001", "name": "Smartphones", "path": "/eletronicos/smartphones", "parent_id": "CAT001"},
+    {"id": "CAT002", "name": "Notebooks", "path": "/eletronicos/notebooks", "parent_id": "CAT001"},
+    {"id": "CAT003", "name": "TV e Áudio", "path": "/eletronicos/tv-audio", "parent_id": "CAT001"},
+    {"id": "CAT004", "name": "Móveis", "path": "/casa/moveis", "parent_id": "CAT004"},
+    {"id": "CAT005", "name": "Decoração", "path": "/casa/decoracao", "parent_id": "CAT004"},
+    {"id": "CAT006", "name": "Roupas e Calçados", "path": "/moda/roupas", "parent_id": "CAT004"},
 ]
 
 # ==========================================
@@ -57,7 +58,7 @@ CATEGORIES_DB = [
 # ==========================================
 # Aqui definimos o que pode ser gerado dentro de cada categoria
 CATALOG_RULES = {
-    "cat_smartphones": {
+    "CAT001": {
         "products": ["iPhone 13", "iPhone 14 Pro", "Galaxy S23", "Galaxy A54", "Redmi Note 12", "Moto G200"],
         "brands": ["brand_apple", "brand_samsung", "brand_lg", "brand_sony"],
         "metrics_seed": {"pop_min": 1000, "pop_max": 9000, "qual_min": 3.8, "qual_max": 4.9},
@@ -68,7 +69,7 @@ CATALOG_RULES = {
             f"Tela: {random.choice(['6.1', '6.7'])} polegadas"
         ]
     },
-    "cat_notebooks": {
+    "CAT002": {
         "products": ["MacBook Air M2", "MacBook Pro", "Dell XPS 13", "Dell Inspiron", "Samsung Galaxy Book", "Lenovo ThinkPad"],
         "brands": ["brand_apple", "brand_dell", "brand_samsung"],
         "metrics_seed": {"pop_min": 500, "pop_max": 5000, "qual_min": 4.0, "qual_max": 4.9},
@@ -78,7 +79,7 @@ CATALOG_RULES = {
             f"SSD: {random.choice(['256GB', '512GB', '1TB'])}"
         ]
     },
-    "cat_tv": {
+    "CAT003": {
         "products": ["Smart TV 4K", "TV OLED 55", "Soundbar", "Home Theater", "Smart TV 65"],
         "brands": ["brand_samsung", "brand_lg", "brand_sony"],
         "metrics_seed": {"pop_min": 300, "pop_max": 4000, "qual_min": 4.2, "qual_max": 4.8},
@@ -88,7 +89,7 @@ CATALOG_RULES = {
             f"Voltagem: {random.choice(['110v', '220v', 'Bivolt'])}"
         ]
     },
-    "cat_moveis": {
+    "CAT004": {
         "products": ["Cadeira Gamer", "Mesa de Escritório", "Sofá 3 Lugares", "Estante de Livros", "Cama Box Casal"],
         "brands": ["brand_herman", "brand_tokstok", "brand_generic"],
         "metrics_seed": {"pop_min": 100, "pop_max": 2000, "qual_min": 3.5, "qual_max": 4.7},
@@ -98,7 +99,7 @@ CATALOG_RULES = {
             "Necessita montagem: Sim"
         ]
     },
-    "cat_decoracao": {
+    "CAT005": {
         "products": ["Luminária de Mesa", "Quadro Decorativo", "Tapete Sala", "Vaso de Cerâmica", "Espelho Redondo"],
         "brands": ["brand_tokstok", "brand_generic"],
         "metrics_seed": {"pop_min": 50, "pop_max": 1500, "qual_min": 3.9, "qual_max": 4.6},
@@ -107,7 +108,7 @@ CATALOG_RULES = {
             f"Dimensões: {random.randint(20, 100)}x{random.randint(20, 100)}cm"
         ]
     },
-    "cat_roupas": {
+    "CAT006": {
         "products": ["Camiseta Básica", "Tênis de Corrida", "Calça Jeans", "Jaqueta Corta-Vento", "Moletom"],
         "brands": ["brand_nike", "brand_adidas", "brand_generic"],
         "metrics_seed": {"pop_min": 800, "pop_max": 8000, "qual_min": 3.0, "qual_max": 4.5},
@@ -123,10 +124,29 @@ CATALOG_RULES = {
 # 3. FUNÇÕES GERADORAS
 # ==========================================
 
+def gnerate_date(data_inicio, data_fim):
+    """
+    Gera uma data aleatória entre data_inicio e data_fim.
+    """
+    # Calcula a diferença total de dias entre as datas
+    diferenca = data_fim - data_inicio
+    dias_aleatorios = random.randrange(diferenca.days)
+    
+    # Adiciona um número aleatório de dias à data de início
+    data_aleatoria = data_inicio + timedelta(days=dias_aleatorios)
+    return data_aleatoria
+
 def generate_quality_metrics(rule_metrics):
     """Gera métricas de popularidade consistentes com a categoria"""
     popularity = random.randint(rule_metrics["pop_min"], rule_metrics["pop_max"])
     quality = round(random.uniform(rule_metrics["qual_min"], rule_metrics["qual_max"]), 1)
+    total_views = popularity * random.randint(5, 15)
+    total_sales = int(popularity * (quality / 5.0) * random.uniform(0.5, 1.5))
+    total_reviews = int(total_sales * random.uniform(0.05, 0.15))
+    average_rating = round(quality + random.uniform(-0.5, 0.5), 2)
+    last_sale = gnerate_date(datetime(2025, 1, 1), datetime(2025, 12, 31)).isoformat() + "Z"
+    last_view = gnerate_date(datetime(2025, 1, 1), datetime(2025, 12, 31)).isoformat() + "Z"
+
     
     # Cálculo de CTR correlacionado com a qualidade
     # Um produto 5 estrelas tem mais chance de clique que um de 3 estrelas
@@ -137,7 +157,14 @@ def generate_quality_metrics(rule_metrics):
     return {
         "popularity": popularity,
         "quality": quality,
-        "ctr": ctr
+        "ctr": ctr,
+        "total_views": total_views,
+        "total_sales": total_sales,
+        "total_reviews": total_reviews,
+        "average_rating": average_rating,
+        "stock_quantity": 0,
+        "last_sale": last_sale,
+        "last_view": last_view
     }
 
 def generate_product_payload():
@@ -198,6 +225,9 @@ def generate_product_payload():
             "negative_reviews": negative_reviews,
         }
     }
+
+    available_quantity = random.randint(0, 500)
+    quality_metrics["stock_quantity"] = available_quantity
     
     # Montagem do JSON Final
     product = {
@@ -206,7 +236,7 @@ def generate_product_payload():
         "description": fake.text(max_nb_chars=300),
         "price": price,
         "currency": "BRL",
-        "available_quantity": random.randint(0, 500), # 0 permite testar lógica de out_of_stock
+        "available_quantity": available_quantity, # 0 permite testar lógica de out_of_stock
         "condition": random.choice(["NEW", "NEW", "NEW", "USED"]), # Peso maior para NEW
         "is_active": True,
         
@@ -230,7 +260,7 @@ def generate_product_payload():
         "tags": [fake.word() for _ in range(4)],
         
         # Objeto de qualidade (Fundamental para seu LTR)
-        "quality": quality_metrics
+        "metrics": quality_metrics
     }
     
     return product
@@ -279,8 +309,8 @@ def create_products_on_demand(api_url, total_products=10):
 
 
 def main():
-    # create_dataset_file(total_products=100)
-    create_products_on_demand(api_url="http://localhost:8080/api/v1", total_products=10)
+    create_dataset_file(total_products=10)
+    # create_products_on_demand(api_url="http://localhost:8080/api/v1", total_products=1)
 
 if __name__ == "__main__":
     main()

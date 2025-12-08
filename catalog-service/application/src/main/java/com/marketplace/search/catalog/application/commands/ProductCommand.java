@@ -5,9 +5,10 @@ import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.marketplace.search.catalog.application.dtos.BrandDTO;
-import com.marketplace.search.catalog.application.dtos.CategoryDTO;
-import com.marketplace.search.catalog.application.dtos.SellerDTO;
+import com.marketplace.search.catalog.application.payloads.BrandPaylod;
+import com.marketplace.search.catalog.application.payloads.CategoryPayload;
+import com.marketplace.search.catalog.application.payloads.ProductMetricsPayload;
+import com.marketplace.search.catalog.application.payloads.SellerPayload;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,11 +25,11 @@ public record ProductCommand(
 
     @NotNull @JsonProperty("currency") String currency,
 
-    @NotNull @JsonProperty("category") CategoryDTO category,
+    @NotNull @JsonProperty("category") CategoryPayload category,
 
-    @NotNull @JsonProperty("brand") BrandDTO brand,
+    @NotNull @JsonProperty("brand") BrandPaylod brand,
 
-    @NotNull @JsonProperty("seller") SellerDTO seller,
+    @NotNull @JsonProperty("seller") SellerPayload seller,
 
     @JsonProperty("images") List<String> images,
 
@@ -40,7 +41,8 @@ public record ProductCommand(
 
     @JsonProperty("condition") String condition,
 
-    @JsonProperty("is_active") Boolean isActive) {
+    @JsonProperty("is_active") Boolean isActive,
+    @JsonProperty("metrics") ProductMetricsPayload productMetrics) {
 
   public static Builder builder() {
     return new Builder();
@@ -53,15 +55,16 @@ public record ProductCommand(
     private String description;
     private BigDecimal price;
     private String currency;
-    private CategoryDTO category;
-    private BrandDTO brand;
-    private SellerDTO seller;
+    private CategoryPayload category;
+    private BrandPaylod brand;
+    private SellerPayload seller;
     private List<String> images;
     private Set<String> attributes;
     private Set<String> tags;
     private Integer stockQuantity;
     private String condition;
     private Boolean isActive;
+    private ProductMetricsPayload productMetrics;
 
     public Builder id(String id) {
       this.id = id;
@@ -88,17 +91,17 @@ public record ProductCommand(
       return this;
     }
 
-    public Builder category(CategoryDTO category) {
+    public Builder category(CategoryPayload category) {
       this.category = category;
       return this;
     }
 
-    public Builder brand(BrandDTO brand) {
+    public Builder brand(BrandPaylod brand) {
       this.brand = brand;
       return this;
     }
 
-    public Builder seller(SellerDTO seller) {
+    public Builder seller(SellerPayload seller) {
       this.seller = seller;
       return this;
     }
@@ -133,6 +136,11 @@ public record ProductCommand(
       return this;
     }
 
+    public Builder productMetrics(ProductMetricsPayload productMetrics) {
+      this.productMetrics = productMetrics;
+      return this;
+    }
+
     public ProductCommand build() {
       return new ProductCommand(
           id,
@@ -148,7 +156,10 @@ public record ProductCommand(
           tags,
           stockQuantity,
           condition,
-          isActive);
+          isActive,
+          productMetrics
+
+      );
     }
   }
 

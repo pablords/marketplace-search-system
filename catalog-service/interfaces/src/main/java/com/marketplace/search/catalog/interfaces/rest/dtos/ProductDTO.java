@@ -41,7 +41,8 @@ public record ProductDTO(
 
     @JsonProperty("condition") String condition,
 
-    @JsonProperty("is_active") Boolean isActive
+    @JsonProperty("is_active") Boolean isActive,
+    @JsonProperty("metrics") ProductMetricsDTO productMetrics
 
 ) {
 
@@ -65,6 +66,7 @@ public record ProductDTO(
     private Integer stockQuantity;
     private String condition;
     private Boolean isActive;
+    private ProductMetricsDTO productMetrics;
 
     public Builder id(String id) {
       this.id = id;
@@ -136,6 +138,11 @@ public record ProductDTO(
       return this;
     }
 
+    public Builder productMetrics(ProductMetricsDTO productMetrics) {
+      this.productMetrics = productMetrics;
+      return this;
+    }
+
     public ProductDTO build() {
       return new ProductDTO(
           id,
@@ -151,8 +158,8 @@ public record ProductDTO(
           tags,
           stockQuantity,
           condition,
-          isActive
-      );
+          isActive,
+          productMetrics);
     }
   }
 }

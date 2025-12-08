@@ -1,8 +1,8 @@
-package com.marketplace.search.catalog.application.dtos;
+package com.marketplace.search.catalog.application.payloads;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public record SellerReputationDTO(
+public record SellerReputationPaylod(
     @JsonProperty("score") Double score,
 
     @JsonProperty("total_reviews") Integer totalReviews,
@@ -65,8 +65,8 @@ public record SellerReputationDTO(
       return this;
     }
 
-    public SellerReputationDTO build() {
-      return new SellerReputationDTO(score, totalReviews, positiveReviews,
+    public SellerReputationPaylod build() {
+      return new SellerReputationPaylod(score, totalReviews, positiveReviews,
           neutralReviews, negativeReviews,
           cancellationRate, deliveryPerformance);
     }

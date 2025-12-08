@@ -65,6 +65,15 @@ public class ProductPayload {
   @JsonProperty("seller_total_reviews")
   private Integer sellerTotalReviews;
 
+  @JsonProperty("seller_positive_reviews")
+  private Integer sellerPositiveReviews;
+
+  @JsonProperty("seller_neutral_reviews")
+  private Integer sellerNeutralReviews;
+
+  @JsonProperty("seller_negative_reviews")
+  private Integer sellerNegativeReviews;
+
   @JsonProperty("seller_cancellation_rate")
   private String sellerCancellationRate;
 
@@ -254,6 +263,30 @@ public class ProductPayload {
 
   public void setSellerTotalReviews(Integer sellerTotalReviews) {
     this.sellerTotalReviews = sellerTotalReviews;
+  }
+
+  public Integer getSellerPositiveReviews() {
+    return sellerPositiveReviews;
+  }
+
+  public void setSellerPositiveReviews(Integer sellerPositiveReviews) {
+    this.sellerPositiveReviews = sellerPositiveReviews;
+  }
+
+  public Integer getSellerNeutralReviews() {
+    return sellerNeutralReviews;
+  }
+
+  public void setSellerNeutralReviews(Integer sellerNeutralReviews) {
+    this.sellerNeutralReviews = sellerNeutralReviews;
+  }
+
+  public Integer getSellerNegativeReviews() {
+    return sellerNegativeReviews;
+  }
+
+  public void setSellerNegativeReviews(Integer sellerNegativeReviews) {
+    this.sellerNegativeReviews = sellerNegativeReviews;
   }
 
   public String getSellerCancellationRate() {

@@ -8,6 +8,11 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 import com.marketplace.search.indexing.application.commands.ProductCommand;
+import com.marketplace.search.indexing.application.dtos.BrandDTO;
+import com.marketplace.search.indexing.application.dtos.CategoryDTO;
+import com.marketplace.search.indexing.application.dtos.ProductDTO;
+import com.marketplace.search.indexing.application.dtos.SellerDTO;
+import com.marketplace.search.indexing.application.dtos.SellerReputationDTO;
 import com.marketplace.search.indexing.application.handlers.payloads.ProductPayload;
 import com.marketplace.search.indexing.domain.entities.Category;
 import com.marketplace.search.indexing.domain.entities.Product;
@@ -20,12 +25,6 @@ import com.marketplace.search.indexing.domain.valueobjects.ProductStatus;
 import com.marketplace.search.indexing.domain.valueobjects.SellerReputation;
 import com.marketplace.search.indexing.domain.valueobjects.SellerStatus;
 import com.marketplace.search.indexing.domain.valueobjects.SellerType;
-
-import com.marketplace.search.indexing.application.dtos.BrandDTO;
-import com.marketplace.search.indexing.application.dtos.CategoryDTO;
-import com.marketplace.search.indexing.application.dtos.ProductDTO;
-import com.marketplace.search.indexing.application.dtos.SellerDTO;
-import com.marketplace.search.indexing.application.dtos.SellerReputationDTO;
 /**
  * Mapper para conversão entre Product e ProductDTO
  */
@@ -47,9 +46,49 @@ public class ProductMapper {
         data.getDescription());
 
     // Seller
+    // Seller reputation (if available in payload)
+    Double sellerScore = null;
+    try {
+      if (data.getSellerScore() != null && !data.getSellerScore().isBlank())
+        sellerScore = Double.valueOf(data.getSellerScore());
+    } catch (NumberFormatException ignored) {
+    }
+
+    Double cancellationRate = null;
+    try {
+      if (data.getSellerCancellationRate() != null && !data.getSellerCancellationRate().isBlank())
+        cancellationRate = Double.valueOf(data.getSellerCancellationRate());
+    } catch (NumberFormatException ignored) {
+    }
+
+    Double deliveryPerformance = null;
+    try {
+      if (data.getSellerDeliveryPerformance() != null && !data.getSellerDeliveryPerformance().isBlank())
+        deliveryPerformance = Double.valueOf(data.getSellerDeliveryPerformance());
+    } catch (NumberFormatException ignored) {
+    }
+
+    com.marketplace.search.indexing.application.dtos.SellerReputationDTO reputation = null;
+    if (sellerScore != null || data.getSellerTotalReviews() != null || data.getSellerPositiveReviews() != null
+        || data.getSellerNeutralReviews() != null || data.getSellerNegativeReviews() != null
+        || cancellationRate != null || deliveryPerformance != null) {
+      reputation = com.marketplace.search.indexing.application.dtos.SellerReputationDTO.builder()
+          .score(sellerScore)
+          .totalReviews(data.getSellerTotalReviews())
+          .positiveReviews(data.getSellerPositiveReviews())
+          .neutralReviews(data.getSellerNeutralReviews())
+          .negativeReviews(data.getSellerNegativeReviews())
+          .cancellationRate(cancellationRate)
+          .deliveryPerformance(deliveryPerformance)
+          .build();
+    }
+
     SellerDTO seller = SellerDTO.builder()
         .id(data.getSellerId())
         .name(data.getSellerName())
+        .reputation(reputation)
+        .type(data.getSellerType())
+        .status(data.getSellerStatus())
         .build();
 
     // Product usando builder

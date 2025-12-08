@@ -152,7 +152,6 @@ public class OpensearchRepository implements ProductIndexRepository {
 				.id(product.getId().getValue())
 				.doc(product)
 				.build(), Product.class);
-		log.debug("Produto atualizado no índice: " + product.getId());
 	}
 
 	@Override
@@ -161,7 +160,6 @@ public class OpensearchRepository implements ProductIndexRepository {
 				.index(INDEX_NAME)
 				.id(product.getId().getValue())
 				.document(product));
-		log.debug("Produto indexado: " + product.getId());
 	}
 
 }

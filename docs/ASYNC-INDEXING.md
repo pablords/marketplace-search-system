@@ -240,7 +240,7 @@ ThreadPool queue: < 50% utilizado
 
 ### Consumer recebe evento
 ```
-INFO  c.m.s.i.k.c.ProductCdcConsumer - Received CDC event from topic: marketplace.public.products
+INFO  c.m.s.i.k.c.ProductCdcConsumer - Received CDC event from topic: catalog-db.public.products
 INFO  c.m.s.i.k.c.ProductCdcConsumer - Dispatching async CREATE operation for product: MLB123
 INFO  c.m.s.i.k.c.ProductCdcConsumer - CDC event received and dispatched for async processing
 ```

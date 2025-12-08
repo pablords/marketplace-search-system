@@ -49,6 +49,7 @@
     <module>interfaces</module>
     <module>bootstrap</module>
     <module>catalog-service</module>
+    <module>indexing-service</module>
   </modules>
 
   <dependencyManagement>
@@ -96,6 +97,12 @@
       <dependency>
         <groupId>com.marketplace.search.catalog</groupId>
         <artifactId>catalog-service</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.marketplace.search.indexing</groupId>
+        <artifactId>indexing-service</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -155,7 +162,7 @@
         <artifactId>spring-dotenv</artifactId>
         <version>3.0.0</version>
       </dependency>
-      
+
     </dependencies>
   </dependencyManagement>
 

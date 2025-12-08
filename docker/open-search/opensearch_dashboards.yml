@@ -1,0 +1,18 @@
+server.name: opensearch_dashboards
+server.host: "0.0.0.0"
+
+# Desabilitar SSL no Dashboards para ambiente local sem TLS
+server.ssl.enabled: false
+opensearch.ssl.verificationMode: none
+
+# Conectar ao cluster sem autenticação
+opensearch.hosts: ["http://open-search:9200"]
+
+# NOTE: Do not set `plugins.security` here — OpenSearch Dashboards' config
+# schema does not accept `plugins.security.*` entries and they cause a fatal
+# validation error. Security should be configured on the OpenSearch node itself
+# or via supported Dashboards settings (e.g. providing `opensearch.username`).
+
+# (remova ou comente estas linhas)
+# opensearch.username: kibanaserver
+# opensearch.password: kibanaserver

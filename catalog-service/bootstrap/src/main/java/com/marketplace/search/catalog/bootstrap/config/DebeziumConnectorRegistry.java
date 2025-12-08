@@ -22,7 +22,8 @@ public class DebeziumConnectorRegistry {
 
   @Value("${debezium.connector.name}")
   private String connectorName;
-  private String connectUrl = "http://localhost:8083/connectors";
+  @Value("${debezium.connector.url:http://localhost:9083/connectors}")
+  private String connectUrl;
   private final RestTemplate restTemplate;
   private final DebeziumConnectorProperties properties;
 

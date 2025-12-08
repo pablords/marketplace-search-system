@@ -14,48 +14,6 @@ spring:
       enabled: true
       port: 35729
     add-properties: true
-
-  datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 5
-      minimum-idle: 2
-      connection-timeout: 30000
-  
-  jpa:
-    hibernate:
-      ddl-auto: none  # Schema gerenciado por migrations ou script SQL
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        use_sql_comments: true
-        jdbc:
-          batch_size: 20
-        order_inserts: true
-        order_updates: true
-    open-in-view: false
-  
-  # Configuração para executar scripts SQL na inicialização
-  sql:
-    init:
-      mode: always  # Executa sempre (embedded, always, never)
-      schema-locations: classpath:data/create_products_table.sql
-      data-locations: classpath:data/insert_sample_products.sql
-      continue-on-error: true  # Continua mesmo se houver erros (tabela já existe)
-      separator: ";"
-  
-  # Redis para desenvolvimento
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
-      database: 1  # Use database 1 for dev
   
   # Cache desabilitado em desenvolvimento
   cache:  
@@ -88,15 +46,6 @@ spring:
         enable.idempotence: true
         max.in.flight.requests.per.connection: 5
 
-# Elasticsearch para desenvolvimento
-elasticsearch:
-  host: ${ELASTICSEARCH_HOST}
-  port: ${ELASTICSEARCH_PORT}
-  scheme: http
-  connection-timeout: 10000
-  socket-timeout: 60000
-  indices:
-    products: products
 
 # Kafka topics para desenvolvimento
 kafka:
@@ -128,12 +77,3 @@ management:
       exposure:
         include: health,info,metrics,prometheus,loggers
       base-path: /actuator
-
-# Application config para desenvolvimento
-marketplace:
-  search:
-    cache:
-      enabled: true
-    analytics:
-      enabled: true
-      sample-rate: 1.0  # 100% sampling for development

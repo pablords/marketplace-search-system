@@ -13,7 +13,7 @@ PostgreSQL → Debezium → Kafka → Consumer → Elasticsearch
 ### Fluxo Completo:
 1. **Aplicação cria/atualiza/deleta produto** → Salva no PostgreSQL
 2. **Debezium captura mudança** → WAL (Write-Ahead Log) do PostgreSQL
-3. **Debezium publica no Kafka** → Tópico `marketplace.public.products`
+3. **Debezium publica no Kafka** → Tópico `catalog-db.public.products`
 4. **Consumer processa evento** → `ProductCdcConsumer`
 5. **Produto indexado no Elasticsearch** → Via `IndexProductUseCase`
 
@@ -62,8 +62,8 @@ PostgreSQL → Debezium → Kafka → Consumer → Elasticsearch
 - **Localização**: `infrastructure/kafka/consumers/ProductCdcConsumer.java`
 - **Propósito**: Consumir eventos do Kafka e sincronizar com Elasticsearch
 - **Configuração**:
-  - **Tópico**: `marketplace.public.products` (configurável via `kafka.topics.product-events`)
-  - **Group ID**: `marketplace-search-elasticsearch-indexer`
+  - **Tópico**: `catalog-db.public.products` (configurável via `kafka.topics.product-events`)
+  - **Group ID**: `marketplace-search-indexer-service`
   - **Acknowledge Mode**: `MANUAL_IMMEDIATE` (controle manual do offset)
   - **Concurrency**: 3 threads
 
@@ -107,16 +107,16 @@ public void consumeProductEvent(ConsumerRecord<String, String> record, Acknowled
 # Kafka topics
 kafka:
   topics:
-    product-events: marketplace.public.products
+    product-events: catalog-db.public.products
   consumer:
-    group-id: marketplace-search-elasticsearch-indexer
+    group-id: marketplace-search-indexer-service
 
 # Spring Kafka
 spring:
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
-      group-id: marketplace-search-elasticsearch-indexer
+      group-id: marketplace-search-indexer-service
       auto-offset-reset: earliest
       enable-auto-commit: false
       max-poll-records: 100
@@ -230,7 +230,7 @@ curl -X POST http://localhost:8080/api/v1/search/products/MLB123/index \
 
 Você verá logs como:
 ```
-INFO  c.m.s.i.k.c.ProductCdcConsumer - Received CDC event from topic: marketplace.public.products
+INFO  c.m.s.i.k.c.ProductCdcConsumer - Received CDC event from topic: catalog-db.public.products
 INFO  c.m.s.i.k.c.ProductCdcConsumer - Processing CREATE for product: MLB123
 INFO  c.m.s.a.u.IndexProductUseCase - Indexing product: MLB123
 INFO  c.m.s.i.k.c.ProductCdcConsumer - Product create indexed successfully: MLB123
@@ -246,8 +246,8 @@ curl http://localhost:9200/products/_search?q=MLB123 | jq
 ### 8. Monitorar Kafka
 
 - **Kafka UI**: http://localhost:8081
-- **Tópicos**: `marketplace.public.products`
-- **Consumer Groups**: `marketplace-search-elasticsearch-indexer`
+- **Tópicos**: `catalog-db.public.products`
+- **Consumer Groups**: `marketplace-search-indexer-service`
 
 ## 📈 Métricas e Monitoramento
 
@@ -262,7 +262,7 @@ curl http://localhost:9200/products/_search?q=MLB123 | jq
 
 ```log
 # Evento recebido
-Received CDC event from topic: marketplace.public.products, partition: 0, offset: 123
+Received CDC event from topic: catalog-db.public.products, partition: 0, offset: 123
 
 # Processamento
 Processing CREATE for product: MLB123
@@ -288,7 +288,7 @@ CDC event processed successfully: operation=c, productId=MLB123
 
 3. Verificar mensagens no tópico:
    - Acesse http://localhost:8081 (Kafka UI)
-   - Navegue até o tópico `marketplace.public.products`
+   - Navegue até o tópico `catalog-db.public.products`
 
 ### Mensagens processadas mas produto não aparece no Elasticsearch
 

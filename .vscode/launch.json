@@ -64,9 +64,20 @@
             "vmArgs": ["-Dspring.devtools.restart.enabled=true"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/catalog-service/bootstrap",
-            "preLaunchTask": "prelaunch-catalog",
+            "preLaunchTask": "prelaunch-envs",
             "envFile": "${workspaceFolder}/.env"
-            
+        },
+        {
+            "type": "java",
+            "name": "Run Indexing with Maven",
+            "request": "launch",
+            "mainClass": "com.marketplace.search.indexing.bootstrap.IndexingApp",
+            "args": ["--spring.profiles.active=development"],
+            "vmArgs": ["-Dspring.devtools.restart.enabled=true"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/indexing-service/bootstrap",
+            "preLaunchTask": "prelaunch-envs",
+            "envFile": "${workspaceFolder}/.env"
         }
 
     ]

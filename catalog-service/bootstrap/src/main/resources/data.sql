@@ -13,13 +13,14 @@ INSERT INTO brands (id, name, description) VALUES
 ('BRAND001', 'Samsung', 'Marca líder mundial em tecnologia e inovação'),
 ('BRAND002', 'Dell', 'Qualidade e confiabilidade'),
 ('BRAND003', 'Nike', 'Just Do It'),
-('BRAND004', 'Adidas', 'adidas'),
+('BRAND004', 'Adidas', 'adidas');
 
 -- 3. Inserir Vendedores
 INSERT INTO sellers (id, name, type, status, score, total_reviews, positive_reviews, cancellation_rate, delivery_performance) VALUES 
 ('SELLER001', 'TechStore', 'PROFESSIONAL', 'ACTIVE', 4.8, 1500, 1400, 0.02, 0.98),
 ('SELLER002', 'InfoShop', 'PROFESSIONAL', 'ACTIVE', 4.9, 2000, 1950, 0.01, 0.99),
-('SELLER003', 'SportCenter', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 0.05, 0.95);
+('SELLER003', 'SportCenter', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 0.05, 0.95),
+('SELLER004', 'Sport', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 0.05, 0.95);
 
 -- 4. Inserir Produtos
 INSERT INTO products (id, title, description, price, currency, available_quantity, condition, active, category_id, brand_id, seller_id, attributes) VALUES 

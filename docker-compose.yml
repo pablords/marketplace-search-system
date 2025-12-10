@@ -19,7 +19,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./docker/postgres/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+      # - ./docker/postgres/seed.sql:/docker-entrypoint-initdb.d/seed.sql
     networks:
       - marketplace-network
     healthcheck:

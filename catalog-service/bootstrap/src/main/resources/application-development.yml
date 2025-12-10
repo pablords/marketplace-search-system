@@ -15,6 +15,10 @@ spring:
       enabled: true
       port: 35729
     add-properties: true
+    
+  sql:
+    init:
+      mode: always
 
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}

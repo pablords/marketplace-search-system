@@ -21,27 +21,27 @@ fake = Faker('pt_BR')
 # ==========================================
 
 SELLERS = [
-    {"id": "seller_1", "name": "TechStore Brasil", "type": "PROFESSIONAL", "status": "ACTIVE", 
+    {"id": "SELLER001", "name": "TechStore Brasil", "type": "PROFESSIONAL", "status": "ACTIVE", 
      "reputation": {"score": 4.8, "total_reviews": 1500, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
-    {"id": "seller_2", "name": "Casa & Decoração Ltda", "type": "PROFESSIONAL", "status": "ACTIVE",
+    {"id": "SELLER002", "name": "Casa & Decoração Ltda", "type": "PROFESSIONAL", "status": "ACTIVE",
      "reputation": {"score": 4.5, "total_reviews": 1200, "cancellation_rate": 0.03, "delivery_performance": 0.95}},
-    {"id": "seller_3", "name": "Fashion Store", "type": "INDIVIDUAL", "status": "ACTIVE",
+    {"id": "SELLER003", "name": "Fashion Store", "type": "INDIVIDUAL", "status": "ACTIVE",
      "reputation": {"score": 4.2, "total_reviews": 800, "cancellation_rate": 0.05, "delivery_performance": 0.92}},
-    {"id": "seller_4", "name": "Gamer Pro", "type": "PROFESSIONAL", "status": "ACTIVE",
+    {"id": "SELLER004", "name": "Gamer Pro", "type": "PROFESSIONAL", "status": "ACTIVE",
      "reputation": {"score": 4.9, "total_reviews": 2000, "cancellation_rate": 0.01, "delivery_performance": 0.99}},
 ]
 
 BRANDS_DB = {
-    "brand_apple": {"id": "brand_apple", "name": "Apple", "description": "Inovação e design"},
-    "brand_samsung": {"id": "brand_samsung", "name": "Samsung", "description": "Líder em Android"},
-    "brand_dell": {"id": "brand_dell", "name": "Dell", "description": "Soluções corporativas"},
-    "brand_nike": {"id": "brand_nike", "name": "Nike", "description": "Just do it"},
-    "brand_adidas": {"id": "brand_adidas", "name": "Adidas", "description": "Performance esportiva"},
-    "brand_herman": {"id": "brand_herman", "name": "Herman Miller", "description": "Ergonomia premium"},
-    "brand_tokstok": {"id": "brand_tokstok", "name": "Tok&Stok", "description": "Design acessível"},
-    "brand_generic": {"id": "brand_generic", "name": "Genérica", "description": "Custo benefício"},
-    "brand_lg": {"id": "brand_lg", "name": "LG", "description": "Life's Good"},
-    "brand_sony": {"id": "brand_sony", "name": "Sony", "description": "Make Believe"},
+    "BRAND001": {"id": "BRAND001", "name": "Apple", "description": "Inovação e design"},
+    "BRAND002": {"id": "BRAND002", "name": "Samsung", "description": "Líder em Android"},
+    "BRAND003": {"id": "BRAND003", "name": "Dell", "description": "Soluções corporativas"},
+    "BRAND004": {"id": "BRAND004", "name": "Nike", "description": "Just do it"},
+    "BRAND005": {"id": "BRAND005", "name": "Adidas", "description": "Performance esportiva"},
+    # "brand_herman": {"id": "brand_herman", "name": "Herman Miller", "description": "Ergonomia premium"},
+    # "brand_tokstok": {"id": "brand_tokstok", "name": "Tok&Stok", "description": "Design acessível"},
+    # "brand_generic": {"id": "brand_generic", "name": "Genérica", "description": "Custo benefício"},
+    # "brand_lg": {"id": "brand_lg", "name": "LG", "description": "Life's Good"},
+    # "brand_sony": {"id": "brand_sony", "name": "Sony", "description": "Make Believe"},
 }
 
 CATEGORIES_DB = [
@@ -49,8 +49,6 @@ CATEGORIES_DB = [
     {"id": "CAT002", "name": "Notebooks", "path": "/eletronicos/notebooks", "parent_id": "CAT001"},
     {"id": "CAT003", "name": "TV e Áudio", "path": "/eletronicos/tv-audio", "parent_id": "CAT001"},
     {"id": "CAT004", "name": "Móveis", "path": "/casa/moveis", "parent_id": "CAT004"},
-    {"id": "CAT005", "name": "Decoração", "path": "/casa/decoracao", "parent_id": "CAT004"},
-    {"id": "CAT006", "name": "Roupas e Calçados", "path": "/moda/roupas", "parent_id": "CAT004"},
 ]
 
 # ==========================================
@@ -60,7 +58,7 @@ CATEGORIES_DB = [
 CATALOG_RULES = {
     "CAT001": {
         "products": ["iPhone 13", "iPhone 14 Pro", "Galaxy S23", "Galaxy A54", "Redmi Note 12", "Moto G200"],
-        "brands": ["brand_apple", "brand_samsung", "brand_lg", "brand_sony"],
+        "brands": ["BRAND001", "BRAND002", "BRAND003", "BRAND004"],
         "metrics_seed": {"pop_min": 1000, "pop_max": 9000, "qual_min": 3.8, "qual_max": 4.9},
         "attrs_func": lambda: [
             f"Memória: {random.choice(['128GB', '256GB', '512GB'])}",
@@ -71,7 +69,7 @@ CATALOG_RULES = {
     },
     "CAT002": {
         "products": ["MacBook Air M2", "MacBook Pro", "Dell XPS 13", "Dell Inspiron", "Samsung Galaxy Book", "Lenovo ThinkPad"],
-        "brands": ["brand_apple", "brand_dell", "brand_samsung"],
+        "brands": ["BRAND003", "BRAND004", "BRAND001"],
         "metrics_seed": {"pop_min": 500, "pop_max": 5000, "qual_min": 4.0, "qual_max": 4.9},
         "attrs_func": lambda: [
             f"Processador: {random.choice(['Intel i5', 'Intel i7', 'M2', 'M3'])}",
@@ -81,7 +79,7 @@ CATALOG_RULES = {
     },
     "CAT003": {
         "products": ["Smart TV 4K", "TV OLED 55", "Soundbar", "Home Theater", "Smart TV 65"],
-        "brands": ["brand_samsung", "brand_lg", "brand_sony"],
+        "brands": ["BRAND003", "BRAND004", "BRAND001"],
         "metrics_seed": {"pop_min": 300, "pop_max": 4000, "qual_min": 4.2, "qual_max": 4.8},
         "attrs_func": lambda: [
             f"Resolução: {random.choice(['4K', '8K', 'Full HD'])}",
@@ -91,7 +89,7 @@ CATALOG_RULES = {
     },
     "CAT004": {
         "products": ["Cadeira Gamer", "Mesa de Escritório", "Sofá 3 Lugares", "Estante de Livros", "Cama Box Casal"],
-        "brands": ["brand_herman", "brand_tokstok", "brand_generic"],
+        "brands": ["BRAND003", "BRAND004", "BRAND001"],
         "metrics_seed": {"pop_min": 100, "pop_max": 2000, "qual_min": 3.5, "qual_max": 4.7},
         "attrs_func": lambda: [
             f"Material: {random.choice(['Madeira Maciça', 'MDF', 'Aço', 'Couro Sintético'])}",
@@ -101,7 +99,7 @@ CATALOG_RULES = {
     },
     "CAT005": {
         "products": ["Luminária de Mesa", "Quadro Decorativo", "Tapete Sala", "Vaso de Cerâmica", "Espelho Redondo"],
-        "brands": ["brand_tokstok", "brand_generic"],
+        "brands": ["BRAND003", "BRAND004", "BRAND001"],
         "metrics_seed": {"pop_min": 50, "pop_max": 1500, "qual_min": 3.9, "qual_max": 4.6},
         "attrs_func": lambda: [
             f"Estilo: {random.choice(['Industrial', 'Clássico', 'Moderno', 'Rústico'])}",
@@ -110,7 +108,7 @@ CATALOG_RULES = {
     },
     "CAT006": {
         "products": ["Camiseta Básica", "Tênis de Corrida", "Calça Jeans", "Jaqueta Corta-Vento", "Moletom"],
-        "brands": ["brand_nike", "brand_adidas", "brand_generic"],
+        "brands": ["BRAND003", "BRAND004", "BRAND001"],
         "metrics_seed": {"pop_min": 800, "pop_max": 8000, "qual_min": 3.0, "qual_max": 4.5},
         "attrs_func": lambda: [
             f"Tamanho: {random.choice(['P', 'M', 'G', 'GG'])}",
@@ -143,7 +141,7 @@ def generate_quality_metrics(rule_metrics):
     total_views = popularity * random.randint(5, 15)
     total_sales = int(popularity * (quality / 5.0) * random.uniform(0.5, 1.5))
     total_reviews = int(total_sales * random.uniform(0.05, 0.15))
-    average_rating = round(quality + random.uniform(-0.5, 0.5), 2)
+    average_rating = random.uniform(0.0, 5.0)
     last_sale = gnerate_date(datetime(2025, 1, 1), datetime(2025, 12, 31)).isoformat() + "Z"
     last_view = gnerate_date(datetime(2025, 1, 1), datetime(2025, 12, 31)).isoformat() + "Z"
 
@@ -297,7 +295,7 @@ def create_products_on_demand(api_url, total_products=10):
     try:
         for index in range(total_products):
             product_payload = generate_product_payload()
-            print(f"Enviando produto {index + 1}/{total_products}: {product_payload['id']} available_quantity={product_payload['available_quantity']}")
+            print(f"Enviando produto {index + 1}/{total_products}: {product_payload['id']} available_quantity={product_payload['available_quantity']}, average_rating={product_payload['metrics']['average_rating']}")
             response = requests.post(f"{api_url}/products", headers=headers, json=product_payload)
             if response.status_code == 201:
                 print(f"Produto criado com sucesso: {product_payload['id']}")
@@ -309,8 +307,8 @@ def create_products_on_demand(api_url, total_products=10):
 
 
 def main():
-    create_dataset_file(total_products=10)
-    # create_products_on_demand(api_url="http://localhost:8080/api/v1", total_products=1)
+    # create_dataset_file(total_products=10)
+    create_products_on_demand(api_url="http://localhost:8080/api/v1", total_products=1)
 
 if __name__ == "__main__":
     main()

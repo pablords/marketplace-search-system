@@ -288,6 +288,9 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 - **Documentação**: [Wiki](link-para-wiki)
 - **Slack**: [#marketplace-search](link-para-slack)
 
+## 🔄 Fluxo de Dados
+
+```mermaid
 sequenceDiagram
     participant Client
     participant APIGateway
@@ -314,6 +317,7 @@ sequenceDiagram
     OpenSearch-->>SearchService: Retorna resultados
     SearchService-->>APIGateway: Retorna resultados
     APIGateway-->>Client: Retorna resultados
+```
 
 
 ```mermaid

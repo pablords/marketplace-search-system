@@ -1,17 +1,15 @@
-package com.marketplace.search.application.clients;
+package com.marketplace.search.infrastructure.clients;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
@@ -21,12 +19,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import com.marketplace.search.infrastructure.clients.CatalogServiceClient;
 import com.marketplace.search.interfaces.rest.dtos.BrandDTO;
 import com.marketplace.search.interfaces.rest.dtos.CategoryDTO;
 import com.marketplace.search.interfaces.rest.dtos.ProductDTO;

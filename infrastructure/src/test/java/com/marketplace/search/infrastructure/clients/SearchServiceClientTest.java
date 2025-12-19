@@ -1,4 +1,4 @@
-package com.marketplace.search.application.clients;
+package com.marketplace.search.infrastructure.clients;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -17,7 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import com.marketplace.search.infrastructure.clients.SearchServiceClient;
+import com.marketplace.search.application.clients.SearchServicePort;
 import com.marketplace.search.interfaces.rest.dtos.BrandDTO;
 import com.marketplace.search.interfaces.rest.dtos.CategoryDTO;
 import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
@@ -65,7 +65,7 @@ class SearchServiceClientTest {
                 .thenReturn(Mono.just(expectedResult));
 
         // Act & Assert
-        StepVerifier.create(searchServiceClient.searchProducts(query, null, null, null, null, null))
+        StepVerifier.create(searchServiceClient.searchProductsAsync(query, null, null, null, null, null))
                 .expectNext(expectedResult)
                 .verifyComplete();
     }
@@ -88,7 +88,7 @@ class SearchServiceClientTest {
                 .thenReturn(Mono.just(expectedResult));
 
         // Act & Assert
-        StepVerifier.create(searchServiceClient.searchProducts(query, categoryId, page, size, sort, userId))
+        StepVerifier.create(searchServiceClient.searchProductsAsync(query, categoryId, page, size, sort, userId))
                 .expectNext(expectedResult)
                 .verifyComplete();
     }
@@ -114,7 +114,7 @@ class SearchServiceClientTest {
                 .thenReturn(Mono.just(expectedResult));
 
         // Act & Assert - O retry deve tentar novamente e ter sucesso
-        StepVerifier.create(searchServiceClient.searchProducts(query, null, null, null, null, null))
+        StepVerifier.create(searchServiceClient.searchProductsAsync(query, null, null, null, null, null))
                 .expectNext(expectedResult)
                 .verifyComplete();
     }
@@ -138,8 +138,8 @@ class SearchServiceClientTest {
                 .thenReturn(Mono.error(clientError));
 
         // Act & Assert
-        StepVerifier.create(searchServiceClient.searchProducts(query, null, null, null, null, null))
-                .expectErrorMatches(throwable -> throwable instanceof SearchServiceClient.SearchServiceException
+        StepVerifier.create(searchServiceClient.searchProductsAsync(query, null, null, null, null, null))
+                .expectErrorMatches(throwable -> throwable instanceof SearchServicePort.SearchServiceException
                         && throwable.getMessage().contains("Erro ao buscar produtos no search-service"))
                 .verify();
     }
@@ -158,7 +158,7 @@ class SearchServiceClientTest {
                 .thenReturn(Flux.fromIterable(expectedSuggestions));
 
         // Act & Assert
-        StepVerifier.create(searchServiceClient.getSuggestions(term, limit))
+        StepVerifier.create(searchServiceClient.getSuggestionsAsync(term, limit))
                 .expectNext(expectedSuggestions)
                 .verifyComplete();
     }
@@ -176,7 +176,7 @@ class SearchServiceClientTest {
                 .thenReturn(Flux.fromIterable(expectedSuggestions));
 
         // Act & Assert
-        StepVerifier.create(searchServiceClient.getSuggestions(term, null))
+        StepVerifier.create(searchServiceClient.getSuggestionsAsync(term, null))
                 .expectNext(expectedSuggestions)
                 .verifyComplete();
     }
@@ -200,7 +200,7 @@ class SearchServiceClientTest {
                 .thenReturn(Flux.error(error));
 
         // Act & Assert - Deve retornar lista vazia em caso de erro
-        StepVerifier.create(searchServiceClient.getSuggestions(term, null))
+        StepVerifier.create(searchServiceClient.getSuggestionsAsync(term, null))
                 .expectNext(Collections.emptyList())
                 .verifyComplete();
     }
@@ -218,7 +218,7 @@ class SearchServiceClientTest {
                 .thenReturn(Mono.just(expectedProduct));
 
         // Act & Assert
-        StepVerifier.create(searchServiceClient.getProduct(productId))
+        StepVerifier.create(searchServiceClient.getProductAsync(productId))
                 .expectNext(expectedProduct)
                 .verifyComplete();
     }
@@ -242,8 +242,8 @@ class SearchServiceClientTest {
                 .thenReturn(Mono.error(notFoundError));
 
         // Act & Assert
-        StepVerifier.create(searchServiceClient.getProduct(productId))
-                .expectErrorMatches(throwable -> throwable instanceof SearchServiceClient.SearchServiceException
+        StepVerifier.create(searchServiceClient.getProductAsync(productId))
+                .expectErrorMatches(throwable -> throwable instanceof SearchServicePort.SearchServiceException
                         && throwable.getMessage().contains("Produto não encontrado"))
                 .verify();
     }
@@ -261,8 +261,8 @@ class SearchServiceClientTest {
                 .thenReturn(Mono.error(unexpectedError));
 
         // Act & Assert
-        StepVerifier.create(searchServiceClient.searchProducts(query, null, null, null, null, null))
-                .expectErrorMatches(throwable -> throwable instanceof SearchServiceClient.SearchServiceException
+        StepVerifier.create(searchServiceClient.searchProductsAsync(query, null, null, null, null, null))
+                .expectErrorMatches(throwable -> throwable instanceof SearchServicePort.SearchServiceException
                         && throwable.getMessage().contains("Erro inesperado ao buscar produtos no search-service"))
                 .verify();
     }
@@ -288,7 +288,7 @@ class SearchServiceClientTest {
                 .thenReturn(Mono.just(expectedProduct));
 
         // Act & Assert - O retry deve tentar novamente e ter sucesso
-        StepVerifier.create(searchServiceClient.getProduct(productId))
+        StepVerifier.create(searchServiceClient.getProductAsync(productId))
                 .expectNext(expectedProduct)
                 .verifyComplete();
     }

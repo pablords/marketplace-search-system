@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import com.marketplace.search.application.clients.CatalogServicePort;
 import com.marketplace.search.interfaces.rest.dtos.ProductDTO;
 
 import reactor.core.publisher.Mono;
@@ -18,9 +19,10 @@ import reactor.util.retry.Retry;
 /**
  * Cliente HTTP para comunicação com o catalog-service.
  * Usa WebClient (Spring WebFlux) para chamadas assíncronas e não-bloqueantes.
+ * Implementa CatalogServicePort para evitar dependências circulares.
  */
 @Component
-public class CatalogServiceClient {
+public class CatalogServiceClient implements CatalogServicePort {
 
   private static final Logger logger = LoggerFactory.getLogger(CatalogServiceClient.class);
 
@@ -31,13 +33,30 @@ public class CatalogServiceClient {
   }
 
   /**
+   * Implementação da interface CatalogServicePort.
    * Cria um novo produto no catalog-service.
    * 
-   * @param productDTO DTO do produto a ser criado
+   * @param productObject Objeto do produto (deve ser ProductDTO)
    * @return URI do produto criado
    * @throws CatalogServiceException se houver erro na comunicação
    */
-  public Mono<URI> createProduct(ProductDTO productDTO) {
+  @Override
+  public URI createProduct(Object productObject) {
+    if (!(productObject instanceof ProductDTO)) {
+      throw new CatalogServiceException("Objeto deve ser do tipo ProductDTO");
+    }
+    ProductDTO productDTO = (ProductDTO) productObject;
+    return createProductAsync(productDTO).block();
+  }
+
+  /**
+   * Cria um novo produto no catalog-service (método assíncrono).
+   * 
+   * @param productDTO DTO do produto a ser criado
+   * @return Mono com URI do produto criado
+   * @throws CatalogServiceException se houver erro na comunicação
+   */
+  public Mono<URI> createProductAsync(ProductDTO productDTO) {
     logger.debug("Enviando requisição para criar produto no catalog-service: {}", productDTO.id());
 
     return webClient.post()
@@ -75,6 +94,19 @@ public class CatalogServiceClient {
               "Erro inesperado ao criar produto no catalog-service: " + throwable.getMessage(),
               throwable);
         });
+  }
+
+  /**
+   * Classe de exceção interna (compatível com a interface).
+   */
+  public static class CatalogServiceException extends CatalogServicePort.CatalogServiceException {
+    public CatalogServiceException(String message) {
+      super(message);
+    }
+
+    public CatalogServiceException(String message, Throwable cause) {
+      super(message, cause);
+    }
   }
 
   /**
@@ -205,17 +237,5 @@ public class CatalogServiceClient {
         });
   }
 
-  /**
-   * Exceção customizada para erros de comunicação com o catalog-service.
-   */
-  public static class CatalogServiceException extends RuntimeException {
-    public CatalogServiceException(String message) {
-      super(message);
-    }
-
-    public CatalogServiceException(String message, Throwable cause) {
-      super(message, cause);
-    }
-  }
 }
 

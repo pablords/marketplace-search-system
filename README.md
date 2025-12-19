@@ -1,19 +1,25 @@
 # Marketplace Search System
 
-Sistema de busca para marketplace seguindo arquitetura hexagonal, preparado para microserviços e alta escala.
+Sistema de busca para marketplace com arquitetura de microserviços e API Gateway.
 
 ## 🏗️ Arquitetura
 
-O projeto segue **Arquitetura Hexagonal (Ports & Adapters)** organizada em módulos Maven:
+O projeto segue **Arquitetura de Microserviços** com API Gateway para roteamento:
 
 ```
 search-system/
-├── domain/          # 🔵 Domínio - Entities, Value Objects, Repositories
-├── application/     # 🟡 Aplicação - Use Cases, DTOs, Mappers
-├── infrastructure/  # 🟢 Infraestrutura - OpenSearch, Kafka, Redis
-├── interfaces/      # 🟠 Interfaces - REST API, Consumers
-└── bootstrap/       # ⚫ Bootstrap - Configuração e inicialização
+├── api-gateway/         # 🚪 API Gateway - Roteamento de requisições
+├── catalog-service/      # 📦 Catalog Service - CRUD de produtos
+├── indexing-service/     # 🔍 Indexing Service - Indexação via Kafka
+└── search-service/       # 🔎 Search Service - Busca de produtos
 ```
+
+### Componentes
+
+- **API Gateway** (porta 8080): Roteia requisições para os microserviços
+- **Catalog Service** (porta 8081): Gerencia produtos no PostgreSQL
+- **Indexing Service** (porta 8082): Indexa produtos no OpenSearch via Kafka CDC
+- **Search Service** (porta 8083): Realiza buscas no OpenSearch
 
 ## 🚀 Tecnologias
 
@@ -73,19 +79,29 @@ docker-compose ps
 # Compilar o projeto
 mvn clean compile
 
-# Executar a aplicação
-mvn spring-boot:run -pl bootstrap
+# Executar o API Gateway
+mvn spring-boot:run -pl api-gateway/bootstrap
 
-# Ou executar o JAR
+# Executar os microserviços (em terminais separados)
+mvn spring-boot:run -pl catalog-service/bootstrap
+mvn spring-boot:run -pl indexing-service/bootstrap
+mvn spring-boot:run -pl search-service/bootstrap
+
+# Ou executar os JARs
 mvn clean package
-java -jar bootstrap/target/search-system-bootstrap-1.0.0-SNAPSHOT.jar
+java -jar api-gateway/bootstrap/target/bootstrap-*.jar
 ```
 
 ### 4. Verificar Health
 
 ```bash
-# Health check da aplicação
+# Health check do API Gateway
 curl http://localhost:8080/api/v1/actuator/health
+
+# Health check dos microserviços
+curl http://localhost:8081/api/v1/actuator/health  # Catalog Service
+curl http://localhost:8082/api/v1/actuator/health  # Indexing Service
+curl http://localhost:8083/api/v1/actuator/health  # Search Service
 
 # Métricas Prometheus
 curl http://localhost:8080/api/v1/actuator/prometheus
@@ -142,13 +158,27 @@ KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 
 ## 🔍 API de Busca
 
-### Endpoints Principais
+### Endpoints Principais (via API Gateway)
 
 ```http
-GET /api/v1/search/products?q=smartphone&category=electronics&page=0&size=20
-GET /api/v1/search/products/{id}
-GET /api/v1/search/suggestions?q=smart
-GET /api/v1/search/popular?category=electronics
+# Criar produto
+POST /api/v1/products
+Content-Type: application/json
+{
+  "id": "prod-123",
+  "title": "Smartphone Samsung",
+  "price": 999.99,
+  ...
+}
+
+# Buscar produtos
+GET /api/v1/search/products?query=smartphone&categoryId=electronics&page=0&size=20
+
+# Obter sugestões
+GET /api/v1/search/suggestions?term=smart&limit=10
+
+# Health check
+GET /api/v1/health
 ```
 
 ### Filtros Disponíveis
@@ -169,45 +199,26 @@ GET /api/v1/search/popular?category=electronics
 
 ## 🏗️ Arquitetura Detalhada
 
-### Domain Layer
-```java
-// Entidades de domínio
-Product, Category, Brand, Seller
+### API Gateway
+- Roteia requisições para os microserviços
+- Circuit breaker e retry para resiliência
+- Health checks dos serviços downstream
+- Documentação OpenAPI/Swagger
 
-// Value Objects
-ProductId, ProductInfo, SearchQuery, SearchResult
+### Catalog Service
+- Gerencia produtos no PostgreSQL
+- Expõe API REST para CRUD de produtos
+- Publica eventos CDC via Debezium/Kafka
 
-// Repositories (interfaces)
-ProductSearchRepository, ProductIndexRepository
+### Indexing Service
+- Consome eventos CDC do Kafka
+- Indexa produtos no OpenSearch
+- Processamento assíncrono e escalável
 
-// Domain Services
-SearchDomainService, RelevanceCalculator
-```
-
-### Application Layer
-```java
-// Use Cases
-SearchProductsUseCase, IndexProductUseCase
-
-// DTOs
-ProductDTO, SearchRequestDTO, SearchResultDTO
-
-// Event Handlers
-ProductEventHandler (Kafka integration)
-```
-
-### Infrastructure Layer
-```java
-// OpenSearch
-OpenSearchProductSearchRepository
-ProductDocument, OpenSearchQueryBuilder
-
-// Cache
-RedisCacheRepository
-
-// Events
-KafkaEventPublisher
-```
+### Search Service
+- Realiza buscas no OpenSearch
+- Cache Redis para consultas frequentes
+- Sugestões de busca e autocomplete
 
 ## 🧪 Testes
 
@@ -240,11 +251,14 @@ mvn test -Dtest="*PerformanceTest"
 
 ### Docker
 ```bash
-# Build da imagem
-docker build -t marketplace-search:latest .
+# Build da imagem do API Gateway
+docker build -t api-gateway:latest .
 
 # Run do container
-docker run -p 8080:8080 marketplace-search:latest
+docker run -p 8080:8080 api-gateway:latest
+
+# Ou usar docker-compose para subir todos os serviços
+docker-compose up -d
 ```
 
 ### Kubernetes
@@ -273,6 +287,33 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 - **Issues**: [GitHub Issues](link-para-issues)
 - **Documentação**: [Wiki](link-para-wiki)
 - **Slack**: [#marketplace-search](link-para-slack)
+
+sequenceDiagram
+    participant Client
+    participant APIGateway
+    participant CatalogService
+    participant SearchService
+    participant Kafka
+    participant IndexingService
+    participant OpenSearch
+
+    Client->>APIGateway: POST /api/v1/products
+    APIGateway->>CatalogService: POST /api/v1/products (HTTP)
+    CatalogService->>CatalogService: Salva no PostgreSQL
+    CatalogService-->>APIGateway: 201 Created
+    APIGateway-->>Client: 201 Created
+    
+    Note over CatalogService,Kafka: Debezium CDC captura mudança
+    CatalogService->>Kafka: Publica evento CDC
+    Kafka->>IndexingService: Consome evento
+    IndexingService->>OpenSearch: Indexa produto
+
+    Client->>APIGateway: GET /api/v1/search/products?q=smartphone
+    APIGateway->>SearchService: GET /api/v1/search/products?q=smartphone (HTTP)
+    SearchService->>OpenSearch: Busca produtos
+    OpenSearch-->>SearchService: Retorna resultados
+    SearchService-->>APIGateway: Retorna resultados
+    APIGateway-->>Client: Retorna resultados
 
 
 ```mermaid

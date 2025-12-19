@@ -6,24 +6,19 @@ WORKDIR /app
 
 # Copy pom files for dependency resolution
 COPY pom.xml .
-COPY domain/pom.xml domain/
-COPY application/pom.xml application/
-COPY infrastructure/pom.xml infrastructure/
-COPY interfaces/pom.xml interfaces/
-COPY bootstrap/pom.xml bootstrap/
+COPY api-gateway/pom.xml api-gateway/
+COPY api-gateway/bootstrap/pom.xml api-gateway/bootstrap/
+COPY api-gateway/interfaces/pom.xml api-gateway/interfaces/
 
 # Download dependencies (cached layer)
 RUN mvn dependency:go-offline -B
 
 # Copy source code
-COPY domain/src domain/src
-COPY application/src application/src
-COPY infrastructure/src infrastructure/src
-COPY interfaces/src interfaces/src
-COPY bootstrap/src bootstrap/src
+COPY api-gateway/bootstrap/src api-gateway/bootstrap/src
+COPY api-gateway/interfaces/src api-gateway/interfaces/src
 
 # Build application
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -pl api-gateway/bootstrap -am
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
@@ -39,11 +34,11 @@ RUN addgroup -g 1001 -S marketplace && \
 RUN apk add --no-cache curl
 
 # Copy built JAR from builder stage
-COPY --from=builder /app/bootstrap/target/search-system-bootstrap-*.jar app.jar
+COPY --from=builder /app/api-gateway/bootstrap/target/bootstrap-*.jar app.jar
 
 # Create logs directory
-RUN mkdir -p /var/log/marketplace-search && \
-    chown -R marketplace:marketplace /var/log/marketplace-search /app
+RUN mkdir -p /var/log/api-gateway && \
+    chown -R marketplace:marketplace /var/log/api-gateway /app
 
 # Switch to non-root user
 USER marketplace

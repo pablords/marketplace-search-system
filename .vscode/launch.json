@@ -3,30 +3,28 @@
     "configurations": [
         {
             "type": "java",
-            "name": "🚀 Search System (Monolito)",
+            "name": "🚪 API Gateway",
             "request": "launch",
-            "mainClass": "com.marketplace.search.bootstrap.SearchSystemApplication",
-            "projectName": "bootstrap",
+            "mainClass": "com.marketplace.search.gateway.bootstrap.GatewayApp",
             "args": ["--spring.profiles.active=development"],
             "vmArgs": [
                 "-Dspring.devtools.restart.enabled=true",
                 "-Dspring.devtools.livereload.enabled=true",
                 "-Dspring.output.ansi.enabled=always",
-                "-Xmx2G",
+                "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/api-gateway/bootstrap",
             "preLaunchTask": "maven: compile"
         },
         {
             "type": "java",
-            "name": "🐛 Debug - Search System",
+            "name": "🐛 Debug - API Gateway",
             "request": "launch",
-            "mainClass": "com.marketplace.search.bootstrap.SearchSystemApplication",
-            "projectName": "bootstrap",
+            "mainClass": "com.marketplace.search.gateway.bootstrap.GatewayApp",
             "args": [
                 "--spring.profiles.active=development",
                 "--debug"
@@ -35,13 +33,13 @@
                 "-Dspring.devtools.restart.enabled=true",
                 "-Dspring.devtools.livereload.enabled=true",
                 "-Dspring.output.ansi.enabled=always",
-                "-Xmx2G",
+                "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/api-gateway/bootstrap",
             "preLaunchTask": "maven: compile"
         },
         {
@@ -49,7 +47,6 @@
             "name": "📦 Catalog Service",
             "request": "launch",
             "mainClass": "com.marketplace.search.catalog.bootstrap.CatalogApp",
-            "projectName": "catalog-service",
             "args": ["--spring.profiles.active=development"],
             "vmArgs": [
                 "-Dspring.devtools.restart.enabled=true",
@@ -69,7 +66,6 @@
             "name": "🐛 Debug - Catalog Service",
             "request": "launch",
             "mainClass": "com.marketplace.search.catalog.bootstrap.CatalogApp",
-            "projectName": "catalog-service",
             "args": [
                 "--spring.profiles.active=development",
                 "--debug"
@@ -92,7 +88,6 @@
             "name": "🔍 Indexing Service",
             "request": "launch",
             "mainClass": "com.marketplace.search.indexing.bootstrap.IndexingApp",
-            "projectName": "indexing-service",
             "args": ["--spring.profiles.active=development"],
             "vmArgs": [
                 "-Dspring.devtools.restart.enabled=true",
@@ -112,7 +107,6 @@
             "name": "🐛 Debug - Indexing Service",
             "request": "launch",
             "mainClass": "com.marketplace.search.indexing.bootstrap.IndexingApp",
-            "projectName": "indexing-service",
             "args": [
                 "--spring.profiles.active=development",
                 "--debug"
@@ -135,7 +129,6 @@
             "name": "🔎 Search Service",
             "request": "launch",
             "mainClass": "com.marketplace.search.search.bootstrap.SearchApp",
-            "projectName": "search-service",
             "args": ["--spring.profiles.active=development"],
             "vmArgs": [
                 "-Dspring.devtools.restart.enabled=true",
@@ -155,7 +148,6 @@
             "name": "🐛 Debug - Search Service",
             "request": "launch",
             "mainClass": "com.marketplace.search.search.bootstrap.SearchApp",
-            "projectName": "search-service",
             "args": [
                 "--spring.profiles.active=development",
                 "--debug"

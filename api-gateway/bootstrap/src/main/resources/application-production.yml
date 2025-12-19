@@ -1,0 +1,26 @@
+# Logging para produção
+logging:
+  level:
+    com.marketplace.search.gateway: INFO
+    org.springframework.web: WARN
+    org.springframework.web.reactive: WARN
+  file:
+    name: /var/log/api-gateway/application.log
+
+# Management para produção
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Server para produção
+server:
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 20
+

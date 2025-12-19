@@ -44,11 +44,7 @@
   </properties>
 
   <modules>
-    <module>domain</module>
-    <module>application</module>
-    <module>infrastructure</module>
-    <module>interfaces</module>
-    <module>bootstrap</module>
+    <module>api-gateway</module>
     <module>catalog-service</module>
     <module>indexing-service</module>
     <module>search-service</module>
@@ -67,32 +63,8 @@
 
       <!-- Internal Modules -->
       <dependency>
-        <groupId>com.marketplace.search</groupId>
-        <artifactId>domain</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.marketplace.search</groupId>
-        <artifactId>application</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.marketplace.search</groupId>
-        <artifactId>infrastructure</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.marketplace.search</groupId>
-        <artifactId>interfaces</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.marketplace.search</groupId>
-        <artifactId>bootstrap</artifactId>
+        <groupId>com.marketplace.search.gateway</groupId>
+        <artifactId>api-gateway</artifactId>
         <version>${project.version}</version>
       </dependency>
 

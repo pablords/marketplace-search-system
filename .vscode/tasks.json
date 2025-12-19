@@ -38,29 +38,25 @@
             "problemMatcher": ["$maven-compiler-java"]
         },
         {
-            "label": "docker: start services",
-            "type": "shell",
-            "command": "docker-compose",
-            "args": ["up", "-d"],
-            "group": "build",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
-        },
-        {
-            "label": "docker: stop services",
-            "type": "shell",
-            "command": "docker-compose",
-            "args": ["down"],
-            "group": "build",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
-        },
-        {
             "label": "maven: compile catalog",
             "type": "shell",
             "command": "mvn -pl catalog-service -DskipTests=true compile",
+            "group": "build",
+            "presentation": { "reveal": "silent" },
+            "problemMatcher": []
+        },
+        {
+            "label": "maven: compile indexing",
+            "type": "shell",
+            "command": "mvn -pl indexing-service -DskipTests=true compile",
+            "group": "build",
+            "presentation": { "reveal": "silent" },
+            "problemMatcher": []
+        },
+        {
+            "label": "maven: compile search",
+            "type": "shell",
+            "command": "mvn -pl search-service -DskipTests=true compile",
             "group": "build",
             "presentation": { "reveal": "silent" },
             "problemMatcher": []

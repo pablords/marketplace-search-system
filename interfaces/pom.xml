@@ -23,12 +23,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>com.marketplace.search</groupId>
-      <artifactId>infrastructure</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
     <!-- Spring Boot Web -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

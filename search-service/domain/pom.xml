@@ -36,6 +36,12 @@
             <version>24.0.1</version>
             <scope>compile</scope>
         </dependency>
+
+        <!-- SLF4J API for logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

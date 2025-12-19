@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.CountRequest;
 import org.opensearch.client.opensearch.core.CountResponse;
@@ -232,8 +233,7 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 			Query popularityQuery = queryBuilder.buildPopularityQuery(categoryId);
 
 			SearchRequest searchRequest = SearchRequest.of(s -> s.index(INDEX_NAME).query(popularityQuery).size(limit)
-					.sort(sort -> sort.field(f -> f.field("metrics.total_sales").order(
-							org.opensearch.client.opensearch._types.SortOrder.Desc)))));
+					.sort(sort -> sort.field(f -> f.field("metrics.total_sales").order(SortOrder.Desc))));
 
 			SearchResponse<ProductSearchDocument> response = openSearchClient.search(searchRequest,
 					ProductSearchDocument.class);
@@ -255,8 +255,7 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 			Query saleQuery = queryBuilder.buildOnSaleQuery();
 
 			SearchRequest searchRequest = SearchRequest.of(s -> s.index(INDEX_NAME).query(saleQuery).size(limit)
-					.sort(sort -> sort.field(f -> f.field("price").order(
-							org.opensearch.client.opensearch._types.SortOrder.Asc)))));
+					.sort(sort -> sort.field(f -> f.field("price").order(SortOrder.Asc))));
 
 			SearchResponse<ProductSearchDocument> response = openSearchClient.search(searchRequest,
 					ProductSearchDocument.class);

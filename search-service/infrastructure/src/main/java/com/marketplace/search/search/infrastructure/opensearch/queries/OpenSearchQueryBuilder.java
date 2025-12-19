@@ -73,7 +73,7 @@ public class OpenSearchQueryBuilder {
 	 * Constrói filtro de categoria
 	 */
 	private Query buildCategoryFilter(Category category) {
-		return Query.of(q -> q.bool(b -> b.should(s -> s.term(t -> t.field("category.id").value(category.getId())))
+		return Query.of(q -> q.bool(b -> b.should(s -> s.term(t -> t.field("category.id").value(org.opensearch.client.opensearch._types.FieldValue.of(category.getId()))))
 				.should(s -> s.prefix(p -> p.field("category.path").value(category.getPath())))));
 	}
 

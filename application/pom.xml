@@ -22,20 +22,6 @@
             <artifactId>domain</artifactId>
         </dependency>
 
-        <!-- Infrastructure (for testing clients) -->
-        <dependency>
-            <groupId>com.marketplace.search</groupId>
-            <artifactId>infrastructure</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Interfaces (for DTOs in tests) -->
-        <dependency>
-            <groupId>com.marketplace.search</groupId>
-            <artifactId>interfaces</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <!-- Spring -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

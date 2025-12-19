@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import com.marketplace.search.application.clients.SearchServicePort;
 import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
 
 import reactor.core.publisher.Mono;
@@ -18,9 +19,10 @@ import reactor.util.retry.Retry;
 /**
  * Cliente HTTP para comunicação com o search-service.
  * Usa WebClient (Spring WebFlux) para chamadas assíncronas e não-bloqueantes.
+ * Implementa SearchServicePort para evitar dependências circulares.
  */
 @Component
-public class SearchServiceClient {
+public class SearchServiceClient implements SearchServicePort {
 
 	private static final Logger logger = LoggerFactory.getLogger(SearchServiceClient.class);
 
@@ -32,7 +34,26 @@ public class SearchServiceClient {
 	}
 
 	/**
+	 * Implementação da interface SearchServicePort.
 	 * Busca produtos no search-service.
+	 * 
+	 * @param query Termo de busca
+	 * @param categoryId ID da categoria (opcional)
+	 * @param page Número da página (padrão: 0)
+	 * @param size Tamanho da página (padrão: 20)
+	 * @param sort Campo de ordenação (padrão: RELEVANCE)
+	 * @param userId ID do usuário para personalização (opcional)
+	 * @return SearchResultDTO contendo os resultados da busca
+	 * @throws SearchServiceException se houver erro na comunicação
+	 */
+	@Override
+	public Object searchProducts(String query, String categoryId, Integer page, Integer size,
+			String sort, String userId) {
+		return searchProductsAsync(query, categoryId, page, size, sort, userId).block();
+	}
+
+	/**
+	 * Busca produtos no search-service (método assíncrono).
 	 * 
 	 * @param query Termo de busca
 	 * @param categoryId ID da categoria (opcional)
@@ -43,7 +64,7 @@ public class SearchServiceClient {
 	 * @return Mono com SearchResultDTO contendo os resultados da busca
 	 * @throws SearchServiceException se houver erro na comunicação
 	 */
-	public Mono<SearchResultDTO> searchProducts(String query, String categoryId, Integer page, Integer size,
+	public Mono<SearchResultDTO> searchProductsAsync(String query, String categoryId, Integer page, Integer size,
 			String sort, String userId) {
 		logger.debug("Enviando requisição para buscar produtos no search-service: query={}", query);
 
@@ -79,29 +100,43 @@ public class SearchServiceClient {
 				.onErrorMap(WebClientResponseException.class, ex -> {
 					logger.error("Erro ao buscar produtos no search-service. Status: {}, Body: {}",
 							ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
-					return new SearchServiceException(
+					return new SearchServicePort.SearchServiceException(
 							"Erro ao buscar produtos no search-service: " + ex.getMessage(), ex);
 				})
 				.onErrorMap(throwable -> {
-					if (throwable instanceof SearchServiceException) {
+					if (throwable instanceof SearchServicePort.SearchServiceException) {
 						return throwable;
 					}
 					logger.error("Erro inesperado ao buscar produtos no search-service", throwable);
-					return new SearchServiceException(
+					return new SearchServicePort.SearchServiceException(
 							"Erro inesperado ao buscar produtos no search-service: " + throwable.getMessage(),
 							throwable);
 				});
 	}
 
 	/**
+	 * Implementação da interface SearchServicePort.
 	 * Obtém sugestões de busca do search-service.
+	 * 
+	 * @param term Termo parcial para sugestões
+	 * @param limit Limite de sugestões (padrão: 10)
+	 * @return Lista de sugestões
+	 * @throws SearchServiceException se houver erro na comunicação
+	 */
+	@Override
+	public List<String> getSuggestions(String term, Integer limit) {
+		return getSuggestionsAsync(term, limit).block();
+	}
+
+	/**
+	 * Obtém sugestões de busca do search-service (método assíncrono).
 	 * 
 	 * @param term Termo parcial para sugestões
 	 * @param limit Limite de sugestões (padrão: 10)
 	 * @return Mono com lista de sugestões
 	 * @throws SearchServiceException se houver erro na comunicação
 	 */
-	public Mono<List<String>> getSuggestions(String term, Integer limit) {
+	public Mono<List<String>> getSuggestionsAsync(String term, Integer limit) {
 		logger.debug("Enviando requisição para obter sugestões no search-service: term={}", term);
 
 		return webClient.get()
@@ -125,29 +160,42 @@ public class SearchServiceClient {
 				.onErrorMap(WebClientResponseException.class, ex -> {
 					logger.error("Erro ao obter sugestões no search-service. Status: {}, Body: {}",
 							ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
-					return new SearchServiceException(
+					return new SearchServicePort.SearchServiceException(
 							"Erro ao obter sugestões no search-service: " + ex.getMessage(), ex);
 				})
 				.onErrorReturn(Collections.emptyList())
 				.onErrorMap(throwable -> {
-					if (throwable instanceof SearchServiceException) {
+					if (throwable instanceof SearchServicePort.SearchServiceException) {
 						return throwable;
 					}
 					logger.error("Erro inesperado ao obter sugestões no search-service", throwable);
-					return new SearchServiceException(
+					return new SearchServicePort.SearchServiceException(
 							"Erro inesperado ao obter sugestões no search-service: " + throwable.getMessage(),
 							throwable);
 				});
 	}
 
 	/**
+	 * Implementação da interface SearchServicePort.
 	 * Busca um produto específico por ID no search-service.
+	 * 
+	 * @param productId ID do produto
+	 * @return ProductDTO do produto encontrado
+	 * @throws SearchServiceException se houver erro na comunicação ou produto não encontrado
+	 */
+	@Override
+	public Object getProduct(String productId) {
+		return getProductAsync(productId).block();
+	}
+
+	/**
+	 * Busca um produto específico por ID no search-service (método assíncrono).
 	 * 
 	 * @param productId ID do produto
 	 * @return Mono com ProductDTO do produto encontrado
 	 * @throws SearchServiceException se houver erro na comunicação ou produto não encontrado
 	 */
-	public Mono<com.marketplace.search.interfaces.rest.dtos.ProductDTO> getProduct(String productId) {
+	public Mono<com.marketplace.search.interfaces.rest.dtos.ProductDTO> getProductAsync(String productId) {
 		logger.debug("Enviando requisição para buscar produto no search-service: productId={}", productId);
 
 		return webClient.get()
@@ -163,35 +211,22 @@ public class SearchServiceClient {
 				.onErrorMap(WebClientResponseException.class, ex -> {
 					if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
 						logger.warn("Produto não encontrado no search-service: {}", productId);
-						return new SearchServiceException("Produto não encontrado: " + productId, ex);
+						return new SearchServicePort.SearchServiceException("Produto não encontrado: " + productId, ex);
 					}
 					logger.error("Erro ao buscar produto no search-service. Status: {}, Body: {}",
 							ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
-					return new SearchServiceException(
+					return new SearchServicePort.SearchServiceException(
 							"Erro ao buscar produto no search-service: " + ex.getMessage(), ex);
 				})
 				.onErrorMap(throwable -> {
-					if (throwable instanceof SearchServiceException) {
+					if (throwable instanceof SearchServicePort.SearchServiceException) {
 						return throwable;
 					}
 					logger.error("Erro inesperado ao buscar produto no search-service", throwable);
-					return new SearchServiceException(
+					return new SearchServicePort.SearchServiceException(
 							"Erro inesperado ao buscar produto no search-service: " + throwable.getMessage(),
 							throwable);
 				});
-	}
-
-	/**
-	 * Classe de exceção para erros do search-service
-	 */
-	public static class SearchServiceException extends RuntimeException {
-		public SearchServiceException(String message) {
-			super(message);
-		}
-
-		public SearchServiceException(String message, Throwable cause) {
-			super(message, cause);
-		}
 	}
 }
 

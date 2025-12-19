@@ -12,24 +12,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.marketplace.search.infrastructure.clients.SearchServiceClient;
+import com.marketplace.search.application.clients.SearchServicePort;
 import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/search")
 @Validated
 public class SearchQueryController implements SearchApiDoc {
 
-  private final SearchServiceClient searchServiceClient;
+  private final SearchServicePort searchServicePort;
   private static final Logger logger = LoggerFactory.getLogger(SearchQueryController.class);
 
-  public SearchQueryController(SearchServiceClient searchServiceClient) {
-    this.searchServiceClient = searchServiceClient;
+  public SearchQueryController(SearchServicePort searchServicePort) {
+    this.searchServicePort = searchServicePort;
   }
 
   @GetMapping("/products")
@@ -53,24 +52,22 @@ public class SearchQueryController implements SearchApiDoc {
       throw new IllegalArgumentException("Search terms cannot be null or empty");
     }
 
-    Mono<SearchResultDTO> searchResult = searchServiceClient.searchProducts(
-        query.trim(),
-        categoryId,
-        page,
-        size,
-        sortBy,
-        userId);
-
-    return searchResult
-        .map(result -> {
-          logger.info("Search completed: totalResults={}", result.totalCount());
-          return ResponseEntity.ok(result);
-        })
-        .onErrorMap(SearchServiceClient.SearchServiceException.class, ex -> {
-          logger.error("Error searching products via search-service", ex);
-          return new RuntimeException("Failed to search products: " + ex.getMessage(), ex);
-        })
-        .toFuture();
+    try {
+      Object result = searchServicePort.searchProducts(
+          query.trim(),
+          categoryId,
+          page,
+          size,
+          sortBy,
+          userId);
+      
+      SearchResultDTO searchResult = (SearchResultDTO) result;
+      logger.info("Search completed: totalResults={}", searchResult.totalCount());
+      return CompletableFuture.completedFuture(ResponseEntity.ok(searchResult));
+    } catch (SearchServicePort.SearchServiceException ex) {
+      logger.error("Error searching products via search-service", ex);
+      return CompletableFuture.failedFuture(new RuntimeException("Failed to search products: " + ex.getMessage(), ex));
+    }
   }
 
   @GetMapping("/suggestions")
@@ -81,10 +78,10 @@ public class SearchQueryController implements SearchApiDoc {
     logger.info("Received suggestions request: term={}", term);
 
     try {
-      List<String> suggestions = searchServiceClient.getSuggestions(term, limit).block();
+      List<String> suggestions = searchServicePort.getSuggestions(term, limit);
       logger.info("Suggestions completed: count={}", suggestions != null ? suggestions.size() : 0);
       return ResponseEntity.ok(suggestions != null ? suggestions : List.of());
-    } catch (SearchServiceClient.SearchServiceException ex) {
+    } catch (SearchServicePort.SearchServiceException ex) {
       logger.error("Error getting suggestions via search-service", ex);
       return ResponseEntity.ok(List.of());
     } catch (Exception ex) {

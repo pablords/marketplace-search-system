@@ -23,10 +23,22 @@
       <version>${project.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.marketplace.search</groupId>
+      <artifactId>infrastructure</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- Spring Boot Web -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- Spring WebFlux for reactive HTTP client -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
 
     <!-- Spring Boot Validation -->

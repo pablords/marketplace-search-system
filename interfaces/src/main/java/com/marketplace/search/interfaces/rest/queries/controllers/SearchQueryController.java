@@ -1,6 +1,5 @@
 package com.marketplace.search.interfaces.rest.queries.controllers;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -13,32 +12,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.marketplace.search.application.queries.SearchRequestQuery;
-import com.marketplace.search.application.queries.SearchResultQuery;
-import com.marketplace.search.application.usecases.SearchProductsUseCase;
-import com.marketplace.search.interfaces.rest.dtos.SearchRequestDTO;
+import com.marketplace.search.infrastructure.clients.SearchServiceClient;
 import com.marketplace.search.interfaces.rest.dtos.SearchResultDTO;
-import com.marketplace.search.interfaces.rest.queries.mappers.SearchMapper;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/search")
 @Validated
 public class SearchQueryController implements SearchApiDoc {
 
-  private final SearchProductsUseCase searchProductsUseCase;
-
-  private final SearchMapper searchMapper;
+  private final SearchServiceClient searchServiceClient;
   private static final Logger logger = LoggerFactory.getLogger(SearchQueryController.class);
 
-  public SearchQueryController(
-      SearchProductsUseCase searchProductsUseCase,
-      SearchMapper searchMapper) {
-    this.searchProductsUseCase = searchProductsUseCase;
-    this.searchMapper = searchMapper;
+  public SearchQueryController(SearchServiceClient searchServiceClient) {
+    this.searchServiceClient = searchServiceClient;
   }
 
   @GetMapping("/products")
@@ -62,31 +53,44 @@ public class SearchQueryController implements SearchApiDoc {
       throw new IllegalArgumentException("Search terms cannot be null or empty");
     }
 
-    SearchRequestDTO searchRequest = SearchRequestDTO.builder()
-        .query(query.trim())
-        .build();
+    Mono<SearchResultDTO> searchResult = searchServiceClient.searchProducts(
+        query.trim(),
+        categoryId,
+        page,
+        size,
+        sortBy,
+        userId);
 
-    SearchRequestQuery searchQuery = searchMapper.toqQuery(searchRequest);
-
-    CompletableFuture<SearchResultQuery> searchResult = searchProductsUseCase.executeAsync(searchQuery)
-        .thenApply(result -> {
+    return searchResult
+        .map(result -> {
           logger.info("Search completed: totalResults={}", result.totalCount());
-          return result;
-        });
-
-    SearchResultDTO resultDTO = searchMapper.toDto(searchResult.join());
-
-    return CompletableFuture.completedFuture(ResponseEntity.ok(resultDTO));
+          return ResponseEntity.ok(result);
+        })
+        .onErrorMap(SearchServiceClient.SearchServiceException.class, ex -> {
+          logger.error("Error searching products via search-service", ex);
+          return new RuntimeException("Failed to search products: " + ex.getMessage(), ex);
+        })
+        .toFuture();
   }
-
 
   @GetMapping("/suggestions")
   public ResponseEntity<List<String>> getSuggestions(
       @RequestParam @NotBlank String term,
       @RequestParam(defaultValue = "10") @Min(1) @Max(20) Integer limit) {
 
-    // Implementação das sugestões será adicionada posteriormente
-    return ResponseEntity.ok(Collections.emptyList());
+    logger.info("Received suggestions request: term={}", term);
+
+    try {
+      List<String> suggestions = searchServiceClient.getSuggestions(term, limit).block();
+      logger.info("Suggestions completed: count={}", suggestions != null ? suggestions.size() : 0);
+      return ResponseEntity.ok(suggestions != null ? suggestions : List.of());
+    } catch (SearchServiceClient.SearchServiceException ex) {
+      logger.error("Error getting suggestions via search-service", ex);
+      return ResponseEntity.ok(List.of());
+    } catch (Exception ex) {
+      logger.error("Unexpected error getting suggestions", ex);
+      return ResponseEntity.ok(List.of());
+    }
   }
 
 }

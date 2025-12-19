@@ -53,6 +53,12 @@ public class WebClientConfig {
   @Value("${services.catalog.circuit-breaker.sliding-window-size:10}")
   private int circuitBreakerSlidingWindowSize;
 
+  @Value("${services.search.base-url:http://localhost:8083/api/v1}")
+  private String searchServiceBaseUrl;
+
+  @Value("${services.search.timeout:3000}")
+  private int searchServiceTimeout;
+
   @Bean
   public CircuitBreakerRegistry circuitBreakerRegistry() {
     CircuitBreakerConfig config = CircuitBreakerConfig.custom()
@@ -74,6 +80,11 @@ public class WebClientConfig {
   }
 
   @Bean
+  public CircuitBreaker searchServiceCircuitBreaker(CircuitBreakerRegistry registry) {
+    return registry.circuitBreaker("searchService");
+  }
+
+  @Bean
   public WebClient catalogServiceWebClient(CircuitBreaker circuitBreaker) {
     HttpClient httpClient = HttpClient.create()
         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, catalogServiceTimeout)
@@ -92,6 +103,25 @@ public class WebClientConfig {
         .build();
   }
 
+  @Bean
+  public WebClient searchServiceWebClient(CircuitBreaker circuitBreaker) {
+    HttpClient httpClient = HttpClient.create()
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, searchServiceTimeout)
+        .responseTimeout(Duration.ofMillis(searchServiceTimeout))
+        .doOnConnected(conn -> conn
+            .addHandlerLast(new ReadTimeoutHandler(searchServiceTimeout / 1000))
+            .addHandlerLast(new WriteTimeoutHandler(searchServiceTimeout / 1000)));
+
+    return WebClient.builder()
+        .baseUrl(searchServiceBaseUrl)
+        .clientConnector(new ReactorClientHttpConnector(httpClient))
+        .filter(logRequest())
+        .filter(circuitBreakerFilter(circuitBreaker))
+        .filter(retryFilter())
+        .filter(logResponse())
+        .build();
+  }
+
   /**
    * Filtro de retry que tenta novamente em caso de erros 5xx ou timeouts.
    */
@@ -102,7 +132,7 @@ public class WebClientConfig {
             // Para erros 5xx, criar uma exceção sem ler o body (para permitir retry)
             return Mono.error(WebClientResponseException.create(
                 response.statusCode().value(),
-                response.statusCode().getReasonPhrase(),
+                response.statusCode().toString(),
                 response.headers().asHttpHeaders(),
                 new byte[0],
                 null));

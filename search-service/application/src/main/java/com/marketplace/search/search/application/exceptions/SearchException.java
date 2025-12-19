@@ -1,0 +1,11 @@
+package com.marketplace.search.search.application.exceptions;
+
+/**
+ * Exceção específica para erros de busca.
+ */
+public class SearchException extends RuntimeException {
+    public SearchException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+

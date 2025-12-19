@@ -54,6 +54,13 @@
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
+    <!-- Catalog Service Interfaces (para conversão de DTOs) -->
+    <dependency>
+      <groupId>com.marketplace.search.catalog</groupId>
+      <artifactId>interfaces</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

@@ -14,6 +14,132 @@ import com.marketplace.search.interfaces.rest.dtos.SellerReputationDTO;
 
 @Component("ProductMapperRest")
 public class ProductMapper {
+  
+  /**
+   * Converte ProductDTO do monolito para ProductDTO do catalog-service.
+   * O catalog-service espera um ProductDTO com productMetrics (opcional).
+   */
+  public com.marketplace.search.catalog.interfaces.rest.dtos.ProductDTO toCatalogServiceDTO(
+      ProductDTO monolithDTO) {
+    if (monolithDTO == null) {
+      return null;
+    }
+
+    com.marketplace.search.catalog.interfaces.rest.dtos.CategoryDTO categoryDTO = 
+        new com.marketplace.search.catalog.interfaces.rest.dtos.CategoryDTO(
+            monolithDTO.category().id(),
+            monolithDTO.category().name(),
+            monolithDTO.category().parentId(),
+            monolithDTO.category().path());
+
+    com.marketplace.search.catalog.interfaces.rest.dtos.BrandDTO brandDTO = 
+        new com.marketplace.search.catalog.interfaces.rest.dtos.BrandDTO(
+            monolithDTO.brand().id(),
+            monolithDTO.brand().name(),
+            monolithDTO.brand().description());
+
+    com.marketplace.search.catalog.interfaces.rest.dtos.SellerReputationDTO reputationDTO = null;
+    if (monolithDTO.seller().reputation() != null) {
+      reputationDTO = new com.marketplace.search.catalog.interfaces.rest.dtos.SellerReputationDTO(
+          monolithDTO.seller().reputation().score(),
+          monolithDTO.seller().reputation().totalReviews(),
+          monolithDTO.seller().reputation().positiveReviews(),
+          monolithDTO.seller().reputation().neutralReviews(),
+          monolithDTO.seller().reputation().negativeReviews(),
+          monolithDTO.seller().reputation().cancellationRate(),
+          monolithDTO.seller().reputation().deliveryPerformance());
+    }
+
+    com.marketplace.search.catalog.interfaces.rest.dtos.SellerDTO sellerDTO = 
+        com.marketplace.search.catalog.interfaces.rest.dtos.SellerDTO.builder()
+            .id(monolithDTO.seller().id())
+            .name(monolithDTO.seller().name())
+            .type(monolithDTO.seller().type())
+            .reputation(reputationDTO)
+            .status(monolithDTO.seller().status())
+            .memberSince(monolithDTO.seller().memberSince())
+            .build();
+
+    return com.marketplace.search.catalog.interfaces.rest.dtos.ProductDTO.builder()
+        .id(monolithDTO.id())
+        .title(monolithDTO.title())
+        .description(monolithDTO.description())
+        .price(monolithDTO.price())
+        .currency(monolithDTO.currency())
+        .category(categoryDTO)
+        .brand(brandDTO)
+        .seller(sellerDTO)
+        .images(monolithDTO.images())
+        .attributes(monolithDTO.attributes())
+        .tags(monolithDTO.tags())
+        .stockQuantity(monolithDTO.stockQuantity())
+        .condition(monolithDTO.condition())
+        .isActive(monolithDTO.isActive())
+        .productMetrics(null) // ProductMetrics será preenchido pelo catalog-service se necessário
+        .build();
+  }
+
+  /**
+   * Converte ProductDTO do catalog-service para ProductDTO do monolito.
+   * Remove o campo productMetrics que não existe no DTO do monolito.
+   */
+  public ProductDTO fromCatalogServiceDTO(
+      com.marketplace.search.catalog.interfaces.rest.dtos.ProductDTO catalogDTO) {
+    if (catalogDTO == null) {
+      return null;
+    }
+
+    CategoryDTO categoryDTO = new CategoryDTO(
+        catalogDTO.category().id(),
+        catalogDTO.category().name(),
+        catalogDTO.category().parentId(),
+        catalogDTO.category().path());
+
+    com.marketplace.search.interfaces.rest.dtos.BrandDTO brandDTO = 
+        new com.marketplace.search.interfaces.rest.dtos.BrandDTO(
+            catalogDTO.brand().id(),
+            catalogDTO.brand().name(),
+            catalogDTO.brand().description());
+
+    SellerReputationDTO reputationDTO = null;
+    if (catalogDTO.seller().reputation() != null) {
+      reputationDTO = SellerReputationDTO.builder()
+          .score(catalogDTO.seller().reputation().score())
+          .totalReviews(catalogDTO.seller().reputation().totalReviews())
+          .positiveReviews(catalogDTO.seller().reputation().positiveReviews())
+          .neutralReviews(catalogDTO.seller().reputation().neutralReviews())
+          .negativeReviews(catalogDTO.seller().reputation().negativeReviews())
+          .cancellationRate(catalogDTO.seller().reputation().cancellationRate())
+          .deliveryPerformance(catalogDTO.seller().reputation().deliveryPerformance())
+          .build();
+    }
+
+    SellerDTO sellerDTO = SellerDTO.builder()
+        .id(catalogDTO.seller().id())
+        .name(catalogDTO.seller().name())
+        .type(catalogDTO.seller().type())
+        .reputation(reputationDTO)
+        .status(catalogDTO.seller().status())
+        .memberSince(catalogDTO.seller().memberSince())
+        .build();
+
+    return ProductDTO.builder()
+        .id(catalogDTO.id())
+        .title(catalogDTO.title())
+        .description(catalogDTO.description())
+        .price(catalogDTO.price())
+        .currency(catalogDTO.currency())
+        .category(categoryDTO)
+        .brand(brandDTO)
+        .seller(sellerDTO)
+        .images(catalogDTO.images())
+        .attributes(catalogDTO.attributes())
+        .tags(catalogDTO.tags())
+        .stockQuantity(catalogDTO.stockQuantity())
+        .condition(catalogDTO.condition())
+        .isActive(catalogDTO.isActive())
+        .build();
+  }
   public ProductCommand toCommand(ProductDTO dto) {
 
     SellerData seller = mapSeller(dto.seller());

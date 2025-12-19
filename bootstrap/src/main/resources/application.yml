@@ -142,3 +142,13 @@ services:
       failure-rate-threshold: ${CATALOG_SERVICE_CB_FAILURE_RATE_THRESHOLD:50}
       wait-duration-in-open-state: ${CATALOG_SERVICE_CB_WAIT_DURATION:10000}
       sliding-window-size: ${CATALOG_SERVICE_CB_SLIDING_WINDOW_SIZE:10}
+  search:
+    base-url: ${SEARCH_SERVICE_BASE_URL:http://localhost:8083/api/v1}
+    timeout: ${SEARCH_SERVICE_TIMEOUT:3000}
+    retry:
+      max-attempts: ${SEARCH_SERVICE_RETRY_MAX_ATTEMPTS:3}
+      min-backoff: ${SEARCH_SERVICE_RETRY_MIN_BACKOFF:500}
+    circuit-breaker:
+      failure-rate-threshold: ${SEARCH_SERVICE_CB_FAILURE_RATE_THRESHOLD:50}
+      wait-duration-in-open-state: ${SEARCH_SERVICE_CB_WAIT_DURATION:10000}
+      sliding-window-size: ${SEARCH_SERVICE_CB_SLIDING_WINDOW_SIZE:10}

@@ -46,6 +46,12 @@
       <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
 
+    <!-- Spring Boot Actuator for health checks -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
     <!-- Elasticsearch -->
     <dependency>
       <groupId>co.elastic.clients</groupId>
@@ -79,17 +85,6 @@
       <artifactId>jedis</artifactId>
     </dependency>
 
-    <!-- PostgreSQL -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <scope>runtime</scope>
-    </dependency>
 
     <!-- Resilience4j for Circuit Breaker and Retry -->
     <dependency>

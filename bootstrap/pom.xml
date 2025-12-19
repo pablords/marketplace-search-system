@@ -42,6 +42,12 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
+    <!-- WebFlux for WebClient -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webflux</artifactId>
+    </dependency>
+
     <!-- Spring Boot DevTools for development hot reload -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

@@ -129,3 +129,9 @@ marketplace:
     analytics:
       enabled: true
       sample-rate: 0.1  # 10% sampling
+
+# External Services Configuration
+services:
+  catalog:
+    base-url: ${CATALOG_SERVICE_BASE_URL:http://localhost:8081/api/v1}
+    timeout: ${CATALOG_SERVICE_TIMEOUT:5000}

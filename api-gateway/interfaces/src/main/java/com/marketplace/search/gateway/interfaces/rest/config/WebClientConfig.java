@@ -4,6 +4,7 @@ import java.time.Duration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -75,17 +76,19 @@ public class WebClientConfig {
   }
 
   @Bean
+  @Qualifier("catalogServiceCircuitBreaker")
   public CircuitBreaker catalogServiceCircuitBreaker(CircuitBreakerRegistry registry) {
     return registry.circuitBreaker("catalogService");
   }
 
   @Bean
+  @Qualifier("searchServiceCircuitBreaker")
   public CircuitBreaker searchServiceCircuitBreaker(CircuitBreakerRegistry registry) {
     return registry.circuitBreaker("searchService");
   }
 
   @Bean
-  public WebClient catalogServiceWebClient(CircuitBreaker circuitBreaker) {
+  public WebClient catalogServiceWebClient(@Qualifier("catalogServiceCircuitBreaker") CircuitBreaker circuitBreaker) {
     HttpClient httpClient = HttpClient.create()
         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, catalogServiceTimeout)
         .responseTimeout(Duration.ofMillis(catalogServiceTimeout))
@@ -104,7 +107,7 @@ public class WebClientConfig {
   }
 
   @Bean
-  public WebClient searchServiceWebClient(CircuitBreaker circuitBreaker) {
+  public WebClient searchServiceWebClient(@Qualifier("searchServiceCircuitBreaker") CircuitBreaker circuitBreaker) {
     HttpClient httpClient = HttpClient.create()
         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, searchServiceTimeout)
         .responseTimeout(Duration.ofMillis(searchServiceTimeout))

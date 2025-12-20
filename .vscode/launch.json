@@ -14,11 +14,11 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/api-gateway/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/api-gateway/bootstrap",
-            "preLaunchTask": "maven: compile"
+            "preLaunchTask": "maven: compile api-gateway"
         },
         {
             "type": "java",
@@ -36,11 +36,11 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/api-gateway/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/api-gateway/bootstrap",
-            "preLaunchTask": "maven: compile"
+            "preLaunchTask": "maven: compile api-gateway"
         },
         {
             "type": "java",
@@ -55,11 +55,11 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/catalog-service/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/catalog-service/bootstrap",
-            "preLaunchTask": "maven: compile"
+            "preLaunchTask": "maven: compile catalog"
         },
         {
             "type": "java",
@@ -77,11 +77,11 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/catalog-service/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/catalog-service/bootstrap",
-            "preLaunchTask": "maven: compile"
+            "preLaunchTask": "maven: compile catalog"
         },
         {
             "type": "java",
@@ -96,11 +96,11 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/indexing-service/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/indexing-service/bootstrap",
-            "preLaunchTask": "maven: compile"
+            "preLaunchTask": "maven: compile indexing"
         },
         {
             "type": "java",
@@ -118,11 +118,11 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/indexing-service/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/indexing-service/bootstrap",
-            "preLaunchTask": "maven: compile"
+            "preLaunchTask": "maven: compile indexing"
         },
         {
             "type": "java",
@@ -137,11 +137,11 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/search-service/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/search-service/bootstrap",
-            "preLaunchTask": "maven: compile"
+            "preLaunchTask": "maven: compile search"
         },
         {
             "type": "java",
@@ -159,11 +159,11 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "envFile": "${workspaceFolder}/search-service/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/search-service/bootstrap",
-            "preLaunchTask": "maven: compile"
+            "preLaunchTask": "maven: compile search"
         }
     ]
 }

@@ -62,14 +62,14 @@ debezium:
     config:
       connector.class: io.debezium.connector.postgresql.PostgresConnector
       tasks.max: 1
-      database.hostname: catalog-db
-      database.port: 5432
-      database.user: catalog
-      database.password: catalog
-      database.dbname: catalog
+      database.hostname: ${DB_HOSTNAME}
+      database.port: ${POSTGRES_PORT}
+      database.user: ${POSTGRES_USER}
+      database.password: ${POSTGRES_PASSWORD}
+      database.dbname: ${POSTGRES_DB}
       database.server.name: catalog
-      table.include.list: public.products
-      topic.prefix: catalog-db
+      table.include.list: ${POSTGRES_TABLES}
+      topic.prefix: ${KAFKA_TOPIC_PREFIX}
       snapshot.mode: initial
       plugin.name: pgoutput
       schema.include: public
@@ -79,6 +79,6 @@ debezium:
       value.converter.schemas.enable: false
       transforms: router
       transforms.router.type: io.debezium.transforms.ByLogicalTableRouter
-      transforms.router.topic.regex: catalog-db\\.public\\.products
-      transforms.router.topic.replacement: marketplace.public.catalog_products
+      transforms.router.topic.regex: ${KAFKA_TOPIC_REGEX}
+      transforms.router.topic.replacement: ${KAFKA_TOPIC_REPLACEMENT}
       decimal.handling.mode: string

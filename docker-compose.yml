@@ -8,17 +8,15 @@ services:
     container_name: catalog-db
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_DB: catalog
-      POSTGRES_USER: catalog
-      POSTGRES_PASSWORD: catalog
+    env_file:
+      - ./catalog-service/.env
     command:
       - "postgres"
       - "-c"
       - "wal_level=logical"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       # - ./docker/postgres/seed.sql:/docker-entrypoint-initdb.d/seed.sql
     networks:
       - marketplace-network
@@ -47,7 +45,7 @@ services:
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
       - "DISABLE_SECURITY_PLUGIN=true" # Disables Security plugin
     ulimits:
       memlock:
@@ -162,9 +160,11 @@ services:
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
-      CONNECT_LOG4J_LOGGERS: org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR
       CONNECT_PLUGIN_PATH: /kafka/connect
+      # Configuração do log4j via arquivo
+      KAFKA_LOG4J_OPTS: -Dlog4j.configuration=file:/kafka/config/log4j.properties
+    volumes:
+      - ./docker/kafka-connect/log4j.properties:/kafka/config/log4j.properties:ro
     networks:
       - marketplace-network
     healthcheck:

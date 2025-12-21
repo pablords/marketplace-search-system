@@ -18,7 +18,8 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/api-gateway/bootstrap",
-            "preLaunchTask": "maven: compile api-gateway"
+            "preLaunchTask": "maven: compile api-gateway",
+            "noDebug": true
         },
         {
             "type": "java",
@@ -59,7 +60,8 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/catalog-service/bootstrap",
-            "preLaunchTask": "maven: compile catalog"
+            "preLaunchTask": "maven: compile catalog",
+            "noDebug": true
         },
         {
             "type": "java",
@@ -88,7 +90,9 @@
             "name": "🔍 Indexing Service",
             "request": "launch",
             "mainClass": "com.marketplace.search.indexing.bootstrap.IndexingApp",
-            "args": ["--spring.profiles.active=development"],
+            "args": [
+                "--spring.profiles.active=development"
+            ],
             "vmArgs": [
                 "-Dspring.devtools.restart.enabled=true",
                 "-Dspring.devtools.livereload.enabled=true",
@@ -100,7 +104,8 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/indexing-service/bootstrap",
-            "preLaunchTask": "maven: compile indexing"
+            "preLaunchTask": "maven: compile indexing",
+            "noDebug": true
         },
         {
             "type": "java",
@@ -141,7 +146,8 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/search-service/bootstrap",
-            "preLaunchTask": "maven: compile search"
+            "preLaunchTask": "maven: compile search",
+            "noDebug": true
         },
         {
             "type": "java",

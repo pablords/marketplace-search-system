@@ -49,6 +49,8 @@ opensearch:
 kafka:
   topics:
     product-events: ${KAFKA_PRODUCT_EVENTS_TOPIC:product-events}
+  consumer:
+    group-id: ${KAFKA_CONSUMER_GROUP_ID:marketplace-search-indexer-service}
 
 # Logging
 logging:

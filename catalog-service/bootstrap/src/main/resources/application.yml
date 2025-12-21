@@ -67,9 +67,9 @@ debezium:
       database.user: ${POSTGRES_USER}
       database.password: ${POSTGRES_PASSWORD}
       database.dbname: ${POSTGRES_DB}
-      database.server.name: catalog
+      database.server.name: ${KAFKA_TOPIC_PREFIX:catalog-db}
       table.include.list: ${POSTGRES_TABLES}
-      topic.prefix: ${KAFKA_TOPIC_PREFIX}
+      topic.prefix: ${KAFKA_TOPIC_PREFIX:catalog-db}
       snapshot.mode: initial
       plugin.name: pgoutput
       schema.include: public
@@ -77,8 +77,4 @@ debezium:
       key.converter.schemas.enable: false
       value.converter: org.apache.kafka.connect.json.JsonConverter
       value.converter.schemas.enable: false
-      transforms: router
-      transforms.router.type: io.debezium.transforms.ByLogicalTableRouter
-      transforms.router.topic.regex: ${KAFKA_TOPIC_REGEX}
-      transforms.router.topic.replacement: ${KAFKA_TOPIC_REPLACEMENT}
       decimal.handling.mode: string

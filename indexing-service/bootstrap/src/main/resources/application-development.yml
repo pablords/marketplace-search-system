@@ -47,13 +47,6 @@ spring:
         max.in.flight.requests.per.connection: 5
 
 
-# Kafka topics para desenvolvimento
-kafka:
-  topics:
-    product-events: catalog-db.public.products
-  consumer:
-    group-id: marketplace-search-indexer-service
-
 # Logging mais verboso para desenvolvimento
 logging:
   level:

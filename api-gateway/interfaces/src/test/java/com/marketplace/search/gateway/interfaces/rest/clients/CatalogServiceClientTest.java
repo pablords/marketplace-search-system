@@ -22,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marketplace.search.gateway.interfaces.rest.dtos.BrandDTO;
 import com.marketplace.search.gateway.interfaces.rest.dtos.CategoryDTO;
 import com.marketplace.search.gateway.interfaces.rest.dtos.ProductDTO;
@@ -54,7 +55,7 @@ class CatalogServiceClientTest {
         requestHeadersUriSpec = mock(WebClient.RequestHeadersUriSpec.class);
         responseSpec = mock(WebClient.ResponseSpec.class);
 
-        catalogServiceClient = new CatalogServiceClient(webClient);
+        catalogServiceClient = new CatalogServiceClient(webClient, new ObjectMapper());
     }
 
     @Test

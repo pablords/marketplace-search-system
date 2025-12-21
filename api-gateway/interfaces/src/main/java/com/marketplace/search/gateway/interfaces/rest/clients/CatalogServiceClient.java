@@ -1,6 +1,7 @@
 package com.marketplace.search.gateway.interfaces.rest.clients;
 
 import java.net.URI;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marketplace.search.gateway.interfaces.rest.dtos.ProductDTO;
 
 import reactor.core.publisher.Mono;
@@ -25,9 +28,13 @@ public class CatalogServiceClient implements CatalogServicePort {
   private static final Logger logger = LoggerFactory.getLogger(CatalogServiceClient.class);
 
   private final WebClient webClient;
+  private final ObjectMapper objectMapper;
 
-  public CatalogServiceClient(@org.springframework.beans.factory.annotation.Qualifier("catalogServiceWebClient") WebClient catalogServiceWebClient) {
+  public CatalogServiceClient(
+      @org.springframework.beans.factory.annotation.Qualifier("catalogServiceWebClient") WebClient catalogServiceWebClient,
+      ObjectMapper objectMapper) {
     this.webClient = catalogServiceWebClient;
+    this.objectMapper = objectMapper;
   }
 
   /**
@@ -78,10 +85,41 @@ public class CatalogServiceClient implements CatalogServicePort {
             .doBeforeRetry(retrySignal -> logger.warn(
                 "Tentando novamente criar produto após erro: {}", retrySignal.totalRetries())))
         .onErrorMap(WebClientResponseException.class, ex -> {
-          logger.error("Erro ao criar produto no catalog-service. Status: {}, Body: {}",
-              ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
-          return new CatalogServiceException(
-              "Erro ao criar produto no catalog-service: " + ex.getMessage(), ex);
+          String responseBody = ex.getResponseBodyAsString();
+          String errorMessage = "Erro ao criar produto no catalog-service";
+          
+          // Tenta extrair a mensagem de erro do corpo da resposta JSON
+          if (responseBody != null && !responseBody.isEmpty()) {
+            try {
+              // Tenta parsear o JSON para extrair a mensagem
+              Map<String, Object> errorJson = objectMapper.readValue(
+                  responseBody, 
+                  new TypeReference<Map<String, Object>>() {});
+              if (errorJson.containsKey("message")) {
+                Object messageObj = errorJson.get("message");
+                if (messageObj != null) {
+                  errorMessage = messageObj.toString();
+                }
+              } else if (errorJson.containsKey("error")) {
+                Object errorObj = errorJson.get("error");
+                if (errorObj != null) {
+                  errorMessage = errorObj.toString();
+                }
+              }
+            } catch (Exception e) {
+              // Se não conseguir parsear JSON, usa o corpo completo (limitado)
+              logger.debug("Não foi possível parsear JSON do corpo da resposta", e);
+              if (responseBody.length() > 200) {
+                errorMessage = responseBody.substring(0, 200) + "...";
+              } else {
+                errorMessage = responseBody;
+              }
+            }
+          }
+          
+          logger.error("Erro ao criar produto no catalog-service. Status: {}, Mensagem: {}",
+              ex.getStatusCode(), errorMessage, ex);
+          return new CatalogServiceException(errorMessage, ex);
         })
         .onErrorMap(throwable -> {
           if (throwable instanceof CatalogServiceException) {

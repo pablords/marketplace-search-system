@@ -52,11 +52,14 @@ public class ProductMapper {
 
     Instant now = Instant.now();
 
+    // Usa stockQuantity do comando quando productMetrics for null
+    int stockQuantity = dto.stockQuantity() != null ? dto.stockQuantity() : 0;
+
     return Product.builder()
         .id(id)
         .info(info)
         .seller(seller)
-        .metrics(mapProductMetrics(dto.productMetrics()))
+        .metrics(mapProductMetrics(dto.productMetrics(), stockQuantity))
         .status(status)
         .createdAt(now)
         .updatedAt(now)
@@ -169,9 +172,22 @@ public class ProductMapper {
     }
   }
 
-  private ProductMetrics mapProductMetrics(ProductMetricsPayload dto) {
+  private ProductMetrics mapProductMetrics(ProductMetricsPayload dto, int defaultStockQuantity) {
     if (dto == null) {
-      return null;
+      // Cria ProductMetrics padrão com valores iniciais quando não fornecido
+      return ProductMetrics.builder()
+          .totalViews(0)
+          .totalSales(0)
+          .totalReviews(0)
+          .averageRating(0.0)
+          .stockQuantity(defaultStockQuantity)
+          .conversionRate(0.0)
+          .lastSale(null)
+          .lastView(null)
+          .popularity(0)
+          .quality(0.0)
+          .ctr(0.0)
+          .build();
     }
 
     return ProductMetrics.builder()

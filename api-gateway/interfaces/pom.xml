@@ -28,6 +28,19 @@
       <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
 
+    <!-- Netty DNS resolver native for macOS (fixes DNS resolution warnings) -->
+    <!-- Supports both Apple Silicon (aarch_64) and Intel (x86_64) -->
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-resolver-dns-native-macos</artifactId>
+      <classifier>osx-aarch_64</classifier>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-resolver-dns-native-macos</artifactId>
+      <classifier>osx-x86_64</classifier>
+    </dependency>
+
     <!-- Spring Boot Validation -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -84,4 +97,3 @@
     </dependency>
   </dependencies>
 </project>
-

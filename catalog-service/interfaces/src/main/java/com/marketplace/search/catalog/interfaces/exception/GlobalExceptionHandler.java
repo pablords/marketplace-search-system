@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
-
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
@@ -91,7 +90,23 @@ public class GlobalExceptionHandler {
                 return ResponseEntity.badRequest().body(errorResponse);
     }
 
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<ErrorResponse> handleNullPointerException(
+            NullPointerException ex, WebRequest request) {
+        
+        String message = ex.getMessage() != null ? ex.getMessage() : "Valor obrigatório não fornecido";
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Null Pointer Exception")
+                .message(message)
+                .path(request.getDescription(false))
+                .build();
 
+        logger.error("NullPointerException: {}", message, ex);
+
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(

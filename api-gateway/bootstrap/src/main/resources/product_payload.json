@@ -1,0 +1,69 @@
+{
+  "id": "MLB123456789",
+  "title": "Smartphone Samsung Galaxy S24 Ultra 256GB",
+  "description": "O mais avançado smartphone Samsung com tela Dynamic AMOLED 2X de 6.8 polegadas, processador Snapdragon 8 Gen 3, câmera de 200MP e bateria de 5000mAh. Inclui S Pen integrado e suporte a 5G.",
+  "price": 5499.99,
+  "currency": "BRL",
+  "category": {
+    "id": "CAT001",
+    "name": "Celulares e Telefones",
+    "parent_id": "CAT_ROOT",
+    "path": "/eletronicos/celulares-telefones"
+  },
+  "brand": {
+    "id": "BRAND001",
+    "name": "Samsung",
+    "description": "Tecnologia que conecta o mundo"
+  },
+  "seller": {
+    "id": "SELLER001",
+    "name": "TechStore Premium",
+    "type": "PROFESSIONAL",
+    "reputation": {
+      "score": 4.8,
+      "total_reviews": 1523,
+      "positive_reviews": 1420,
+      "neutral_reviews": 65,
+      "negative_reviews": 38,
+      "cancellation_rate": 0.02,
+      "delivery_performance": 0.97
+    },
+    "status": "ACTIVE",
+    "member_since": "2020-01-15T00:00:00Z"
+  },
+  "images": [
+    "https://marketplace.com/img/products/MLB123456789_1.jpg",
+    "https://marketplace.com/img/products/MLB123456789_2.jpg",
+    "https://marketplace.com/img/products/MLB123456789_3.jpg",
+    "https://marketplace.com/img/products/MLB123456789_4.jpg"
+  ],
+  "attributes": [
+    "Tela: 6.8 polegadas Dynamic AMOLED 2X",
+    "Processador: Snapdragon 8 Gen 3",
+    "RAM: 12GB",
+    "Armazenamento: 256GB",
+    "Câmera Principal: 200MP",
+    "Câmera Frontal: 12MP",
+    "Bateria: 5000mAh",
+    "Sistema Operacional: Android 14",
+    "5G: Sim",
+    "S Pen: Incluído",
+    "Garantia: 12 meses",
+    "Cor: Preto"
+  ],
+  "tags": [
+    "smartphone",
+    "samsung",
+    "galaxy",
+    "s24",
+    "ultra",
+    "5g",
+    "camera-200mp",
+    "s-pen",
+    "premium"
+  ],
+  "available_quantity": 15,
+  "condition": "NEW",
+  "is_active": true
+}
+

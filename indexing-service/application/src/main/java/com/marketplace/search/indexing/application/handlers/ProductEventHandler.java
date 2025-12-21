@@ -21,6 +21,7 @@ import com.marketplace.search.indexing.application.commands.ProductCommand;
 import com.marketplace.search.indexing.application.events.DebeziumCDCEvent;
 import com.marketplace.search.indexing.application.handlers.payloads.ProductPayload;
 import com.marketplace.search.indexing.application.mappers.ProductMapper;
+import com.marketplace.search.indexing.application.services.ProductEnrichmentService;
 import com.marketplace.search.indexing.application.usecases.IndexProductUseCase;
 
 import lombok.extern.slf4j.Slf4j;
@@ -31,12 +32,14 @@ public class ProductEventHandler {
   private static final Logger logger = LoggerFactory.getLogger(ProductEventHandler.class);
   private final ProductMapper productMapper;
   private final IndexProductUseCase indexProductUseCase;
+  private final ProductEnrichmentService enrichmentService;
   private final ObjectMapper objectMapper;
 
   public ProductEventHandler(IndexProductUseCase indexProductUseCase, ProductMapper productMapper,
-      @Nullable ObjectMapper objectMapper) {
+      ProductEnrichmentService enrichmentService, @Nullable ObjectMapper objectMapper) {
     this.indexProductUseCase = indexProductUseCase;
     this.productMapper = productMapper;
+    this.enrichmentService = enrichmentService;
 
     if (objectMapper == null) {
       ObjectMapper om = new ObjectMapper();
@@ -96,31 +99,83 @@ public class ProductEventHandler {
   }
 
   private CompletableFuture<Void> processProductUpsert(DebeziumCDCEvent cdcEvent) {
-    ProductPayload productData = cdcEvent.getAfter();
-    if (productData == null) {
-      logger.warn("Evento CDC sem dados 'after', ignorando");
+    try {
+      // Converter o payload para ProductPayload
+      ProductPayload productData = objectMapper.convertValue(cdcEvent.getAfter(), ProductPayload.class);
+      if (productData == null) {
+        logger.warn("Evento CDC sem dados 'after', ignorando");
+        return CompletableFuture.completedFuture(null);
+      }
+
+      logger.debug("Processando criação/atualização do produto: {}", productData.getId());
+
+      // Enriquecer o produto com dados de dimensões e métricas
+      ProductPayload enrichedProduct = enrichmentService.enrich(productData);
+      
+      if (enrichedProduct == null) {
+        logger.error("Falha ao enriquecer produto: {}", productData.getId());
+        return CompletableFuture.completedFuture(null);
+      }
+
+      // Verificar se dados críticos estão disponíveis
+      if (!isProductEnrichmentComplete(enrichedProduct)) {
+        logger.warn("Produto {} não totalmente enriquecido - alguns dados podem estar faltando. " +
+            "Brand: {}, Category: {}, Seller: {}. Continuando com indexação (eventual consistency aceitável)",
+            enrichedProduct.getId(),
+            enrichedProduct.getBrandName() != null,
+            enrichedProduct.getCategoryName() != null,
+            enrichedProduct.getSellerName() != null);
+        // Continuar mesmo assim - eventual consistency é aceitável para indexação
+      }
+
+      ProductCommand productCommand = productMapper.mapProductPayloadToDTO(enrichedProduct);
+      indexProductUseCase.executeAsync(productCommand);
       return CompletableFuture.completedFuture(null);
+      
+    } catch (Exception e) {
+      logger.error("Erro ao processar upsert de produto", e);
+      return CompletableFuture.failedFuture(e);
     }
+  }
 
-    logger.debug("Processando criação/atualização do produto: {}", productData.getId());
-
-    ProductCommand productCommand = productMapper.mapProductPayloadToDTO(productData);
-    indexProductUseCase.executeAsync(productCommand);
-    return CompletableFuture.completedFuture(null);
+  /**
+   * Verifica se o produto foi totalmente enriquecido com dados críticos
+   */
+  private boolean isProductEnrichmentComplete(ProductPayload product) {
+    // Verificar se pelo menos os IDs estão presentes (mínimo necessário)
+    boolean hasBasicData = product.getId() != null && 
+                          product.getTitle() != null &&
+                          product.getBrandId() != null &&
+                          product.getCategoryId() != null &&
+                          product.getSellerId() != null;
+    
+    // Verificar se dados enriquecidos estão presentes (ideal)
+    boolean hasEnrichedData = product.getBrandName() != null &&
+                             product.getCategoryName() != null &&
+                             product.getSellerName() != null;
+    
+    return hasBasicData && hasEnrichedData;
   }
 
   private CompletableFuture<Void> processProductDeletion(DebeziumCDCEvent cdcEvent) {
-    ProductPayload productData = cdcEvent.getBefore();
-    if (productData == null) {
-      logger.warn("Evento CDC de deleção sem dados 'before', ignorando");
+    try {
+      // Converter o payload para ProductPayload
+      ProductPayload productData = objectMapper.convertValue(cdcEvent.getBefore(), ProductPayload.class);
+      if (productData == null) {
+        logger.warn("Evento CDC de deleção sem dados 'before', ignorando");
+        return CompletableFuture.completedFuture(null);
+      }
+
+      logger.debug("Processando deleção do produto: {}", productData.getId());
+
+      // TODO: Implementar remoção do índice quando DeleteProductUseCase estiver disponível
+      logger.info("Deleção de produto {} registrada - remoção do índice será implementada em breve", productData.getId());
       return CompletableFuture.completedFuture(null);
+      
+    } catch (Exception e) {
+      logger.error("Erro ao processar deleção de produto", e);
+      return CompletableFuture.failedFuture(e);
     }
-
-    logger.debug("Processando deleção do produto: {}", productData.getId());
-
-    // TODO: Implementar remoção do índice
-    // return deleteProductUseCase.execute(productData.getId());
-    return CompletableFuture.completedFuture(null);
   }
 
 }

@@ -42,6 +42,8 @@ services:
   open-search:
     image: opensearchproject/opensearch:3
     container_name: marketplace-opensearch
+    depends_on:
+      - redis
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true

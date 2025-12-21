@@ -17,7 +17,7 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
     "database.password": "catalog",
     "database.dbname": "catalog",
     "database.server.name": "catalog-db",
-    "table.include.list": "public.products",
+    "table.include.list": "public.products,public.product_metrics,public.brands,public.categories,public.sellers",
     "topic.prefix": "catalog-db",
     "snapshot.mode": "initial",
     "plugin.name": "pgoutput",

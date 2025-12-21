@@ -13,7 +13,6 @@ import com.marketplace.search.indexing.application.commands.ProductCommand;
 import com.marketplace.search.indexing.application.exceptions.IndexingException;
 import com.marketplace.search.indexing.application.mappers.ProductMapper;
 import com.marketplace.search.indexing.domain.entities.Product;
-import com.marketplace.search.indexing.domain.repositories.CacheRepository;
 import com.marketplace.search.indexing.domain.repositories.ProductIndexRepository;
 
 /**
@@ -28,13 +27,11 @@ public class IndexProductUseCase {
 
     private final ProductIndexRepository indexRepository;
     private final ProductMapper productMapper;
-    private final CacheRepository cacheRepository;
 
     public IndexProductUseCase(ProductIndexRepository indexRepository,
-            ProductMapper productMapper, CacheRepository cacheRepository) {
+            ProductMapper productMapper) {
         this.indexRepository = indexRepository;
         this.productMapper = productMapper;
-        this.cacheRepository = cacheRepository;
     }
 
     /**

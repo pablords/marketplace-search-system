@@ -40,7 +40,15 @@ public record ProductCommand(
 
     @JsonProperty("condition") String condition,
 
-    @JsonProperty("is_active") Boolean isActive) {
+    @JsonProperty("is_active") Boolean isActive,
+
+    @JsonProperty("total_sold") Integer totalSold,
+
+    @JsonProperty("review_count") Integer reviewCount,
+
+    @JsonProperty("average_rating") String averageRating,
+
+    @JsonProperty("ctr") String ctr) {
 
   public static Builder builder() {
     return new Builder();
@@ -62,6 +70,10 @@ public record ProductCommand(
     private Integer stockQuantity;
     private String condition;
     private Boolean isActive;
+    private Integer totalSold;
+    private Integer reviewCount;
+    private String averageRating;
+    private String ctr;
 
     public Builder id(String id) {
       this.id = id;
@@ -133,6 +145,26 @@ public record ProductCommand(
       return this;
     }
 
+    public Builder totalSold(Integer totalSold) {
+      this.totalSold = totalSold;
+      return this;
+    }
+
+    public Builder reviewCount(Integer reviewCount) {
+      this.reviewCount = reviewCount;
+      return this;
+    }
+
+    public Builder averageRating(String averageRating) {
+      this.averageRating = averageRating;
+      return this;
+    }
+
+    public Builder ctr(String ctr) {
+      this.ctr = ctr;
+      return this;
+    }
+
     public ProductCommand build() {
       return new ProductCommand(
           id,
@@ -148,7 +180,11 @@ public record ProductCommand(
           tags,
           stockQuantity,
           condition,
-          isActive);
+          isActive,
+          totalSold,
+          reviewCount,
+          averageRating,
+          ctr);
     }
   }
 

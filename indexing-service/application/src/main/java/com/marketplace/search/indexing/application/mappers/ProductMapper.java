@@ -104,6 +104,10 @@ public class ProductMapper {
         .stockQuantity(data.getAvailableQuantity())
         .condition(data.getCondition())
         .isActive("ACTIVE".equals(data.getStatus()))
+        .totalSold(data.getTotalSold())
+        .reviewCount(data.getReviewCount())
+        .averageRating(data.getAverageRating())
+        .ctr(data.getCtr())
         .build();
   }
 
@@ -123,15 +127,53 @@ public class ProductMapper {
 
     Seller seller = mapSeller(dto.seller());
 
+    // Mapear métricas enriquecidas do payload
+    // totalViews não está disponível no ProductPayload, manter 0
+    int totalViews = 0;
+    
+    // totalSales vem de totalSold no payload
+    int totalSales = dto.totalSold() != null ? dto.totalSold() : 0;
+    
+    // totalReviews vem de reviewCount no payload
+    int totalReviews = dto.reviewCount() != null ? dto.reviewCount() : 0;
+    
+    // averageRating vem do payload (string, precisa converter)
+    double averageRating = 0.0;
+    try {
+      if (dto.averageRating() != null && !dto.averageRating().isBlank()) {
+        averageRating = Double.parseDouble(dto.averageRating());
+      }
+    } catch (NumberFormatException e) {
+      // Manter 0.0 se não conseguir converter
+    }
+    
+    // stockQuantity vem do payload
+    int stockQuantity = dto.stockQuantity() != null ? dto.stockQuantity() : 0;
+    
+    // conversionRate vem de ctr no payload (string, precisa converter)
+    double conversionRate = 0.0;
+    try {
+      if (dto.ctr() != null && !dto.ctr().isBlank()) {
+        conversionRate = Double.parseDouble(dto.ctr());
+      }
+    } catch (NumberFormatException e) {
+      // Manter 0.0 se não conseguir converter
+    }
+    
+    // lastSale e lastView não estão disponíveis no ProductPayload atual
+    // Seriam obtidos de ProductMetricsPayload, mas não estão sendo mapeados ainda
+    Instant lastSale = null;
+    Instant lastView = null;
+
     ProductMetrics metrics = new ProductMetrics(
-        0, // totalViews - seria obtido de outra fonte
-        0, // totalSales
-        0, // totalReviews
-        0.0, // averageRating
-        dto.stockQuantity() != null ? dto.stockQuantity() : 0,
-        0.0, // conversionRate
-        null, // lastSale
-        null // lastView
+        totalViews,
+        totalSales,
+        totalReviews,
+        averageRating,
+        stockQuantity,
+        conversionRate,
+        lastSale,
+        lastView
     );
 
     ProductStatus status = ProductStatus.active(

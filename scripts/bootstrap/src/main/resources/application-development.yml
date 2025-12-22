@@ -1,0 +1,139 @@
+spring:
+  # DevTools para hot reload em projeto multi-módulo
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: 
+        - ../domain/src/main/java
+        - ../application/src/main/java
+        - ../infrastructure/src/main/java
+        - ../interfaces/src/main/java
+      poll-interval: 1000ms
+      quiet-period: 400ms
+    livereload:
+      enabled: true
+      port: 35729
+    add-properties: true
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
+  
+  jpa:
+    hibernate:
+      ddl-auto: none  # Schema gerenciado por migrations ou script SQL
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+  
+  # Configuração para executar scripts SQL na inicialização
+  sql:
+    init:
+      mode: always  # Executa sempre (embedded, always, never)
+      schema-locations: classpath:data/create_products_table.sql
+      data-locations: classpath:data/insert_sample_products.sql
+      continue-on-error: true  # Continua mesmo se houver erros (tabela já existe)
+      separator: ";"
+  
+  # Redis para desenvolvimento
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      database: 1  # Use database 1 for dev
+  
+  # Cache desabilitado em desenvolvimento
+  cache:  
+    type: none
+  
+  # Resource chain disabled para hot reload
+  web:
+    resources:
+      cache:
+        period: 0s
+      chain:
+        cache: false
+  
+  # Kafka configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      group-id: marketplace-search-indexer-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 100
+      properties:
+        session.timeout.ms: 30000
+        max.poll.interval.ms: 300000
+    producer:
+      client-id: marketplace-search-producer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+# Elasticsearch para desenvolvimento
+elasticsearch:
+  host: ${ELASTICSEARCH_HOST}
+  port: ${ELASTICSEARCH_PORT}
+  scheme: http
+  connection-timeout: 10000
+  socket-timeout: 60000
+  indices:
+    products: products
+
+# Kafka topics para desenvolvimento
+kafka:
+  topics:
+    product-events: catalog-db.public.products
+  consumer:
+    group-id: marketplace-search-indexer-service
+
+# Logging mais verboso para desenvolvimento
+logging:
+  level:
+    com.marketplace.search: DEBUG
+    # Kafka logging habilitado para debug do CDC
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
+    com.marketplace.search.infrastructure.kafka: DEBUG
+    # Elasticsearch logging silenciado
+    org.elasticsearch: OFF
+    org.springframework.data.elasticsearch: OFF
+    co.elastic.clients: OFF
+    # Outros logs relacionados
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+
+# Management para desenvolvimento
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+      base-path: /actuator
+
+# Application config para desenvolvimento
+marketplace:
+  search:
+    cache:
+      enabled: true
+    analytics:
+      enabled: true
+      sample-rate: 1.0  # 100% sampling for development

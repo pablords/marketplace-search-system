@@ -1,0 +1,96 @@
+# .gitignore para projeto Java Spring Boot
+
+# Arquivos compilados
+*.class
+*.jar
+*.war
+*.ear
+*.sar
+target/
+build/
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.metadata
+.recommenders/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Dados temporários
+*.tmp
+*.temp
+*.swp
+*.bak
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/MavenWrapperDownloader.java
+
+# Gradle
+.gradle/
+gradle/wrapper/gradle-wrapper.jar
+
+# Spring Boot
+spring.log
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.development
+.env.production
+
+# Docker
+docker-compose.override.yml
+
+
+volumes/
+
+# Certificados e chaves
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
+
+# Arquivos de configuração local
+application-local.yml
+application-local.properties
+
+# Coverage reports
+coverage/
+.nyc_output/
+*.lcov
+
+# Node (se houver frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+
+# Kafka data
+kafka-logs/
+
+# Redis data
+dump.rdb
+
+# Postgres data
+postgres-data/
+
+.venv
+
+data/products.json

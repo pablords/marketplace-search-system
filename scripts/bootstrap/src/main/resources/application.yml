@@ -1,0 +1,131 @@
+spring:
+  application:
+    name: marketplace-search
+  
+  profiles:
+    active: development
+
+  output:
+    ansi:
+      enabled: always
+  
+  # Redis configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  
+  # Kafka
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      client-id: marketplace-search-producer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 10
+      buffer-memory: 33554432
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: marketplace-search-consumer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 500
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+# Elasticsearch
+elasticsearch:
+  host: ${ELASTICSEARCH_HOST:localhost}
+  port: ${ELASTICSEARCH_PORT:9200}
+  scheme: ${ELASTICSEARCH_SCHEME:http}
+  username: ${ELASTICSEARCH_USERNAME:}
+  password: ${ELASTICSEARCH_PASSWORD:}
+  connection-timeout: 10000
+  socket-timeout: 60000
+  indices:
+    products: ${ELASTICSEARCH_PRODUCTS_INDEX:products}
+
+# Kafka Topics
+kafka:
+  topics:
+    product-events: ${KAFKA_PRODUCT_EVENTS_TOPIC:product-events}
+    search-analytics: ${KAFKA_SEARCH_ANALYTICS_TOPIC:search-analytics}
+
+# Logging
+logging:
+  level:
+    com.marketplace.search: DEBUG
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){blue} %clr(%logger{36}){cyan} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/marketplace-search.log
+
+# Management/Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      enabled: true
+    tags:
+      application: marketplace-search-system
+      environment: ${ENVIRONMENT:development}
+
+# Server
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api/v1
+
+# SpringDoc OpenAPI 3
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  show-actuator: false
+
+# Application specific
+marketplace:
+  search:
+    cache:
+      enabled: true
+      default-ttl: PT1H  # 1 hour
+      search-results-ttl: PT10M  # 10 minutes
+      popular-searches-ttl: PT24H  # 24 hours
+      key-prefix: search:results
+    
+    indexing:
+      batch-size: 1000
+      max-retries: 3
+      retry-delay: 5000
+    
+    elasticsearch:
+      max-result-window: 10000
+      default-page-size: 20
+      max-page-size: 100
+    
+    analytics:
+      enabled: true
+      sample-rate: 0.1  # 10% sampling

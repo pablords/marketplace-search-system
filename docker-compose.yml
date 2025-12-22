@@ -217,6 +217,23 @@ services:
     networks:
       - marketplace-network
 
+  # ML Ranking Service
+  ml-ranking-service:
+    build:
+      context: ./ml-ranking-service
+      dockerfile: Dockerfile
+    container_name: marketplace-ml-ranking
+    ports:
+      - "8084:8084"
+    networks:
+      - marketplace-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8084/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
 volumes:
   postgres_data:
   redis_data:

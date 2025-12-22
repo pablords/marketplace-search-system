@@ -1,21 +1,24 @@
 package com.marketplace.search.indexing.infrastructure.opensearch.repositories;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
-import org.opensearch.client.opensearch.core.UpdateRequest;
 import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.ExistsRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import com.marketplace.search.indexing.domain.entities.Product;
 import com.marketplace.search.indexing.domain.repositories.ProductIndexRepository;
 import com.marketplace.search.indexing.domain.valueobjects.ProductId;
+import com.marketplace.search.indexing.infrastructure.embedding.EmbeddingClient;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,11 +27,18 @@ import lombok.extern.slf4j.Slf4j;
 public class OpensearchRepository implements ProductIndexRepository {
 
 	private final OpenSearchClient client;
+	private final EmbeddingClient embeddingClient;
+	private final boolean embeddingEnabled;
 	private static final String INDEX_NAME = "products_index";
 	private static final String VECTOR_FIELD = "product_vector";
 
-	public OpensearchRepository(OpenSearchClient client) {
+	public OpensearchRepository(
+			OpenSearchClient client,
+			EmbeddingClient embeddingClient,
+			@Value("${embedding.service.enabled:true}") boolean embeddingEnabled) {
 		this.client = client;
+		this.embeddingClient = embeddingClient;
+		this.embeddingEnabled = embeddingEnabled;
 	}
 
 	@Override
@@ -81,38 +91,67 @@ public class OpensearchRepository implements ProductIndexRepository {
 			return;
 		}
 
-		log.debug("Gerando embeddings em batch para " + products.size() + " documentos...");
 		long startTime = System.currentTimeMillis();
+		List<float[]> embeddings = new ArrayList<>();
 
-		// Gerar todos os embeddings em batch (mais eficiente)
-		// List<float[]> embeddings = model.embedBatch(texts);
+		// Gerar embeddings se o serviço estiver habilitado
+		if (embeddingEnabled) {
+			log.debug("Gerando embeddings em batch para " + products.size() + " documentos...");
+			
+			// Extrair títulos dos produtos para gerar embeddings
+			List<String> titles = new ArrayList<>();
+			for (Product product : products) {
+				String title = product.getInfo().getTitle();
+				if (title != null && !title.trim().isEmpty()) {
+					titles.add(title);
+				} else {
+					// Se não houver título, usar descrição ou string vazia
+					String description = product.getInfo().getDescription();
+					titles.add(description != null && !description.trim().isEmpty() ? description : "");
+				}
+			}
 
-		long embeddingTime = System.currentTimeMillis() - startTime;
-		log.debug("Embeddings gerados em " + embeddingTime + "ms");
+			// Chamar Embedding Service para gerar embeddings em batch
+			Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(titles);
+			
+			if (embeddingsOptional.isPresent()) {
+				embeddings = embeddingsOptional.get();
+				long embeddingTime = System.currentTimeMillis() - startTime;
+				log.debug("Embeddings gerados em " + embeddingTime + "ms para " + embeddings.size() + " textos");
+			} else {
+				log.warn("Falha ao gerar embeddings. Indexando documentos sem vetores (apenas BM25).");
+			}
+		} else {
+			log.debug("Embedding Service desabilitado. Indexando documentos sem vetores.");
+		}
 
 		// Criar requisição Bulk
 		BulkRequest.Builder bulkBuilder = new BulkRequest.Builder();
 
 		for (int i = 0; i < products.size(); i++) {
-			final int docIndex = i;
 			var product = products.get(i);
 			String title = product.getInfo().getTitle();
 			String description = product.getInfo().getDescription();
 			String category = product.getInfo().getCategory().getName();
-			// float[] vector = embeddings.get(i);
+			String productId = product.getId().getValue();
 
 			// Criar documento com TODOS os campos para busca híbrida
 			Map<String, Object> docBody = new HashMap<>();
 			docBody.put("title", title);
 			docBody.put("description", description);
 			docBody.put("category", category);
-			// docBody.put(VECTOR_FIELD, vector);
 
-			// Adicionar ao bulk
+			// Incluir vetor se disponível
+			if (i < embeddings.size()) {
+				float[] vector = embeddings.get(i);
+				docBody.put(VECTOR_FIELD, vector);
+			}
+
+			// Adicionar ao bulk usando o ID do produto
 			bulkBuilder.operations(op -> op
 					.index(idx -> idx
 							.index(INDEX_NAME)
-							.id("doc_" + docIndex)
+							.id(productId)
 							.document(docBody)));
 		}
 
@@ -122,14 +161,17 @@ public class OpensearchRepository implements ProductIndexRepository {
 
 		// Verificar erros
 		if (response.errors()) {
-			System.err.println("Erros durante bulk indexing:");
+			log.error("Erros durante bulk indexing:");
 			for (BulkResponseItem item : response.items()) {
-				if (item.error() != null) {
-					System.err.println("Erro no documento " + item.id() + ": " + item.error().reason());
+				var error = item.error();
+				if (error != null) {
+					log.error("Erro no documento " + item.id() + ": " + error.reason());
 				}
 			}
 		} else {
-			log.debug("✓ " + products.size() + " documentos indexados com sucesso!");
+			int withVectors = embeddings.size();
+			log.debug("✓ " + products.size() + " documentos indexados com sucesso! " + 
+					(withVectors > 0 ? "(" + withVectors + " com vetores)" : "(sem vetores)"));
 		}
 
 		long totalTime = System.currentTimeMillis() - startTime;
@@ -147,19 +189,79 @@ public class OpensearchRepository implements ProductIndexRepository {
 
 	@Override
 	public void updateProduct(Product product) throws Exception {
-		client.update(new UpdateRequest.Builder<Product, Product>()
+		String title = product.getInfo().getTitle();
+		String description = product.getInfo().getDescription();
+		String category = product.getInfo().getCategory().getName();
+
+		// Criar documento com campos estruturados
+		Map<String, Object> docBody = new HashMap<>();
+		docBody.put("title", title);
+		docBody.put("description", description);
+		docBody.put("category", category);
+
+		// Gerar embedding se o serviço estiver habilitado
+		if (embeddingEnabled) {
+			String textForEmbedding = (title != null && !title.trim().isEmpty()) 
+					? title 
+					: (description != null && !description.trim().isEmpty() ? description : "");
+			
+			if (!textForEmbedding.isEmpty()) {
+				List<String> texts = List.of(textForEmbedding);
+				Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(texts);
+				
+				if (embeddingsOptional.isPresent() && !embeddingsOptional.get().isEmpty()) {
+					float[] vector = embeddingsOptional.get().get(0);
+					docBody.put(VECTOR_FIELD, vector);
+					log.debug("Embedding gerado e incluído na atualização do produto " + product.getId().getValue());
+				} else {
+					log.warn("Falha ao gerar embedding para atualização do produto " + product.getId().getValue() + ". Atualizando sem vetor.");
+				}
+			}
+		}
+
+		// Usar index para fazer upsert (atualiza se existir, cria se não existir)
+		client.index(i -> i
 				.index(INDEX_NAME)
 				.id(product.getId().getValue())
-				.doc(product)
-				.build(), Product.class);
+				.document(docBody));
 	}
 
 	@Override
 	public void indexProduct(Product product) throws Exception {
+		String title = product.getInfo().getTitle();
+		String description = product.getInfo().getDescription();
+		String category = product.getInfo().getCategory().getName();
+
+		// Criar documento com campos estruturados
+		Map<String, Object> docBody = new HashMap<>();
+		docBody.put("title", title);
+		docBody.put("description", description);
+		docBody.put("category", category);
+
+		// Gerar embedding se o serviço estiver habilitado
+		if (embeddingEnabled) {
+			String textForEmbedding = (title != null && !title.trim().isEmpty()) 
+					? title 
+					: (description != null && !description.trim().isEmpty() ? description : "");
+			
+			if (!textForEmbedding.isEmpty()) {
+				List<String> texts = List.of(textForEmbedding);
+				Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(texts);
+				
+				if (embeddingsOptional.isPresent() && !embeddingsOptional.get().isEmpty()) {
+					float[] vector = embeddingsOptional.get().get(0);
+					docBody.put(VECTOR_FIELD, vector);
+					log.debug("Embedding gerado e incluído no documento do produto " + product.getId().getValue());
+				} else {
+					log.warn("Falha ao gerar embedding para produto " + product.getId().getValue() + ". Indexando sem vetor.");
+				}
+			}
+		}
+
 		client.index(i -> i
 				.index(INDEX_NAME)
 				.id(product.getId().getValue())
-				.document(product));
+				.document(docBody));
 	}
 
 }

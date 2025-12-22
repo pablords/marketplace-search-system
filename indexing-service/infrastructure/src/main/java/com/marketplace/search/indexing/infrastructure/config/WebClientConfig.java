@@ -1,0 +1,36 @@
+package com.marketplace.search.indexing.infrastructure.config;
+
+import java.time.Duration;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import io.netty.channel.ChannelOption;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
+import reactor.netty.http.client.HttpClient;
+
+/**
+ * Configuração do WebClient para chamadas HTTP reativas
+ * Usado pelo EmbeddingClient para comunicação com o Embedding Service
+ */
+@Configuration
+public class WebClientConfig {
+
+    @Bean
+    public WebClient.Builder webClientBuilder() {
+        // Configurar HttpClient do Netty com timeouts
+        HttpClient httpClient = HttpClient.create()
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+            .responseTimeout(Duration.ofSeconds(10))
+            .doOnConnected(conn ->
+                conn.addHandlerLast(new ReadTimeoutHandler(10))
+                    .addHandlerLast(new WriteTimeoutHandler(10)));
+
+        return WebClient.builder()
+            .clientConnector(new ReactorClientHttpConnector(httpClient));
+    }
+}
+

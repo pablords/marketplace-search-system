@@ -57,6 +57,14 @@ ml:
       enabled: ${ML_FEATURE_STORE_OFFLINE_ENABLED:false}
       version: ${ML_FEATURE_STORE_VERSION:1.0}
 
+# Embedding Service Configuration
+embedding:
+  service:
+    url: ${EMBEDDING_SERVICE_URL:http://embedding-service:8085}
+    timeout-seconds: ${EMBEDDING_SERVICE_TIMEOUT:10}
+    max-retries: ${EMBEDDING_SERVICE_MAX_RETRIES:3}
+    enabled: ${EMBEDDING_SERVICE_ENABLED:true}
+
 # Kafka Topics
 kafka:
   topics:

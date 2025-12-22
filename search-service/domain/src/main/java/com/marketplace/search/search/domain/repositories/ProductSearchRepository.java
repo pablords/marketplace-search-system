@@ -1,14 +1,14 @@
 package com.marketplace.search.search.domain.repositories;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import com.marketplace.search.search.domain.entities.Product;
 import com.marketplace.search.search.domain.valueobjects.ProductId;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Interface do repositório para operações de busca de produtos

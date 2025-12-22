@@ -26,8 +26,9 @@ public record SearchQuery(
         if (offset < 0) {
             throw new IllegalArgumentException("Offset cannot be negative");
         }
-        if (limit <= 0 || limit > 100) {
-            throw new IllegalArgumentException("Limit must be between 1 and 100");
+        // Limite aumentado para 1000 para suportar busca de candidatos para ML ranking (Top 400)
+        if (limit <= 0 || limit > 1000) {
+            throw new IllegalArgumentException("Limit must be between 1 and 1000");
         }
         filters = filters != null ? List.copyOf(filters) : List.of();
         sort = sort != null ? sort : SearchSort.RELEVANCE;
@@ -63,6 +64,7 @@ public record SearchQuery(
     public boolean hasCategoryFilter() {
         return category != null;
     }
+
 
     @Override
     public String toString() {

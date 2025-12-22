@@ -1,0 +1,664 @@
+[
+  {
+    "id": "MLB4316400",
+    "title": "iPhone 14 Pro Apple - Promoção",
+    "description": "At ipsa vel maiores mollitia. Minima sapiente eaque impedit soluta autem.\nFugiat consequuntur ducimus aut. Libero facere cum itaque error neque labore. Consequatur quo saepe corporis aliquam.\nAd modi consectetur quia repellendus ut. Recusandae quibusdam consequuntur.",
+    "price": 2661.17,
+    "currency": "BRL",
+    "available_quantity": 206,
+    "condition": "NEW",
+    "is_active": true,
+    "category": {
+      "id": "CAT001",
+      "name": "Smartphones",
+      "path": "/eletronicos/smartphones",
+      "parent_id": "CAT001"
+    },
+    "brand": {
+      "id": "BRAND001",
+      "name": "Apple",
+      "description": "Inovação e design"
+    },
+    "seller": {
+      "id": "SELLER004",
+      "name": "Gamer Pro",
+      "type": "PROFESSIONAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.9,
+        "total_reviews": 1803,
+        "cancellation_rate": 0.01,
+        "delivery_performance": 0.99,
+        "positive_reviews": 1431,
+        "neutral_reviews": 275,
+        "negative_reviews": 97
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT001_8.jpg",
+      "https://marketplace.com/img/CAT001_7.jpg",
+      "https://marketplace.com/img/CAT001_7.jpg"
+    ],
+    "attributes": [
+      "Memória: 128GB",
+      "Cor: Dourado",
+      "Conectividade: 4G",
+      "Tela: 6.7 polegadas",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "non",
+      "consequuntur",
+      "dolore",
+      "vero"
+    ],
+    "metrics": {
+      "popularity": 5803,
+      "quality": 4.9,
+      "ctr": 0.1217,
+      "total_views": 75439,
+      "total_sales": 6217,
+      "total_reviews": 478,
+      "average_rating": 4.69,
+      "stock_quantity": 206,
+      "last_sale": "2025-11-02T00:00:00Z",
+      "last_view": "2025-09-14T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB5250070",
+    "title": "Samsung Redmi Note 12 - Edição Limitada",
+    "description": "Sapiente dicta non laboriosam a porro. Vitae quibusdam rerum earum labore laborum. Labore nesciunt cum eaque placeat.\nOmnis odit culpa ad minima asperiores laborum. Nihil incidunt dolorem aspernatur voluptate similique.",
+    "price": 2289.03,
+    "currency": "BRL",
+    "available_quantity": 250,
+    "condition": "NEW",
+    "is_active": true,
+    "category": {
+      "id": "CAT001",
+      "name": "Smartphones",
+      "path": "/eletronicos/smartphones",
+      "parent_id": "CAT001"
+    },
+    "brand": {
+      "id": "BRAND002",
+      "name": "Samsung",
+      "description": "Líder em Android"
+    },
+    "seller": {
+      "id": "SELLER003",
+      "name": "Fashion Store",
+      "type": "INDIVIDUAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.2,
+        "total_reviews": 788,
+        "cancellation_rate": 0.05,
+        "delivery_performance": 0.92,
+        "positive_reviews": 587,
+        "neutral_reviews": 139,
+        "negative_reviews": 62
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT001_5.jpg",
+      "https://marketplace.com/img/CAT001_2.jpg",
+      "https://marketplace.com/img/CAT001_4.jpg"
+    ],
+    "attributes": [
+      "Memória: 128GB",
+      "Cor: Branco",
+      "Conectividade: 4G",
+      "Tela: 6.1 polegadas",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "provident",
+      "asperiores",
+      "occaecati",
+      "quis"
+    ],
+    "metrics": {
+      "popularity": 1413,
+      "quality": 4.1,
+      "ctr": 0.0755,
+      "total_views": 21195,
+      "total_sales": 1454,
+      "total_reviews": 123,
+      "average_rating": 3.17,
+      "stock_quantity": 250,
+      "last_sale": "2025-07-27T00:00:00Z",
+      "last_view": "2025-03-16T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB8823511",
+    "title": "Dell iPhone 13 Original",
+    "description": "Minus minima iure dignissimos. Nihil quasi vel similique odit quidem laudantium.\nNatus atque fuga accusantium voluptatibus. Dolorum odit minus.\nEa pariatur dignissimos corrupti inventore adipisci.",
+    "price": 1223.41,
+    "currency": "BRL",
+    "available_quantity": 454,
+    "condition": "NEW",
+    "is_active": true,
+    "category": {
+      "id": "CAT001",
+      "name": "Smartphones",
+      "path": "/eletronicos/smartphones",
+      "parent_id": "CAT001"
+    },
+    "brand": {
+      "id": "BRAND003",
+      "name": "Dell",
+      "description": "Soluções corporativas"
+    },
+    "seller": {
+      "id": "SELLER002",
+      "name": "Casa & Decoração Ltda",
+      "type": "PROFESSIONAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.5,
+        "total_reviews": 1156,
+        "cancellation_rate": 0.03,
+        "delivery_performance": 0.95,
+        "positive_reviews": 869,
+        "neutral_reviews": 201,
+        "negative_reviews": 86
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT001_5.jpg",
+      "https://marketplace.com/img/CAT001_3.jpg",
+      "https://marketplace.com/img/CAT001_3.jpg"
+    ],
+    "attributes": [
+      "Memória: 128GB",
+      "Cor: Branco",
+      "Conectividade: 4G",
+      "Tela: 6.1 polegadas",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "maxime",
+      "nulla",
+      "similique",
+      "in"
+    ],
+    "metrics": {
+      "popularity": 2809,
+      "quality": 4.2,
+      "ctr": 0.0648,
+      "total_views": 14045,
+      "total_sales": 3015,
+      "total_reviews": 428,
+      "average_rating": 3.62,
+      "stock_quantity": 454,
+      "last_sale": "2025-03-03T00:00:00Z",
+      "last_view": "2025-01-18T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB5198342",
+    "title": "Galaxy A54 Apple - Promoção",
+    "description": "Vitae vitae animi error voluptatum. Qui dignissimos non. Quas earum necessitatibus reprehenderit provident laborum. Quae fuga mollitia ut voluptatum illum.\nIusto voluptates maiores fugiat necessitatibus animi. Doloribus nesciunt odit sequi ipsam. Possimus placeat adipisci mollitia.",
+    "price": 2969.56,
+    "currency": "BRL",
+    "available_quantity": 385,
+    "condition": "NEW",
+    "is_active": true,
+    "category": {
+      "id": "CAT001",
+      "name": "Smartphones",
+      "path": "/eletronicos/smartphones",
+      "parent_id": "CAT001"
+    },
+    "brand": {
+      "id": "BRAND001",
+      "name": "Apple",
+      "description": "Inovação e design"
+    },
+    "seller": {
+      "id": "SELLER002",
+      "name": "Casa & Decoração Ltda",
+      "type": "PROFESSIONAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.5,
+        "total_reviews": 1155,
+        "cancellation_rate": 0.03,
+        "delivery_performance": 0.95,
+        "positive_reviews": 861,
+        "neutral_reviews": 204,
+        "negative_reviews": 90
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT001_4.jpg",
+      "https://marketplace.com/img/CAT001_3.jpg",
+      "https://marketplace.com/img/CAT001_1.jpg"
+    ],
+    "attributes": [
+      "Memória: 128GB",
+      "Cor: Branco",
+      "Conectividade: 5G",
+      "Tela: 6.1 polegadas",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "nihil",
+      "animi",
+      "blanditiis",
+      "eius"
+    ],
+    "metrics": {
+      "popularity": 2105,
+      "quality": 4.1,
+      "ctr": 0.0799,
+      "total_views": 23155,
+      "total_sales": 2117,
+      "total_reviews": 277,
+      "average_rating": 3.9,
+      "stock_quantity": 385,
+      "last_sale": "2025-04-22T00:00:00Z",
+      "last_view": "2025-05-02T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB7457014",
+    "title": "Tênis de Corrida Dell - Edição Limitada",
+    "description": "Magni voluptatem praesentium alias.\nError inventore laudantium. Culpa reiciendis reiciendis omnis aspernatur. Doloribus sed quia nam inventore.\nAccusamus molestiae magnam expedita. Quas quas voluptatem aut.",
+    "price": 1068.96,
+    "currency": "BRL",
+    "available_quantity": 383,
+    "condition": "USED",
+    "is_active": true,
+    "category": {
+      "id": "CAT006",
+      "name": "Vestuário",
+      "path": "/moda/vestuario",
+      "parent_id": "CAT006"
+    },
+    "brand": {
+      "id": "BRAND003",
+      "name": "Dell",
+      "description": "Soluções corporativas"
+    },
+    "seller": {
+      "id": "SELLER004",
+      "name": "Gamer Pro",
+      "type": "PROFESSIONAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.9,
+        "total_reviews": 1523,
+        "cancellation_rate": 0.01,
+        "delivery_performance": 0.99,
+        "positive_reviews": 1117,
+        "neutral_reviews": 278,
+        "negative_reviews": 128
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT006_4.jpg",
+      "https://marketplace.com/img/CAT006_3.jpg",
+      "https://marketplace.com/img/CAT006_4.jpg"
+    ],
+    "attributes": [
+      "Tamanho: P",
+      "Gênero: Masculino",
+      "Material: Elastano",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "minima",
+      "a",
+      "voluptatum",
+      "reprehenderit"
+    ],
+    "metrics": {
+      "popularity": 817,
+      "quality": 3.9,
+      "ctr": 0.0574,
+      "total_views": 5719,
+      "total_sales": 695,
+      "total_reviews": 72,
+      "average_rating": 3.93,
+      "stock_quantity": 383,
+      "last_sale": "2025-12-28T00:00:00Z",
+      "last_view": "2025-03-29T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB1218385",
+    "title": "Jaqueta Corta-Vento Apple",
+    "description": "Ratione tempore blanditiis blanditiis similique odio exercitationem. Vero qui voluptatum a ipsam soluta nobis. Illo voluptatibus nostrum quis eos.\nDebitis delectus quos nobis ab dignissimos deleniti. Occaecati laudantium atque saepe inventore.",
+    "price": 577.39,
+    "currency": "BRL",
+    "available_quantity": 224,
+    "condition": "USED",
+    "is_active": true,
+    "category": {
+      "id": "CAT006",
+      "name": "Vestuário",
+      "path": "/moda/vestuario",
+      "parent_id": "CAT006"
+    },
+    "brand": {
+      "id": "BRAND001",
+      "name": "Apple",
+      "description": "Inovação e design"
+    },
+    "seller": {
+      "id": "SELLER004",
+      "name": "Gamer Pro",
+      "type": "PROFESSIONAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.9,
+        "total_reviews": 1416,
+        "cancellation_rate": 0.01,
+        "delivery_performance": 0.99,
+        "positive_reviews": 1005,
+        "neutral_reviews": 276,
+        "negative_reviews": 135
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT006_6.jpg",
+      "https://marketplace.com/img/CAT006_9.jpg",
+      "https://marketplace.com/img/CAT006_4.jpg"
+    ],
+    "attributes": [
+      "Tamanho: G",
+      "Gênero: Feminino",
+      "Material: Poliéster",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "libero",
+      "vitae",
+      "libero",
+      "corrupti"
+    ],
+    "metrics": {
+      "popularity": 4175,
+      "quality": 3.5,
+      "ctr": 0.0402,
+      "total_views": 29225,
+      "total_sales": 2127,
+      "total_reviews": 308,
+      "average_rating": 3.84,
+      "stock_quantity": 224,
+      "last_sale": "2025-07-09T00:00:00Z",
+      "last_view": "2025-02-26T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB4625846",
+    "title": "Nike Smart TV 4K - Promoção",
+    "description": "Veritatis voluptates veritatis deleniti. Dolor sequi tempora ut.\nModi explicabo perferendis. Expedita illum nesciunt inventore quas. Dolore recusandae totam dolore velit.",
+    "price": 3350.35,
+    "currency": "BRL",
+    "available_quantity": 144,
+    "condition": "NEW",
+    "is_active": true,
+    "category": {
+      "id": "CAT003",
+      "name": "TV e Áudio",
+      "path": "/eletronicos/tv-audio",
+      "parent_id": "CAT001"
+    },
+    "brand": {
+      "id": "BRAND004",
+      "name": "Nike",
+      "description": "Just do it"
+    },
+    "seller": {
+      "id": "SELLER002",
+      "name": "Casa & Decoração Ltda",
+      "type": "PROFESSIONAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.5,
+        "total_reviews": 1286,
+        "cancellation_rate": 0.03,
+        "delivery_performance": 0.95,
+        "positive_reviews": 1013,
+        "neutral_reviews": 200,
+        "negative_reviews": 73
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT003_4.jpg",
+      "https://marketplace.com/img/CAT003_9.jpg",
+      "https://marketplace.com/img/CAT003_1.jpg"
+    ],
+    "attributes": [
+      "Resolução: 4K",
+      "Polegadas: 43",
+      "Voltagem: 110v",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "nobis",
+      "alias",
+      "laudantium",
+      "atque"
+    ],
+    "metrics": {
+      "popularity": 989,
+      "quality": 4.8,
+      "ctr": 0.1163,
+      "total_views": 5934,
+      "total_sales": 794,
+      "total_reviews": 110,
+      "average_rating": 4.3,
+      "stock_quantity": 144,
+      "last_sale": "2025-04-27T00:00:00Z",
+      "last_view": "2025-08-17T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB3862515",
+    "title": "Luminária de Mesa Apple",
+    "description": "Pariatur quibusdam molestias. Facilis eius nihil eligendi ipsum occaecati ea possimus.\nTempora aspernatur similique omnis esse minima quod. Hic amet nemo maxime cum fuga totam. Enim quis accusamus explicabo similique.",
+    "price": 4015.44,
+    "currency": "BRL",
+    "available_quantity": 336,
+    "condition": "NEW",
+    "is_active": true,
+    "category": {
+      "id": "CAT005",
+      "name": "Decoração",
+      "path": "/casa/decoracao",
+      "parent_id": "CAT004"
+    },
+    "brand": {
+      "id": "BRAND001",
+      "name": "Apple",
+      "description": "Inovação e design"
+    },
+    "seller": {
+      "id": "SELLER001",
+      "name": "TechStore Brasil",
+      "type": "PROFESSIONAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.8,
+        "total_reviews": 1512,
+        "cancellation_rate": 0.02,
+        "delivery_performance": 0.98,
+        "positive_reviews": 1127,
+        "neutral_reviews": 267,
+        "negative_reviews": 118
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT005_3.jpg",
+      "https://marketplace.com/img/CAT005_6.jpg",
+      "https://marketplace.com/img/CAT005_7.jpg"
+    ],
+    "attributes": [
+      "Estilo: Moderno",
+      "Dimensões: 26x27cm",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "dignissimos",
+      "sequi",
+      "ut",
+      "eum"
+    ],
+    "metrics": {
+      "popularity": 1053,
+      "quality": 4.1,
+      "ctr": 0.0845,
+      "total_views": 5265,
+      "total_sales": 1147,
+      "total_reviews": 110,
+      "average_rating": 3.17,
+      "stock_quantity": 336,
+      "last_sale": "2025-12-05T00:00:00Z",
+      "last_view": "2025-04-12T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB9434177",
+    "title": "Nike Smart TV 65 - Promoção",
+    "description": "Error harum occaecati aliquam. Temporibus ab debitis animi praesentium eos.\nFuga quos hic ullam itaque.\nFacilis quos similique commodi alias explicabo deleniti. Quidem ipsa amet deserunt maxime ducimus. Maxime facilis labore laboriosam.\nFuga libero quia culpa. Necessitatibus sapiente unde.",
+    "price": 641.87,
+    "currency": "BRL",
+    "available_quantity": 57,
+    "condition": "NEW",
+    "is_active": true,
+    "category": {
+      "id": "CAT003",
+      "name": "TV e Áudio",
+      "path": "/eletronicos/tv-audio",
+      "parent_id": "CAT001"
+    },
+    "brand": {
+      "id": "BRAND004",
+      "name": "Nike",
+      "description": "Just do it"
+    },
+    "seller": {
+      "id": "SELLER003",
+      "name": "Fashion Store",
+      "type": "INDIVIDUAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.2,
+        "total_reviews": 682,
+        "cancellation_rate": 0.05,
+        "delivery_performance": 0.92,
+        "positive_reviews": 516,
+        "neutral_reviews": 116,
+        "negative_reviews": 50
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT003_8.jpg",
+      "https://marketplace.com/img/CAT003_2.jpg",
+      "https://marketplace.com/img/CAT003_1.jpg"
+    ],
+    "attributes": [
+      "Resolução: 4K",
+      "Polegadas: 75",
+      "Voltagem: 220v",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "odit",
+      "illo",
+      "minus",
+      "consequatur"
+    ],
+    "metrics": {
+      "popularity": 1864,
+      "quality": 4.3,
+      "ctr": 0.0815,
+      "total_views": 27960,
+      "total_sales": 2138,
+      "total_reviews": 301,
+      "average_rating": 3.69,
+      "stock_quantity": 57,
+      "last_sale": "2025-03-18T00:00:00Z",
+      "last_view": "2025-10-29T00:00:00Z"
+    }
+  },
+  {
+    "id": "MLB6931555",
+    "title": "Vaso de Cerâmica Apple",
+    "description": "Fugiat facere cupiditate alias minus.\nError quis tenetur aperiam consequuntur sint. Repellat qui accusantium et ea exercitationem suscipit. Veniam ab occaecati fuga modi.",
+    "price": 545.19,
+    "currency": "BRL",
+    "available_quantity": 492,
+    "condition": "NEW",
+    "is_active": true,
+    "category": {
+      "id": "CAT005",
+      "name": "Decoração",
+      "path": "/casa/decoracao",
+      "parent_id": "CAT004"
+    },
+    "brand": {
+      "id": "BRAND001",
+      "name": "Apple",
+      "description": "Inovação e design"
+    },
+    "seller": {
+      "id": "SELLER003",
+      "name": "Fashion Store",
+      "type": "INDIVIDUAL",
+      "status": "ACTIVE",
+      "reputation": {
+        "score": 4.2,
+        "total_reviews": 822,
+        "cancellation_rate": 0.05,
+        "delivery_performance": 0.92,
+        "positive_reviews": 637,
+        "neutral_reviews": 133,
+        "negative_reviews": 52
+      }
+    },
+    "images": [
+      "https://marketplace.com/img/CAT005_6.jpg",
+      "https://marketplace.com/img/CAT005_5.jpg",
+      "https://marketplace.com/img/CAT005_2.jpg"
+    ],
+    "attributes": [
+      "Estilo: Industrial",
+      "Dimensões: 26x48cm",
+      "Produto original",
+      "Garantia de fábrica"
+    ],
+    "tags": [
+      "cum",
+      "molestiae",
+      "ipsum",
+      "recusandae"
+    ],
+    "metrics": {
+      "popularity": 1126,
+      "quality": 4.6,
+      "ctr": 0.1083,
+      "total_views": 10134,
+      "total_sales": 1501,
+      "total_reviews": 192,
+      "average_rating": 4.68,
+      "stock_quantity": 492,
+      "last_sale": "2025-11-20T00:00:00Z",
+      "last_view": "2025-04-20T00:00:00Z"
+    }
+  }
+]

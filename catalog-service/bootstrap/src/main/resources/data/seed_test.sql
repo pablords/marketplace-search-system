@@ -6,7 +6,9 @@ INSERT INTO categories (id, name, path) VALUES
 ('CAT001', 'Eletrônicos', 'Eletrônicos > Celulares > Smartphones'),
 ('CAT002', 'Informática', 'Informática > Notebooks > Notebooks para Trabalho'),
 ('CAT003', 'Moda e Beleza', 'Moda e Beleza > Calçados > Tênis'),
-('CAT004', 'Casa e Moveis', 'Casa e Moveis');
+('CAT004', 'Casa e Moveis', 'Casa e Moveis'),
+('CAT005', 'Decoração', 'Decoração'),
+('CAT006', 'Vestuário', 'Vestuário');
 
 -- 2. Inserir Marcas
 INSERT INTO brands (id, name, description) VALUES 
@@ -16,11 +18,12 @@ INSERT INTO brands (id, name, description) VALUES
 ('BRAND004', 'Adidas', 'adidas');
 
 -- 3. Inserir Vendedores
-INSERT INTO sellers (id, name, type, status, score, total_reviews, positive_reviews, cancellation_rate, delivery_performance) VALUES 
-('SELLER001', 'TechStore', 'PROFESSIONAL', 'ACTIVE', 4.8, 1500, 1400, 0.02, 0.98),
-('SELLER002', 'InfoShop', 'PROFESSIONAL', 'ACTIVE', 4.9, 2000, 1950, 0.01, 0.99),
-('SELLER003', 'SportCenter', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 0.05, 0.95),
-('SELLER004', 'Sport', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 0.05, 0.95);
+-- IMPORTANTE: total_reviews DEVE ser igual a positive_reviews + neutral_reviews + negative_reviews
+INSERT INTO sellers (id, name, type, status, score, total_reviews, positive_reviews, neutral_reviews, negative_reviews, cancellation_rate, delivery_performance) VALUES 
+('SELLER001', 'TechStore', 'PROFESSIONAL', 'ACTIVE', 4.8, 1500, 1400, 80, 20, 0.02, 0.98),
+('SELLER002', 'InfoShop', 'PROFESSIONAL', 'ACTIVE', 4.9, 2000, 1950, 40, 10, 0.01, 0.99),
+('SELLER003', 'SportCenter', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 70, 30, 0.05, 0.95),
+('SELLER004', 'Sport', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 70, 30, 0.05, 0.95);
 
 -- 4. Inserir Produtos
 INSERT INTO products (id, title, description, price, currency, available_quantity, condition, active, category_id, brand_id, seller_id, attributes) VALUES 

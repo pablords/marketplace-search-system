@@ -49,6 +49,8 @@ CATEGORIES_DB = [
     {"id": "CAT002", "name": "Notebooks", "path": "/eletronicos/notebooks", "parent_id": "CAT001"},
     {"id": "CAT003", "name": "TV e Áudio", "path": "/eletronicos/tv-audio", "parent_id": "CAT001"},
     {"id": "CAT004", "name": "Móveis", "path": "/casa/moveis", "parent_id": "CAT004"},
+    {"id": "CAT005", "name": "Decoração", "path": "/casa/decoracao", "parent_id": "CAT004"},
+    {"id": "CAT006", "name": "Vestuário", "path": "/moda/vestuario", "parent_id": "CAT006"},
 ]
 
 # ==========================================
@@ -141,7 +143,16 @@ def generate_quality_metrics(rule_metrics):
     total_views = popularity * random.randint(5, 15)
     total_sales = int(popularity * (quality / 5.0) * random.uniform(0.5, 1.5))
     total_reviews = int(total_sales * random.uniform(0.05, 0.15))
-    average_rating = random.uniform(0.0, 5.0)
+    
+    # Correlacionar average_rating com a qualidade do produto
+    # Produtos de alta qualidade (4.5-5.0) devem ter ratings altos (4.0-5.0)
+    # Produtos de baixa qualidade (3.0-3.5) devem ter ratings mais baixos (2.5-4.0)
+    quality_ratio = (quality - rule_metrics["qual_min"]) / (rule_metrics["qual_max"] - rule_metrics["qual_min"])
+    rating_min = 2.5 + (quality_ratio * 1.5)  # Entre 2.5 e 4.0
+    rating_max = 3.5 + (quality_ratio * 1.5)   # Entre 3.5 e 5.0
+    average_rating = round(random.uniform(rating_min, rating_max), 2)
+    average_rating = min(5.0, max(0.0, average_rating))  # Garantir entre 0 e 5
+    
     last_sale = gnerate_date(datetime(2025, 1, 1), datetime(2025, 12, 31)).isoformat() + "Z"
     last_view = gnerate_date(datetime(2025, 1, 1), datetime(2025, 12, 31)).isoformat() + "Z"
 
@@ -173,7 +184,10 @@ def generate_product_payload():
     rule = CATALOG_RULES[target_cat_id]
     
     # 2. Recuperar o objeto categoria completo do DB
-    category_obj = next(c for c in CATEGORIES_DB if c["id"] == target_cat_id)
+    category_obj = next((c for c in CATEGORIES_DB if c["id"] == target_cat_id), None)
+    if category_obj is None:
+        raise ValueError(f"Categoria {target_cat_id} não encontrada em CATEGORIES_DB. "
+                        f"Categorias disponíveis: {[c['id'] for c in CATEGORIES_DB]}")
     
     # 3. Escolher Produto e Marca compatíveis
     product_name_base = random.choice(rule["products"])
@@ -207,12 +221,33 @@ def generate_product_payload():
     # 7. Métricas de Qualidade (LTR Features)
     quality_metrics = generate_quality_metrics(rule["metrics_seed"])
     
-    # 8. Vendedor
+    # 8. Vendedor - Gerar reviews de forma consistente
     seller = random.choice(SELLERS)
-    positive_reviews = random.randint(int(quality_metrics["quality"] / 5.0 * 500), 600)
-    neutral_reviews = random.randint(int((1.0 - quality_metrics["quality"] / 5.0) * 300), 400)
-    negative_reviews = random.randint(int((1.0 - quality_metrics["quality"] / 5.0) * 200), 300)
-    total_reviews = positive_reviews + neutral_reviews + negative_reviews
+    
+    # Primeiro definir o total de reviews baseado na qualidade do produto e reputação do seller
+    # Sellers com melhor reputação tendem a ter mais reviews
+    base_total_reviews = int(seller["reputation"]["total_reviews"] * random.uniform(0.8, 1.2))
+    # Ajustar baseado na qualidade do produto (produtos melhores geram mais reviews)
+    quality_factor = quality_metrics["quality"] / 5.0
+    total_reviews = max(0, int(base_total_reviews * (0.5 + quality_factor * 0.5)))
+    
+    # Distribuir proporcionalmente baseado na qualidade do produto
+    # Produtos de alta qualidade: ~80% positivo, ~15% neutro, ~5% negativo
+    # Produtos de baixa qualidade: ~50% positivo, ~30% neutro, ~20% negativo
+    positive_ratio = 0.5 + (quality_factor * 0.3)  # Entre 0.5 e 0.8
+    neutral_ratio = 0.3 - (quality_factor * 0.15)    # Entre 0.15 e 0.3
+    
+    # Garantir que a soma seja exatamente total_reviews
+    positive_reviews = int(total_reviews * positive_ratio)
+    neutral_reviews = int(total_reviews * neutral_ratio)
+    # Calcular negative_reviews como o restante para garantir soma exata
+    negative_reviews = total_reviews - positive_reviews - neutral_reviews
+    
+    # Garantir valores não negativos
+    positive_reviews = max(0, positive_reviews)
+    neutral_reviews = max(0, neutral_reviews)
+    negative_reviews = max(0, negative_reviews)
+    
     seller = {
         **seller,
         "reputation": {
@@ -308,7 +343,7 @@ def create_products_on_demand(api_url, total_products=10):
 
 def main():
     # create_dataset_file(total_products=10)
-    create_products_on_demand(api_url="http://localhost:8080/api/v1", total_products=1)
+    create_products_on_demand(api_url="http://localhost:8080/api/v1", total_products=100)
 
 if __name__ == "__main__":
     main()

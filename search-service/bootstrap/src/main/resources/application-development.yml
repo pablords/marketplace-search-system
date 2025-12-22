@@ -1,0 +1,47 @@
+spring:
+  # DevTools para hot reload em projeto multi-módulo
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: 
+        - ../domain/src/main/java
+        - ../application/src/main/java
+        - ../infrastructure/src/main/java
+        - ../interfaces/src/main/java
+      poll-interval: 1000ms
+      quiet-period: 400ms
+    livereload:
+      enabled: true
+      port: 35729
+    add-properties: true
+  
+  # Cache desabilitado em desenvolvimento
+  cache:  
+    type: none
+  
+  # Resource chain disabled para hot reload
+  web:
+    resources:
+      cache:
+        period: 0s
+      chain:
+        cache: false
+
+# Logging mais verboso para desenvolvimento
+logging:
+  level:
+    com.marketplace.search: DEBUG
+    com.marketplace.search.search.infrastructure.ml: DEBUG
+    com.marketplace.search.search.infrastructure.featurestore: DEBUG
+    org.springframework.web: INFO
+    org.springframework.data: INFO
+    org.hibernate: WARN
+
+# Management para desenvolvimento
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers,env,configprops
+      base-path: /actuator
+

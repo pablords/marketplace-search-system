@@ -225,6 +225,15 @@ services:
     container_name: marketplace-ml-ranking
     ports:
       - "8084:8084"
+    environment:
+      - PORT=8084
+      - MODEL_VERSION=1.0
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+      open-search:
+        condition: service_healthy
     networks:
       - marketplace-network
     healthcheck:

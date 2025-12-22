@@ -1,0 +1,139 @@
+spring:
+  application:
+    name: search-service
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:development}
+
+  output:
+    ansi:
+      enabled: always
+  
+  # Redis configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+  # PostgreSQL configuration for Feature Store Offline
+  datasource:
+    feature-store:
+      url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:catalog}
+      username: ${POSTGRES_USER:catalog}
+      password: ${POSTGRES_PASSWORD:catalog}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 5
+        minimum-idle: 2
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: none  # Schema gerenciado por migrations ou script SQL
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+
+# OpenSearch
+opensearch:
+  host: ${OPENSEARCH_HOST:localhost}
+  port: ${OPENSEARCH_PORT:9200}
+  scheme: ${OPENSEARCH_SCHEME:http}
+  username: ${OPENSEARCH_USERNAME:admin}
+  password: ${OPENSEARCH_PASSWORD:admin}
+  index:
+    products: ${OPENSEARCH_PRODUCTS_INDEX:products-index}
+
+# ML Ranking Service Configuration
+ml:
+  ranking:
+    service:
+      url: ${ML_RANKING_SERVICE_URL:http://ml-ranking-service:8084}
+      timeout-seconds: ${ML_RANKING_SERVICE_TIMEOUT:5}
+      max-retries: ${ML_RANKING_SERVICE_MAX_RETRIES:3}
+      enabled: ${ML_RANKING_ENABLED:true}
+  
+  feature-store:
+    # Feature Store Online (Redis)
+    ttl-seconds: ${ML_FEATURE_STORE_TTL:3600}  # 1 hora
+    redis-key-prefix: ${ML_FEATURE_STORE_REDIS_PREFIX:feature:ml:}
+    
+    # Feature Store Offline (PostgreSQL)
+    offline:
+      enabled: ${ML_FEATURE_STORE_OFFLINE_ENABLED:true}
+      version: ${ML_FEATURE_STORE_VERSION:1.0}
+      batch-size: ${ML_FEATURE_STORE_BATCH_SIZE:100}
+
+# Feature Flags
+features:
+  ml-ranking:
+    enabled: ${FEATURE_ML_RANKING_ENABLED:true}
+  feature-store-offline:
+    enabled: ${FEATURE_FEATURE_STORE_OFFLINE_ENABLED:true}
+
+# Logging
+logging:
+  level:
+    com.marketplace.search: ${LOG_LEVEL:INFO}
+    com.marketplace.search.search.infrastructure.ml: ${LOG_LEVEL_ML:DEBUG}
+    com.marketplace.search.search.infrastructure.featurestore: ${LOG_LEVEL_FEATURE_STORE:DEBUG}
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){blue} %clr(%logger{36}){cyan} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/search-service.log
+
+# Management/Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      enabled: true
+    tags:
+      application: marketplace-search-system
+      service: search-service
+      environment: ${ENVIRONMENT:development}
+
+# Server
+server:
+  port: ${SERVER_PORT:8083}
+  servlet:
+    context-path: /api/v1
+
+# SpringDoc OpenAPI 3
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  show-actuator: false
+

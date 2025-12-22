@@ -102,6 +102,28 @@ CREATE TRIGGER trg_update_products_ts BEFORE UPDATE ON products FOR EACH ROW EXE
 CREATE TRIGGER trg_update_sellers_ts BEFORE UPDATE ON sellers FOR EACH ROW EXECUTE PROCEDURE update_timestamp_column();
 CREATE TRIGGER trg_update_metrics_ts BEFORE UPDATE ON product_metrics FOR EACH ROW EXECUTE PROCEDURE update_timestamp_column();
 
+-- 6. Tabela de Features ML para Feature Store Offline
+-- Armazena features históricas para treinamento de modelos ML
+CREATE TABLE IF NOT EXISTS product_features_ml (
+    product_id VARCHAR(255) NOT NULL,
+    features_json JSONB NOT NULL,
+    calculated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version VARCHAR(50) NOT NULL DEFAULT '1.0',
+    PRIMARY KEY (product_id, calculated_at, version)
+);
+
+-- Índices para consultas eficientes
+CREATE INDEX IF NOT EXISTS idx_product_features_ml_product_id ON product_features_ml(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_features_ml_calculated_at ON product_features_ml(calculated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_features_ml_version ON product_features_ml(version);
+
+-- Comentários para documentação
+COMMENT ON TABLE product_features_ml IS 'Feature Store Offline: armazena features históricas de ML para treinamento de modelos';
+COMMENT ON COLUMN product_features_ml.product_id IS 'ID do produto';
+COMMENT ON COLUMN product_features_ml.features_json IS 'Features em formato JSON (17 features: BM25, k-NN, popularity, etc.)';
+COMMENT ON COLUMN product_features_ml.calculated_at IS 'Timestamp de quando as features foram calculadas';
+COMMENT ON COLUMN product_features_ml.version IS 'Versão do modelo/features (para rastreamento de mudanças)';
+
 -- --- CONFIGURAÇÃO DEBEZIUM (CDC) ---
 -- 'FULL' envia o estado anterior e novo da linha no evento
 ALTER TABLE products REPLICA IDENTITY FULL;

@@ -68,11 +68,11 @@ public class ProductMapper {
     } catch (NumberFormatException ignored) {
     }
 
-    com.marketplace.search.indexing.application.dtos.SellerReputationDTO reputation = null;
+    SellerReputationDTO reputation = null;
     if (sellerScore != null || data.getSellerTotalReviews() != null || data.getSellerPositiveReviews() != null
         || data.getSellerNeutralReviews() != null || data.getSellerNegativeReviews() != null
         || cancellationRate != null || deliveryPerformance != null) {
-      reputation = com.marketplace.search.indexing.application.dtos.SellerReputationDTO.builder()
+      reputation = SellerReputationDTO.builder()
           .score(sellerScore)
           .totalReviews(data.getSellerTotalReviews())
           .positiveReviews(data.getSellerPositiveReviews())
@@ -255,12 +255,19 @@ public class ProductMapper {
   }
 
   private SellerReputation mapSellerReputation(SellerReputationDTO dto) {
+    // Tratar valores null como 0 (valores padrão)
+    // O script de geração agora garante consistência: totalReviews = positive + neutral + negative
+    int positiveReviews = dto.positiveReviews() != null ? dto.positiveReviews() : 0;
+    int neutralReviews = dto.neutralReviews() != null ? dto.neutralReviews() : 0;
+    int negativeReviews = dto.negativeReviews() != null ? dto.negativeReviews() : 0;
+    int totalReviews = dto.totalReviews() != null ? dto.totalReviews() : 0;
+    
     return new SellerReputation(
         dto.score() != null ? dto.score() : 5.0,
-        dto.totalReviews() != null ? dto.totalReviews() : 0,
-        dto.positiveReviews() != null ? dto.positiveReviews() : 0,
-        dto.neutralReviews() != null ? dto.neutralReviews() : 0,
-        dto.negativeReviews() != null ? dto.negativeReviews() : 0,
+        totalReviews,
+        positiveReviews,
+        neutralReviews,
+        negativeReviews,
         dto.cancellationRate() != null ? dto.cancellationRate() : 0.0,
         dto.deliveryPerformance() != null ? dto.deliveryPerformance() : 1.0);
   }

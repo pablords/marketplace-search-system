@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.marketplace.search.indexing.application.commands.ProductCommand;
 import com.marketplace.search.indexing.application.exceptions.IndexingException;
 import com.marketplace.search.indexing.application.mappers.ProductMapper;
+import com.marketplace.search.indexing.application.services.ProductFeatureCalculationService;
 import com.marketplace.search.indexing.domain.entities.Product;
 import com.marketplace.search.indexing.domain.repositories.ProductIndexRepository;
 
@@ -27,11 +28,14 @@ public class IndexProductUseCase {
 
     private final ProductIndexRepository indexRepository;
     private final ProductMapper productMapper;
+    private final ProductFeatureCalculationService featureCalculationService;
 
     public IndexProductUseCase(ProductIndexRepository indexRepository,
-            ProductMapper productMapper) {
+            ProductMapper productMapper,
+            ProductFeatureCalculationService featureCalculationService) {
         this.indexRepository = indexRepository;
         this.productMapper = productMapper;
+        this.featureCalculationService = featureCalculationService;
     }
 
     /**
@@ -47,15 +51,12 @@ public class IndexProductUseCase {
 
         try {
             Product product = productMapper.toDomain(productDTO);
-            // ProductFeatures features = new ProductFeatures(
-            //         product.getId(),
-            //         product.getInfo().getPrice(),
-            //         product.getSeller().getReputationScore(),
-            //         product.getMetrics().getPopularityScore()   
-            // // ... outros campos numéricos
-            // );
 
+            // Indexar produto no OpenSearch
             indexRepository.indexProduct(product);
+
+            // Calcular e cachear features de ML no Redis
+            featureCalculationService.calculateAndCacheFeatures(product);
 
             return CompletableFuture.completedFuture(null);
 
@@ -77,7 +78,13 @@ public class IndexProductUseCase {
                     .map(productMapper::toDomain)
                     .collect(Collectors.toList());
 
+            // Indexar produtos no OpenSearch
             indexRepository.indexDocumentsBatch(products);
+
+            // Calcular e cachear features de ML para cada produto
+            for (Product product : products) {
+                featureCalculationService.calculateAndCacheFeatures(product);
+            }
 
             logger.info("Batch indexing completed: {} products", products.size());
 

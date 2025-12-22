@@ -93,6 +93,24 @@
             "dependsOn": ["env: load variables"],
             "dependsOrder": "sequence",
             "problemMatcher": []
+        },
+        {
+            "label": "run: ML Embedding Service",
+            "type": "shell",
+            "command": "${workspaceFolder}/ml-embedding-service/run.sh",
+            "options": {
+                "cwd": "${workspaceFolder}/ml-embedding-service"
+            },
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": []
         }
     ]
 }

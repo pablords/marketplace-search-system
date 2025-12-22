@@ -172,22 +172,17 @@
             "preLaunchTask": "maven: compile search"
         },
         {
-            "type": "debugpy",
             "name": "🤖 ML Embedding Service",
+            "type": "node",
             "request": "launch",
-            "module": "uvicorn",
-            "args": [
-                "main:app",
-                "--host",
-                "0.0.0.0",
-                "--port",
-                "8085"
+            "runtimeExecutable": "/bin/bash",
+            "runtimeArgs": [
+                "-c",
+                "cd '${workspaceFolder}/ml-embedding-service' && bash run.sh"
             ],
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "cwd": "${workspaceFolder}/ml-embedding-service",
-            "python": "${workspaceFolder}/.venv/bin/python",
-            "justMyCode": false
+            "skipFiles": ["<node_internals>/**"]
         },
         {
             "type": "debugpy",

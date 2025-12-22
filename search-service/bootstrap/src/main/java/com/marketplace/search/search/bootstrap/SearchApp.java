@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.sql.init.SqlInitializationAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Classe principal da aplicação Search Service
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {SqlInitializationAutoConfiguration.class})
 @ComponentScan(basePackages = {
         "com.marketplace.search.search.domain",
         "com.marketplace.search.search.application",

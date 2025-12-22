@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -18,8 +19,12 @@ import com.marketplace.search.search.domain.repositories.MLFeatureStore;
  * Implementação do Feature Store Online usando Redis
  * Armazena features de ML usando Hash Redis com namespace feature:ml:{product_id}
  * TTL padrão: 1 hora (3600 segundos)
+ * 
+ * Marcado como @Primary pois é o Feature Store usado para cache rápido durante o ranking.
+ * O PostgresFeatureStore é usado apenas para armazenamento histórico offline.
  */
 @Repository
+@Primary
 public class RedisFeatureStore implements MLFeatureStore {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisFeatureStore.class);

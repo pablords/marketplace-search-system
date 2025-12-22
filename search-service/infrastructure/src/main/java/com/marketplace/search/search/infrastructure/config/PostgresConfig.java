@@ -2,10 +2,9 @@ package com.marketplace.search.search.infrastructure.config;
 
 import javax.sql.DataSource;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -20,8 +19,10 @@ import com.zaxxer.hikari.HikariDataSource;
 
 /**
  * Configuração do PostgreSQL para Feature Store Offline no Search Service
+ * Só é ativada se a feature flag estiver habilitada
  */
 @Configuration
+@ConditionalOnProperty(name = "features.feature-store-offline.enabled", havingValue = "true", matchIfMissing = true)
 @EnableJpaRepositories(
     basePackages = "com.marketplace.search.search.infrastructure.featurestore",
     entityManagerFactoryRef = "featureStoreEntityManagerFactory",
@@ -42,12 +43,6 @@ public class PostgresConfig {
     @Value("${spring.datasource.feature-store.driver-class-name:org.postgresql.Driver}")
     private String driverClassName;
 
-    @Bean
-    @ConfigurationProperties("spring.datasource.feature-store.hikari")
-    public DataSourceProperties featureStoreDataSourceProperties() {
-        return new DataSourceProperties();
-    }
-
     @Bean(name = "featureStoreDataSource")
     public DataSource featureStoreDataSource() {
         HikariConfig config = new HikariConfig();
@@ -65,9 +60,10 @@ public class PostgresConfig {
     }
 
     @Bean(name = "featureStoreEntityManagerFactory")
-    public LocalContainerEntityManagerFactoryBean featureStoreEntityManagerFactory() {
+    public LocalContainerEntityManagerFactoryBean featureStoreEntityManagerFactory(
+            @Qualifier("featureStoreDataSource") DataSource dataSource) {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
-        em.setDataSource(featureStoreDataSource());
+        em.setDataSource(dataSource);
         em.setPackagesToScan("com.marketplace.search.search.infrastructure.featurestore");
         
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();

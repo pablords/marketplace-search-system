@@ -36,6 +36,9 @@ spring:
         connection-timeout: 30000
         idle-timeout: 600000
         max-lifetime: 1800000
+    # Desabilita inicialização automática de scripts SQL para evitar conflitos
+    initialization:
+      mode: never
 
   jpa:
     hibernate:

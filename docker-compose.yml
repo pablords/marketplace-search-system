@@ -243,6 +243,29 @@ services:
       retries: 5
       start_period: 30s
 
+  # Embedding Service
+  embedding-service:
+    build:
+      context: ./embedding-service
+      dockerfile: Dockerfile
+    container_name: marketplace-embedding
+    ports:
+      - "8085:8085"
+    environment:
+      - PORT=8085
+      - LOG_LEVEL=INFO
+    depends_on:
+      open-search:
+        condition: service_healthy
+    networks:
+      - marketplace-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8085/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
 volumes:
   postgres_data:
   redis_data:

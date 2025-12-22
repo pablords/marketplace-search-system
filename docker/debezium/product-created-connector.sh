@@ -26,10 +26,6 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
     "key.converter.schemas.enable": "false",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
     "value.converter.schemas.enable": "false",
-    "transforms": "router",
-    "transforms.router.type": "io.debezium.transforms.ByLogicalTableRouter",
-    "transforms.router.topic.regex": "catalog-db\\.public\\.products",
-    "transforms.router.topic.replacement": "marketplace.public.catalog_products",
     "decimal.handling.mode": "string"
   }
 }'

@@ -1,7 +1,11 @@
 package com.marketplace.search.search.application.usecases;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -17,8 +21,11 @@ import com.marketplace.search.search.application.mappers.SearchMapper;
 import com.marketplace.search.search.application.queries.SearchMetricsData;
 import com.marketplace.search.search.application.queries.SearchRequestQuery;
 import com.marketplace.search.search.application.queries.SearchResultQuery;
+import com.marketplace.search.search.domain.entities.Product;
 import com.marketplace.search.search.domain.repositories.CacheRepository;
+import com.marketplace.search.search.domain.repositories.ProductSearchRepository;
 import com.marketplace.search.search.domain.services.SearchDomainService;
+import com.marketplace.search.search.domain.valueobjects.SearchMetrics;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
@@ -36,23 +43,33 @@ public class SearchProductsUseCase {
   private final SearchMapper searchMapper;
   private final CacheRepository cacheRepository;
   private final SearchCacheProperties cacheProperties;
+  private final RankWithMLUseCase rankWithMLUseCase;
+  private final ProductSearchRepository productSearchRepository;
 
   public SearchProductsUseCase(SearchDomainService searchDomainService,
       SearchMapper searchMapper,
       CacheRepository cacheRepository,
-      SearchCacheProperties cacheProperties) {
+      SearchCacheProperties cacheProperties,
+      RankWithMLUseCase rankWithMLUseCase,
+      ProductSearchRepository productSearchRepository) {
     this.searchDomainService = searchDomainService;
     this.searchMapper = searchMapper;
     this.cacheRepository = cacheRepository;
     this.cacheProperties = cacheProperties;
+    this.rankWithMLUseCase = rankWithMLUseCase;
+    this.productSearchRepository = productSearchRepository;
   }
 
   /**
-   * Executa busca padrão de produtos
+   * Executa busca padrão de produtos com fluxo de 2 fases:
+   * Fase 1: Busca Top 400 candidatos no OpenSearch
+   * Fase 2: Extração de features, ML ranking e retorno Top 20
    */
   public SearchResultQuery execute(SearchRequestQuery request) {
-    logger.info("Executing search: query='{}', limit={}, offset={}",
+    logger.info("Executing search with 2-phase flow: query='{}', limit={}, offset={}",
         request.query(), request.limit(), request.offset());
+
+    Instant startTime = Instant.now();
 
     try {
       // Mapear DTOs para objetos de domínio
@@ -65,16 +82,70 @@ public class SearchProductsUseCase {
         return cachedResult;
       }
 
-      // Executar busca usando o serviço de domínio
-      SearchResult result = searchDomainService.smartSearch(query, userContext);
+      // FASE 1: Buscar Top 400 candidatos no OpenSearch com scores
+      logger.debug("Fase 1: Buscando Top 400 candidatos no OpenSearch");
+      ProductSearchRepository.CandidatesWithScores candidatesWithScores = 
+          productSearchRepository.searchCandidatesWithScores(query, userContext);
+      
+      List<Product> candidates = candidatesWithScores.products();
+      Map<String, ProductSearchRepository.ScorePair> scoresMap = 
+          candidatesWithScores.scores();
+
+      if (candidates.isEmpty()) {
+        logger.info("Nenhum candidato encontrado para query: '{}'", query.terms());
+        return createEmptyResult(query, Duration.between(startTime, Instant.now()));
+      }
+
+      logger.info("Fase 1 concluída: {} candidatos encontrados", candidates.size());
+
+      // FASE 2: Extrair features, chamar ML ranking e re-ranquear para Top 20
+      logger.debug("Fase 2: Extraindo features e chamando ML ranking");
+      
+      // Converter scores para o formato esperado pelo RankWithMLUseCase
+      Map<String, RankWithMLUseCase.ScorePair> scorePairs = new HashMap<>();
+      for (Map.Entry<String, ProductSearchRepository.ScorePair> entry : scoresMap.entrySet()) {
+        scorePairs.put(entry.getKey(), 
+            new RankWithMLUseCase.ScorePair(
+                entry.getValue().bm25Score(), 
+                entry.getValue().knnScore()));
+      }
+
+      // Re-ranquear usando ML
+      List<Product> rankedProducts = rankWithMLUseCase.rank(candidates, query, userContext, scorePairs);
+
+      // Limitar aos resultados solicitados (considerando offset e limit)
+      int fromIndex = Math.min(query.offset(), rankedProducts.size());
+      int toIndex = Math.min(query.offset() + query.limit(), rankedProducts.size());
+      List<Product> finalProducts = rankedProducts.subList(fromIndex, toIndex);
+
+      Duration executionTime = Duration.between(startTime, Instant.now());
+
+      // Criar SearchResult com os produtos re-ranqueados
+      SearchMetrics metrics = new SearchMetrics(
+          100, // QPS estimado
+          0.0, // Average score (pode ser calculado se necessário)
+          candidates.size(), // Total count (candidatos encontrados)
+          (int) executionTime.toMillis(), // Took
+          false, // Cache usage
+          "" // Shard info
+      );
+
+      SearchResult result = new SearchResult(
+          finalProducts,
+          candidates.size(), // totalCount
+          query.limit(), // pageSize
+          query.offset() / query.limit(), // pageNumber
+          executionTime,
+          metrics
+      );
 
       // Mapear resultado para DTO
       SearchResultQuery resultDTO = searchMapper.toDTO(result);
 
       storeInCache(cacheKey, resultDTO, result.hasResults());
 
-      logger.info("Search completed: found {} products in {}ms",
-          result.products().size(), result.executionTime().toMillis());
+      logger.info("Search completed with 2-phase flow: {} products returned from {} candidates in {}ms",
+          finalProducts.size(), candidates.size(), executionTime.toMillis());
 
       return resultDTO;
 
@@ -82,6 +153,22 @@ public class SearchProductsUseCase {
       logger.error("Error executing search for query: {}", request.query(), e);
       throw new SearchException("Failed to execute search", e);
     }
+  }
+
+  /**
+   * Cria um resultado vazio quando não há candidatos
+   */
+  private SearchResultQuery createEmptyResult(SearchQuery query, Duration executionTime) {
+    SearchMetrics metrics = new SearchMetrics(100, 0.0, 0, (int) executionTime.toMillis(), false, "");
+    SearchResult emptyResult = new SearchResult(
+        List.of(),
+        0,
+        query.limit(),
+        query.offset() / query.limit(),
+        executionTime,
+        metrics
+    );
+    return searchMapper.toDTO(emptyResult);
   }
 
   /**

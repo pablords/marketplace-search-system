@@ -7,6 +7,7 @@ import com.marketplace.search.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -18,6 +19,15 @@ public interface ProductSearchRepository {
    * Busca produtos baseado na query de busca e contexto do usuário
    */
   SearchResult search(SearchQuery query, UserContext userContext);
+
+  /**
+   * Busca candidatos para re-ranking ML (Top 400) e retorna produtos com seus scores
+   * 
+   * @param query Query de busca
+   * @param userContext Contexto do usuário
+   * @return Resultado com produtos e mapa de productId -> (bm25Score, knnScore)
+   */
+  CandidatesWithScores searchCandidatesWithScores(SearchQuery query, UserContext userContext);
 
   /**
    * Busca produtos similares a um produto específico
@@ -53,5 +63,21 @@ public interface ProductSearchRepository {
    * Conta o total de produtos que correspondem à query
    */
   long count(SearchQuery query);
+
+  /**
+   * Record para retornar candidatos com seus scores
+   */
+  record CandidatesWithScores(
+      List<Product> products,
+      Map<String, ScorePair> scores
+  ) {}
+
+  /**
+   * Record para armazenar scores de um candidato
+   */
+  record ScorePair(
+      double bm25Score,
+      double knnScore
+  ) {}
 }
 

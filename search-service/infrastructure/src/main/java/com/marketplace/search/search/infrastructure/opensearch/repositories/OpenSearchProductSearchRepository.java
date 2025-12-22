@@ -288,6 +288,80 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 		}
 	}
 
+	@Override
+	public ProductSearchRepository.CandidatesWithScores searchCandidatesWithScores(SearchQuery query, UserContext userContext) {
+		logger.debug("Buscando candidatos para ML ranking: query='{}', limit=400", query.terms());
+
+		Instant startTime = Instant.now();
+
+		try {
+			// Criar query modificada para buscar Top 400 candidatos
+			SearchQuery candidatesQuery = new SearchQuery(
+					query.terms(),
+					query.category(),
+					query.filters(),
+					query.sort(),
+					0, // offset = 0
+					400 // limit = 400 para fase 1
+			);
+
+			// Construir query do OpenSearch
+			Query osQuery = queryBuilder.buildQuery(candidatesQuery, userContext);
+			logger.debug("OpenSearch Query para candidatos: {}", osQuery);
+
+			// Executar busca
+			SearchRequest searchRequest = SearchRequest.of(s -> s.index(INDEX_NAME).query(osQuery)
+					.from(0).size(400).sort(queryBuilder.buildSort(candidatesQuery.sort()))
+					.trackTotalHits(t -> t.enabled(true)));
+
+			SearchResponse<ProductSearchDocument> response = openSearchClient.search(searchRequest,
+					ProductSearchDocument.class);
+
+			var hitsMetadata = response.hits();
+			List<Hit<ProductSearchDocument>> hitList = hitsMetadata != null && hitsMetadata.hits() != null
+					? hitsMetadata.hits()
+					: List.of();
+
+			// Extrair produtos e scores
+			java.util.Map<String, ProductSearchRepository.ScorePair> scoresMap = new java.util.HashMap<>();
+			List<Product> products = new java.util.ArrayList<>();
+
+			// Normalizar scores para o intervalo [0.0, 1.0]
+			double maxScore = hitList.stream()
+					.mapToDouble(hit -> {
+						Double score = hit.score();
+						return score != null ? score : 0.0;
+					})
+					.max()
+					.orElse(1.0);
+
+			for (Hit<ProductSearchDocument> hit : hitList) {
+				Product product = productMapper.toDomain(hit.source());
+				String productId = product.getId().getValue();
+
+				Double rawScore = hit.score();
+				double normalizedScore = rawScore != null && maxScore > 0 ? rawScore / maxScore : 0.0;
+
+				// Para simplificar, usamos o score do OpenSearch como BM25
+				// e estimamos k-NN como uma proporção (pode ser melhorado depois)
+				double bm25Score = normalizedScore;
+				double knnScore = normalizedScore * 0.8; // Estimativa inicial
+
+				scoresMap.put(productId, new ProductSearchRepository.ScorePair(bm25Score, knnScore));
+				products.add(product);
+			}
+
+			Duration executionTime = Duration.between(startTime, Instant.now());
+			logger.debug("Candidatos buscados: {} produtos em {}ms", products.size(), executionTime.toMillis());
+
+			return new ProductSearchRepository.CandidatesWithScores(products, scoresMap);
+
+		} catch (Exception e) {
+			logger.error("Erro ao buscar candidatos para ML ranking", e);
+			return new ProductSearchRepository.CandidatesWithScores(List.of(), new java.util.HashMap<>());
+		}
+	}
+
 	private double calculateAverageScore(List<Hit<ProductSearchDocument>> hits) {
 		if (hits.isEmpty()) {
 			return 0.0;

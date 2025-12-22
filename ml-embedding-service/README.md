@@ -1,4 +1,4 @@
-# Embedding Service
+# ML Embedding Service
 
 Serviço de geração de embeddings para produtos e queries do marketplace.
 

@@ -82,12 +82,22 @@ ml:
       version: ${ML_FEATURE_STORE_VERSION:1.0}
       batch-size: ${ML_FEATURE_STORE_BATCH_SIZE:100}
 
+# Embedding Service Configuration
+embedding:
+  service:
+    url: ${EMBEDDING_SERVICE_URL:http://embedding-service:8085}
+    timeout-seconds: ${EMBEDDING_SERVICE_TIMEOUT:5}
+    max-retries: ${EMBEDDING_SERVICE_MAX_RETRIES:3}
+    enabled: ${EMBEDDING_SERVICE_ENABLED:true}
+
 # Feature Flags
 features:
   ml-ranking:
     enabled: ${FEATURE_ML_RANKING_ENABLED:true}
   feature-store-offline:
     enabled: ${FEATURE_FEATURE_STORE_OFFLINE_ENABLED:true}
+  embedding-search:
+    enabled: ${FEATURE_EMBEDDING_SEARCH_ENABLED:true}
 
 # Logging
 logging:

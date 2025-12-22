@@ -1,14 +1,15 @@
 package com.marketplace.search.search.infrastructure.opensearch.queries;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.opensearch.client.opensearch._types.SortOrder;
+import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch._types.SortOptions;
+import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.TextQueryType;
-import org.opensearch.client.json.JsonData;
 import org.springframework.stereotype.Component;
 
 import com.marketplace.search.search.domain.entities.Category;
@@ -24,15 +25,42 @@ import com.marketplace.search.search.domain.valueobjects.UserContext;
 @Component
 public class OpenSearchQueryBuilder {
 
+	private static final String VECTOR_FIELD = "product_vector";
+
 	/**
 	 * Constrói query principal de busca
 	 */
 	public Query buildQuery(SearchQuery searchQuery, UserContext userContext) {
+		return buildQuery(searchQuery, userContext, Optional.empty());
+	}
+
+	/**
+	 * Constrói query principal de busca com suporte a busca híbrida (BM25 + k-NN)
+	 * 
+	 * @param searchQuery Query de busca
+	 * @param userContext Contexto do usuário
+	 * @param queryEmbedding Embedding opcional da query para busca k-NN
+	 * @return Query do OpenSearch
+	 */
+	public Query buildQuery(SearchQuery searchQuery, UserContext userContext, Optional<float[]> queryEmbedding) {
 		BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-		// Query de texto principal
+		// Query de texto principal (BM25)
 		Query textQuery = buildTextQuery(searchQuery.terms());
-		boolQueryBuilder.must(textQuery);
+		
+		// Se houver embedding, criar query híbrida (BM25 + k-NN)
+		if (queryEmbedding.isPresent()) {
+			float[] embedding = queryEmbedding.get();
+			Query knnQuery = buildKnnQuery(embedding);
+			
+			// Combinar BM25 e k-NN usando should (OpenSearch combina os scores)
+			boolQueryBuilder.should(textQuery);
+			boolQueryBuilder.should(knnQuery);
+			boolQueryBuilder.minimumShouldMatch("1"); // Pelo menos uma deve corresponder
+		} else {
+			// Apenas BM25 se não houver embedding
+			boolQueryBuilder.must(textQuery);
+		}
 
 		// Filtros de categoria
 		if (searchQuery.hasCategoryFilter()) {
@@ -67,6 +95,26 @@ public class OpenSearchQueryBuilder {
 		return Query.of(q -> q.multiMatch(m -> m.query(terms)
 				.fields("title^3", "description^1", "brand.name^2", "searchable_text^0.5")
 				.type(TextQueryType.BestFields).fuzziness("AUTO").prefixLength(1).maxExpansions(50)));
+	}
+
+	/**
+	 * Constrói query k-NN para busca semântica usando embedding
+	 * 
+	 * @param queryEmbedding Vetor de embedding da query (384 dimensões)
+	 * @return Query k-NN do OpenSearch
+	 */
+	private Query buildKnnQuery(float[] queryEmbedding) {
+		if (queryEmbedding == null || queryEmbedding.length == 0) {
+			throw new IllegalArgumentException("Query embedding não pode ser nulo ou vazio");
+		}
+
+		// Criar query k-NN usando a API do OpenSearch
+		// O método vector() aceita float[] diretamente
+		return Query.of(q -> q.knn(k -> k
+				.field(VECTOR_FIELD)
+				.vector(queryEmbedding)
+				.k(100) // Número de vizinhos mais próximos a buscar
+				.boost(0.5f))); // Boost para balancear com BM25
 	}
 
 	/**

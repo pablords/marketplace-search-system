@@ -165,3 +165,4 @@ O serviço utiliza logging padrão do Python. Logs incluem:
 - Erros e exceções
 - Versão do modelo utilizado
 
+

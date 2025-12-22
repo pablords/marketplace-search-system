@@ -170,6 +170,81 @@
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/search-service/bootstrap",
             "preLaunchTask": "maven: compile search"
+        },
+        {
+            "type": "debugpy",
+            "name": "🤖 ML Embedding Service",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8085"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "cwd": "${workspaceFolder}/ml-embedding-service",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false
+        },
+        {
+            "type": "debugpy",
+            "name": "🐛 Debug - ML Embedding Service",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8085",
+                "--reload"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "cwd": "${workspaceFolder}/ml-embedding-service",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": true
+        },
+        {
+            "type": "debugpy",
+            "name": "📊 ML Ranking Service",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8084",
+                "--reload"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "cwd": "${workspaceFolder}/ml-ranking-service",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false
+        },
+        {
+            "type": "debugpy",
+            "name": "🐛 Debug - ML Ranking Service",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8084",
+                "--reload"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "cwd": "${workspaceFolder}/ml-ranking-service",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": true
         }
     ]
 }

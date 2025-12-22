@@ -37,7 +37,13 @@ app.add_middleware(
 )
 
 # Inicializar serviços
-ranking_service = RankingService()
+logger.info("Inicializando RankingService...")
+try:
+    ranking_service = RankingService()
+    logger.info("RankingService inicializado com sucesso. Modelo carregado.")
+except Exception as e:
+    logger.error(f"Erro ao inicializar RankingService: {str(e)}", exc_info=True)
+    ranking_service = None
 
 
 # Modelos Pydantic para request/response
@@ -86,10 +92,23 @@ class RankResponse(BaseModel):
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    if ranking_service is None:
+        return {
+            "status": "unhealthy",
+            "service": "ml-ranking-service",
+            "version": "1.0.0",
+            "error": "RankingService não foi inicializado"
+        }
+    
+    model_loaded = ranking_service.is_model_loaded()
+    status = "healthy" if model_loaded else "degraded"
+    
     return {
-        "status": "healthy",
+        "status": status,
         "service": "ml-ranking-service",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "model_loaded": model_loaded,
+        "model_version": ranking_service.get_model_version() if model_loaded else None
     }
 
 
@@ -120,6 +139,14 @@ async def rank_products(request: RankRequest):
     Returns:
         RankResponse com produtos ranqueados (Top 20)
     """
+    # Verificar se o serviço está disponível
+    if ranking_service is None or not ranking_service.is_model_loaded():
+        logger.error("Tentativa de ranquear produtos mas o serviço não está disponível")
+        raise HTTPException(
+            status_code=503,
+            detail="Serviço de ranking não está disponível. Modelo não carregado."
+        )
+    
     try:
         # Validar número de candidatos
         if len(request.candidates) == 0:
@@ -163,6 +190,7 @@ async def rank_products(request: RankRequest):
 
 
 if __name__ == "__main__":
+    logger.info("Iniciando servidor ML Ranking Service na porta 8084...")
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
@@ -170,4 +198,5 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+
 

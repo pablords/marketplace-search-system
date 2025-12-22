@@ -101,4 +101,8 @@ class RankingService:
     def get_model_version(self) -> str:
         """Retorna a versão do modelo utilizado"""
         return self.model.get_version()
+    
+    def is_model_loaded(self) -> bool:
+        """Verifica se o modelo está carregado"""
+        return self.model is not None
 

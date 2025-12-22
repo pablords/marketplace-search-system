@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,8 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import reactor.core.Exceptions;
+import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
 /**
@@ -32,9 +35,9 @@ public class EmbeddingClient {
     private final Duration timeout;
 
     public EmbeddingClient(
-            @Value("${embedding.service.url:http://embedding-service:8085}") String baseUrl,
-            @Value("${embedding.service.timeout-seconds:10}") int timeoutSeconds,
-            @Value("${embedding.service.max-retries:3}") int maxRetries,
+            @Value("${embedding.service.url}") String baseUrl,
+            @Value("${embedding.service.timeout-seconds}") int timeoutSeconds,
+            @Value("${embedding.service.max-retries}") int maxRetries,
             WebClient.Builder webClientBuilder) {
         this.timeout = Duration.ofSeconds(timeoutSeconds);
         this.maxRetries = maxRetries;
@@ -72,12 +75,41 @@ public class EmbeddingClient {
                 .retrieve()
                 .bodyToMono(EmbeddingResponse.class)
                 .timeout(timeout)
-                .retryWhen(Retry.backoff(maxRetries, Duration.ofMillis(100))
+                .retryWhen(Retry.backoff(maxRetries, Duration.ofMillis(500))
+                    .maxBackoff(Duration.ofSeconds(5))
                     .filter(this::isRetryableError)
                     .doBeforeRetry(retrySignal -> 
                         logger.warn("Tentativa {} de {} para Embedding Service", 
                             retrySignal.totalRetries() + 1, maxRetries)))
-                .doOnError(error -> logger.error("Erro ao chamar Embedding Service: {}", error.getMessage()))
+                .onErrorResume(throwable -> {
+                    Throwable cause = Exceptions.unwrap(throwable);
+                    String errorMessage = throwable.getMessage();
+                    
+                    // Tratar erro de retries esgotados (mensagem do Reactor)
+                    if (errorMessage != null && errorMessage.contains("Retries exhausted")) {
+                        logger.error("Todas as tentativas de retry foram esgotadas ({} tentativas). Último erro: {}", 
+                            maxRetries, cause != null ? cause.getMessage() : errorMessage);
+                        return Mono.empty();
+                    }
+                    
+                    if (cause instanceof TimeoutException) {
+                        logger.error("Timeout ao chamar Embedding Service após {} segundos", timeout.getSeconds());
+                        return Mono.empty();
+                    }
+                    
+                    if (throwable instanceof WebClientResponseException e) {
+                        logger.error("Erro HTTP ao chamar Embedding Service: {} - {}", e.getStatusCode(), e.getMessage());
+                        return Mono.empty();
+                    }
+                    
+                    if (throwable instanceof WebClientException) {
+                        logger.error("Erro de conexão com Embedding Service: {}", throwable.getMessage());
+                        return Mono.empty();
+                    }
+                    
+                    logger.error("Erro ao chamar Embedding Service: {}", errorMessage != null ? errorMessage : throwable.getClass().getSimpleName());
+                    return Mono.empty();
+                })
                 .block();
 
             if (response == null || response.embeddings == null || response.embeddings.isEmpty()) {
@@ -109,7 +141,13 @@ public class EmbeddingClient {
             logger.error("Erro de conexão com Embedding Service: {}", e.getMessage());
             return Optional.empty();
         } catch (Exception e) {
-            logger.error("Erro inesperado ao chamar Embedding Service", e);
+            // Captura TimeoutException e outras exceções (Reactor pode envolver em ReactiveException)
+            Throwable cause = Exceptions.unwrap(e);
+            if (cause instanceof TimeoutException) {
+                logger.error("Timeout ao chamar Embedding Service após {} segundos", timeout.getSeconds());
+            } else {
+                logger.error("Erro inesperado ao chamar Embedding Service", e);
+            }
             return Optional.empty();
         }
     }
@@ -139,13 +177,21 @@ public class EmbeddingClient {
     }
 
     private boolean isRetryableError(Throwable throwable) {
+        // Desempacotar exceção do Reactor se necessário
+        Throwable cause = Exceptions.unwrap(throwable);
+        
+        // Não fazer retry para TimeoutException - já tentamos e falhou
+        if (cause instanceof TimeoutException) {
+            return false;
+        }
+        
         if (throwable instanceof WebClientResponseException e) {
             // Retry apenas para erros 5xx (servidor) e 408 (timeout)
             int statusCode = e.getStatusCode().value();
             return statusCode >= 500 || statusCode == 408;
         }
-        // Retry para erros de conexão/timeout
-        return throwable instanceof WebClientException;
+        // Retry para erros de conexão (mas não timeout)
+        return throwable instanceof WebClientException && !(cause instanceof TimeoutException);
     }
 
     // DTOs para serialização JSON

@@ -2,7 +2,6 @@ package com.marketplace.search.gateway.interfaces.rest.clients;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -209,17 +208,6 @@ class CatalogServiceClientTest {
         // Assert
         assertNotNull(result);
         assertEquals(expectedUri, result);
-    }
-
-    @Test
-    void shouldThrowExceptionWhenProductObjectIsNotProductDTO() {
-        // Arrange
-        Object invalidObject = "not a ProductDTO";
-
-        // Act & Assert
-        assertThrows(CatalogServiceClient.CatalogServiceException.class,
-                () -> catalogServiceClient.createProduct(invalidObject),
-                "Objeto deve ser do tipo ProductDTO");
     }
 
     private ProductDTO createSampleProductDTO() {

@@ -95,7 +95,7 @@ class EmbeddingResponse(BaseModel):
     dimension: int = Field(..., description="Dimensão dos vetores de embedding")
 
 
-@app.get("/health")
+@app.get("/api/v1/health")
 async def health_check():
     """Health check endpoint"""
     with _model_loading_lock:
@@ -141,7 +141,7 @@ async def root():
         "endpoints": {
             "generate": "/api/v1/embeddings/generate",
             "query": "/api/v1/embeddings/query",
-            "health": "/health"
+            "health": "/api/v1/health"
         }
     }
 

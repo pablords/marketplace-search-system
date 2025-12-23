@@ -28,6 +28,7 @@ import com.marketplace.search.search.domain.valueobjects.SearchMetrics;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
+import com.marketplace.search.search.infrastructure.embedding.EmbeddingClient;
 import com.marketplace.search.search.infrastructure.opensearch.documents.ProductSearchDocument;
 import com.marketplace.search.search.infrastructure.opensearch.mappers.OpenSearchProductMapper;
 import com.marketplace.search.search.infrastructure.opensearch.queries.OpenSearchQueryBuilder;
@@ -46,12 +47,15 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 	private final OpenSearchClient openSearchClient;
 	private final OpenSearchProductMapper productMapper;
 	private final OpenSearchQueryBuilder queryBuilder;
+	private final EmbeddingClient embeddingClient;
 
 	public OpenSearchProductSearchRepository(OpenSearchClient openSearchClient,
-			OpenSearchProductMapper productMapper, OpenSearchQueryBuilder queryBuilder) {
+			OpenSearchProductMapper productMapper, OpenSearchQueryBuilder queryBuilder,
+			EmbeddingClient embeddingClient) {
 		this.openSearchClient = openSearchClient;
 		this.productMapper = productMapper;
 		this.queryBuilder = queryBuilder;
+		this.embeddingClient = embeddingClient;
 	}
 
 	@Override
@@ -62,8 +66,20 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 		Instant startTime = Instant.now();
 
 		try {
-			// Construir query do OpenSearch
-			Query osQuery = queryBuilder.buildQuery(query, userContext);
+			// Tentar gerar embedding para busca híbrida
+			Optional<float[]> queryEmbedding = embeddingClient.generateQueryEmbedding(query.terms());
+			
+			// Construir query do OpenSearch (híbrida se embedding disponível, senão apenas BM25)
+			Query osQuery = queryEmbedding
+					.map(embedding -> {
+						logger.debug("Usando busca híbrida (BM25 + k-NN) para query: '{}'", query.terms());
+						return queryBuilder.buildQuery(query, userContext, Optional.of(embedding));
+					})
+					.orElseGet(() -> {
+						logger.debug("Usando busca apenas BM25 (embedding não disponível) para query: '{}'", query.terms());
+						return queryBuilder.buildQuery(query, userContext);
+					});
+			
 			logger.debug("OpenSearch Query: {}", osQuery);
 
 			// Executar busca
@@ -305,8 +321,20 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 					400 // limit = 400 para fase 1
 			);
 
-			// Construir query do OpenSearch
-			Query osQuery = queryBuilder.buildQuery(candidatesQuery, userContext);
+			// Tentar gerar embedding para busca híbrida
+			Optional<float[]> queryEmbedding = embeddingClient.generateQueryEmbedding(query.terms());
+			
+			// Construir query do OpenSearch (híbrida se embedding disponível, senão apenas BM25)
+			Query osQuery = queryEmbedding
+					.map(embedding -> {
+						logger.debug("Usando busca híbrida (BM25 + k-NN) para candidatos: '{}'", query.terms());
+						return queryBuilder.buildQuery(candidatesQuery, userContext, Optional.of(embedding));
+					})
+					.orElseGet(() -> {
+						logger.debug("Usando busca apenas BM25 (embedding não disponível) para candidatos: '{}'", query.terms());
+						return queryBuilder.buildQuery(candidatesQuery, userContext);
+					});
+			
 			logger.debug("OpenSearch Query para candidatos: {}", osQuery);
 
 			// Executar busca
@@ -335,6 +363,10 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 					.max()
 					.orElse(1.0);
 
+			// Se busca híbrida foi usada, tentar extrair scores separados
+			// Caso contrário, usar estimativas baseadas no score combinado
+			boolean isHybridSearch = queryEmbedding.isPresent();
+			
 			for (Hit<ProductSearchDocument> hit : hitList) {
 				Product product = productMapper.toDomain(hit.source());
 				String productId = product.getId().getValue();
@@ -342,10 +374,22 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 				Double rawScore = hit.score();
 				double normalizedScore = rawScore != null && maxScore > 0 ? rawScore / maxScore : 0.0;
 
-				// Para simplificar, usamos o score do OpenSearch como BM25
-				// e estimamos k-NN como uma proporção (pode ser melhorado depois)
-				double bm25Score = normalizedScore;
-				double knnScore = normalizedScore * 0.8; // Estimativa inicial
+				// Para busca híbrida, o OpenSearch combina BM25 e k-NN automaticamente
+				// Como não temos acesso direto aos scores separados, estimamos baseado no score combinado
+				// Em uma implementação mais avançada, poderíamos usar explicações do OpenSearch
+				double bm25Score;
+				double knnScore;
+				
+				if (isHybridSearch) {
+					// Na busca híbrida, assumimos que o score é uma combinação
+					// Estimamos: 60% BM25 + 40% k-NN (baseado na FeatureExtractor)
+					bm25Score = normalizedScore * 0.6;
+					knnScore = normalizedScore * 0.4;
+				} else {
+					// Apenas BM25, k-NN é zero
+					bm25Score = normalizedScore;
+					knnScore = 0.0;
+				}
 
 				scoresMap.put(productId, new ProductSearchRepository.ScorePair(bm25Score, knnScore));
 				products.add(product);

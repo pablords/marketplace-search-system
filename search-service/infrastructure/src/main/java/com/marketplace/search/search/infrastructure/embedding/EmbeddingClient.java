@@ -77,20 +77,19 @@ public class EmbeddingClient {
                 .retryWhen(Retry.backoff(maxRetries, Duration.ofMillis(100))
                     .filter(this::isRetryableError)
                     .doBeforeRetry(retrySignal -> 
-                        logger.warn("Tentativa {} de {} para Embedding Service", 
+                        logger.debug("Tentativa {} de {} para Embedding Service", 
                             retrySignal.totalRetries() + 1, maxRetries)))
-                .doOnError(error -> logger.error("Erro ao chamar Embedding Service: {}", error.getMessage()))
                 .block();
 
             if (response == null || response.embeddings == null || response.embeddings.isEmpty()) {
-                logger.warn("Resposta vazia do Embedding Service");
+                logger.debug("Resposta vazia do Embedding Service");
                 return Optional.empty();
             }
 
             // Extrair o primeiro embedding (já que enviamos apenas uma query)
             EmbeddingItem item = response.embeddings.get(0);
             if (item.vector == null || item.vector.isEmpty()) {
-                logger.warn("Embedding vazio retornado pelo Embedding Service");
+                logger.debug("Embedding vazio retornado pelo Embedding Service");
                 return Optional.empty();
             }
 
@@ -106,13 +105,29 @@ public class EmbeddingClient {
             return Optional.of(embedding);
 
         } catch (WebClientResponseException e) {
-            logger.error("Erro HTTP ao chamar Embedding Service: {} - {}", e.getStatusCode(), e.getMessage());
+            logger.debug("Erro HTTP ao chamar Embedding Service: {} - {}", e.getStatusCode(), e.getMessage());
             return Optional.empty();
         } catch (WebClientException e) {
-            logger.error("Erro de conexão com Embedding Service: {}", e.getMessage());
+            logger.debug("Erro de conexão com Embedding Service: {}", e.getMessage());
+            return Optional.empty();
+        } catch (RuntimeException e) {
+            // Tratar exceções reativas (ReactiveException é uma RuntimeException)
+            // TimeoutException vem envolvida em ReactiveException
+            Throwable cause = e.getCause();
+            if (cause instanceof java.util.concurrent.TimeoutException) {
+                logger.debug("Timeout ao chamar Embedding Service (serviço pode estar indisponível): {}", cause.getMessage());
+                return Optional.empty();
+            }
+            // Verificar se é uma exceção de timeout através da mensagem
+            String message = e.getMessage();
+            if (message != null && (message.contains("TimeoutException") || message.contains("timeout"))) {
+                logger.debug("Timeout ao chamar Embedding Service (serviço pode estar indisponível)");
+                return Optional.empty();
+            }
+            logger.debug("Erro ao chamar Embedding Service: {}", cause != null ? cause.getMessage() : message);
             return Optional.empty();
         } catch (Exception e) {
-            logger.error("Erro inesperado ao chamar Embedding Service", e);
+            logger.debug("Erro ao chamar Embedding Service: {}", e.getMessage());
             return Optional.empty();
         }
     }

@@ -5,11 +5,13 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Documento do OpenSearch representando um produto para busca
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductSearchDocument {
 
 	@JsonProperty("id")
@@ -66,7 +68,14 @@ public class ProductSearchDocument {
 	@JsonProperty("popularity_score")
 	private Double popularityScore;
 
+	@JsonProperty("product_vector")
+	private float[] productVector;
+
+	/**
+	 * Construtor padrão necessário para deserialização JSON pelo Jackson
+	 */
 	public ProductSearchDocument() {
+		// Construtor vazio necessário para deserialização JSON
 	}
 
 	// Getters and Setters
@@ -212,6 +221,14 @@ public class ProductSearchDocument {
 
 	public void setPopularityScore(Double popularityScore) {
 		this.popularityScore = popularityScore;
+	}
+
+	public float[] getProductVector() {
+		return productVector;
+	}
+
+	public void setProductVector(float[] productVector) {
+		this.productVector = productVector;
 	}
 }
 

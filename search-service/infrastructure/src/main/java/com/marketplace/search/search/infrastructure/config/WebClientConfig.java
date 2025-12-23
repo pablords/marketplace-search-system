@@ -22,12 +22,13 @@ public class WebClientConfig {
     @Bean
     public WebClient.Builder webClientBuilder() {
         // Configurar HttpClient do Netty com timeouts
+        // Timeouts aumentados para suportar ML Ranking Service que pode demorar mais
         HttpClient httpClient = HttpClient.create()
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-            .responseTimeout(Duration.ofSeconds(10))
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+            .responseTimeout(Duration.ofSeconds(20))
             .doOnConnected(conn ->
-                conn.addHandlerLast(new ReadTimeoutHandler(10))
-                    .addHandlerLast(new WriteTimeoutHandler(10)));
+                conn.addHandlerLast(new ReadTimeoutHandler(20))
+                    .addHandlerLast(new WriteTimeoutHandler(20)));
 
         return WebClient.builder()
             .clientConnector(new ReactorClientHttpConnector(httpClient));

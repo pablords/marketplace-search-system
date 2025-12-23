@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.marketplace.search.search.domain.services.MLRankingService;
 
+import reactor.core.Exceptions;
 import reactor.util.retry.Retry;
 
 /**
@@ -68,12 +70,20 @@ public class MlRankingClient implements MLRankingService {
                 .retrieve()
                 .bodyToMono(RankResponse.class)
                 .timeout(timeout)
-                .retryWhen(Retry.backoff(maxRetries, Duration.ofMillis(100))
+                .retryWhen(Retry.backoff(maxRetries, Duration.ofMillis(500))
+                    .maxBackoff(Duration.ofSeconds(2))
                     .filter(this::isRetryableError)
                     .doBeforeRetry(retrySignal -> 
                         logger.warn("Tentativa {} de {} para ML Ranking Service", 
                             retrySignal.totalRetries() + 1, maxRetries)))
-                .doOnError(error -> logger.error("Erro ao chamar ML Ranking Service: {}", error.getMessage()))
+                .doOnError(error -> {
+                    Throwable rootCause = Exceptions.unwrap(error);
+                    if (rootCause instanceof TimeoutException) {
+                        logger.error("Timeout ao chamar ML Ranking Service após {} segundos", timeout.getSeconds());
+                    } else {
+                        logger.error("Erro ao chamar ML Ranking Service: {}", error.getMessage());
+                    }
+                })
                 .block();
 
             if (response == null || response.rankedProducts == null) {
@@ -90,13 +100,28 @@ public class MlRankingClient implements MLRankingService {
 
             return Optional.of(rankedProducts);
 
-        } catch (WebClientResponseException e) {
-            logger.error("Erro HTTP ao chamar ML Ranking Service: {} - {}", e.getStatusCode(), e.getMessage());
-            return Optional.empty();
-        } catch (WebClientException e) {
-            logger.error("Erro de conexão com ML Ranking Service: {}", e.getMessage());
-            return Optional.empty();
         } catch (Exception e) {
+            // Verificar se a causa raiz é um TimeoutException
+            Throwable rootCause = Exceptions.unwrap(e);
+            if (rootCause instanceof TimeoutException) {
+                logger.error("Timeout ao chamar ML Ranking Service após {} segundos", timeout.getSeconds());
+                return Optional.empty();
+            }
+            
+            // Tratar erros HTTP específicos
+            if (e instanceof WebClientResponseException webClientResponseException) {
+                logger.error("Erro HTTP ao chamar ML Ranking Service: {} - {}", 
+                    webClientResponseException.getStatusCode(), webClientResponseException.getMessage());
+                return Optional.empty();
+            }
+            
+            // Tratar erros de conexão
+            if (e instanceof WebClientException webClientException) {
+                logger.error("Erro de conexão com ML Ranking Service: {}", webClientException.getMessage());
+                return Optional.empty();
+            }
+            
+            // Tratar outros erros inesperados
             logger.error("Erro inesperado ao chamar ML Ranking Service", e);
             return Optional.empty();
         }
@@ -157,12 +182,18 @@ public class MlRankingClient implements MLRankingService {
     }
 
     private boolean isRetryableError(Throwable throwable) {
+        // Não fazer retry em caso de timeout - timeout não é retryable
+        Throwable rootCause = Exceptions.unwrap(throwable);
+        if (rootCause instanceof TimeoutException) {
+            return false;
+        }
+        
         if (throwable instanceof WebClientResponseException e) {
-            // Retry apenas para erros 5xx (servidor) e 408 (timeout)
+            // Retry apenas para erros 5xx (servidor) e 408 (timeout do servidor)
             int statusCode = e.getStatusCode().value();
             return statusCode >= 500 || statusCode == 408;
         }
-        // Retry para erros de conexão/timeout
+        // Retry para erros de conexão (mas não timeout)
         return throwable instanceof WebClientException;
     }
 

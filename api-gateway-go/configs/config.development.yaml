@@ -1,0 +1,16 @@
+# Development Environment Configuration
+
+# Application
+application:
+  environment: development
+
+# Logging - mais verboso para desenvolvimento
+logging:
+  level: DEBUG
+  format: text  # texto legível para desenvolvimento
+
+# Management - expor mais endpoints em desenvolvimento
+management:
+  health:
+    show_details: true
+

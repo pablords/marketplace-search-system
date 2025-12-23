@@ -1,0 +1,621 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "API Gateway para o sistema de busca de marketplace. Roteia requisições para os serviços de catálogo e busca, com suporte a circuit breaker, retry e validação de requisições.",
+        "title": "API Gateway - Marketplace Search System",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.example.com/support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/health": {
+            "get": {
+                "description": "Verifica o status de saúde do API Gateway",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "Status do serviço",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics": {
+            "get": {
+                "description": "Expõe métricas no formato Prometheus",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "metrics"
+                ],
+                "summary": "Métricas Prometheus",
+                "responses": {
+                    "200": {
+                        "description": "Métricas Prometheus",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/products": {
+            "post": {
+                "description": "Cria um novo produto no catálogo através do catalog-service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Criar produto",
+                "parameters": [
+                    {
+                        "description": "Dados do produto a ser criado",
+                        "name": "product",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Product"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Produto criado com sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Erro no catalog-service",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/search/products": {
+            "get": {
+                "description": "Busca produtos no marketplace usando o search-service com suporte a filtros, paginação e ordenação",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Buscar produtos",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Termo de busca",
+                        "name": "query",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID da categoria para filtrar",
+                        "name": "categoryId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Número da página (padrão: 0)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Tamanho da página (padrão: 20, máximo: 100)",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "relevance",
+                        "description": "Critério de ordenação (padrão: relevance)",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID do usuário para personalização",
+                        "name": "userId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resultado da busca",
+                        "schema": {
+                            "$ref": "#/definitions/models.SearchResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Erro no search-service",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/search/products/{id}": {
+            "get": {
+                "description": "Busca um produto específico pelo ID através do search-service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Obter produto por ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do produto",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Produto encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Product"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Produto não encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Erro no search-service",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/search/suggestions": {
+            "get": {
+                "description": "Retorna sugestões de termos de busca baseadas no termo parcial fornecido",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Obter sugestões de busca",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Termo parcial para busca de sugestões",
+                        "name": "term",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 20,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Número máximo de sugestões (padrão: 10, máximo: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de sugestões",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Erro no search-service",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handlers.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "service": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Brand": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Category": {
+            "type": "object",
+            "required": [
+                "id",
+                "name",
+                "path"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Product": {
+            "type": "object",
+            "required": [
+                "brand",
+                "category",
+                "currency",
+                "id",
+                "price",
+                "seller",
+                "title"
+            ],
+            "properties": {
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "available_quantity": {
+                    "type": "integer"
+                },
+                "brand": {
+                    "$ref": "#/definitions/models.Brand"
+                },
+                "category": {
+                    "$ref": "#/definitions/models.Category"
+                },
+                "condition": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "metrics": {
+                    "$ref": "#/definitions/models.ProductMetrics"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "seller": {
+                    "$ref": "#/definitions/models.Seller"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ProductMetrics": {
+            "type": "object",
+            "properties": {
+                "average_rating": {
+                    "type": "number"
+                },
+                "ctr": {
+                    "type": "number"
+                },
+                "last_sale": {
+                    "type": "string"
+                },
+                "last_view": {
+                    "type": "string"
+                },
+                "popularity": {
+                    "type": "integer"
+                },
+                "quality": {
+                    "type": "number"
+                },
+                "stock_quantity": {
+                    "type": "integer"
+                },
+                "total_reviews": {
+                    "type": "integer"
+                },
+                "total_sales": {
+                    "type": "integer"
+                },
+                "total_views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.SearchMetrics": {
+            "type": "object",
+            "properties": {
+                "average_score": {
+                    "type": "number"
+                },
+                "index_size": {
+                    "type": "integer"
+                },
+                "indexed_documents": {
+                    "type": "integer"
+                },
+                "queries_per_second": {
+                    "type": "integer"
+                },
+                "shard_info": {
+                    "type": "string"
+                },
+                "used_cache": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.SearchResult": {
+            "type": "object",
+            "properties": {
+                "execution_time_ms": {
+                    "type": "integer"
+                },
+                "has_next_page": {
+                    "type": "boolean"
+                },
+                "has_previous_page": {
+                    "type": "boolean"
+                },
+                "metrics": {
+                    "$ref": "#/definitions/models.SearchMetrics"
+                },
+                "page_number": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Product"
+                    }
+                },
+                "total_count": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Seller": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "member_since": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "reputation": {
+                    "$ref": "#/definitions/models.SellerReputation"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SellerReputation": {
+            "type": "object",
+            "properties": {
+                "cancellation_rate": {
+                    "type": "number"
+                },
+                "delivery_performance": {
+                    "type": "number"
+                },
+                "negative_reviews": {
+                    "type": "integer"
+                },
+                "neutral_reviews": {
+                    "type": "integer"
+                },
+                "positive_reviews": {
+                    "type": "integer"
+                },
+                "score": {
+                    "type": "number"
+                },
+                "total_reviews": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}

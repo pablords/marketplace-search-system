@@ -1,0 +1,65 @@
+# API Gateway Configuration
+
+# Application
+# Nota: Variáveis de ambiente sobrescrevem valores do YAML
+# Exemplo: ENVIRONMENT=production sobrescreve environment: development
+application:
+  name: api-gateway
+  environment: development  # Sobrescrito por ENVIRONMENT
+
+# Server
+server:
+  port: 8080  # Sobrescrito por SERVER_PORT
+  context_path: /api/v1
+
+# Logging
+logging:
+  level: DEBUG  # Sobrescrito por LOG_LEVEL
+  format: json  # json or text, sobrescrito por LOG_FORMAT
+  file:
+    name: logs/api-gateway.log  # Sobrescrito por LOG_FILE
+    max_size: 100  # MB
+    max_backups: 5
+    max_age: 30  # days
+
+# Management/Metrics
+management:
+  metrics:
+    enabled: true
+    path: /metrics
+  health:
+    path: /health
+    show_details: true  # Sobrescrito por HEALTH_SHOW_DETAILS
+
+# OpenAPI/Swagger
+openapi:
+  enabled: true
+  docs_path: /api-docs
+  swagger_ui_path: /swagger-ui.html
+  operations_sorter: method
+  tags_sorter: alpha
+
+# External Services Configuration
+# Todas as configurações podem ser sobrescritas por variáveis de ambiente
+services:
+  catalog:
+    base_url: http://localhost:8081/api/v1  # Sobrescrito por CATALOG_SERVICE_BASE_URL
+    timeout: 5000  # milliseconds, sobrescrito por CATALOG_SERVICE_TIMEOUT
+    retry:
+      max_attempts: 3  # Sobrescrito por CATALOG_SERVICE_RETRY_MAX_ATTEMPTS
+      min_backoff: 500  # milliseconds, sobrescrito por CATALOG_SERVICE_RETRY_MIN_BACKOFF
+    circuit_breaker:
+      failure_rate_threshold: 50  # percentage, sobrescrito por CATALOG_SERVICE_CB_FAILURE_RATE_THRESHOLD
+      wait_duration_in_open_state: 10000  # milliseconds, sobrescrito por CATALOG_SERVICE_CB_WAIT_DURATION
+      sliding_window_size: 10  # Sobrescrito por CATALOG_SERVICE_CB_SLIDING_WINDOW_SIZE
+  search:
+    base_url: http://localhost:8083/api/v1  # Sobrescrito por SEARCH_SERVICE_BASE_URL
+    timeout: 3000  # milliseconds, sobrescrito por SEARCH_SERVICE_TIMEOUT
+    retry:
+      max_attempts: 3  # Sobrescrito por SEARCH_SERVICE_RETRY_MAX_ATTEMPTS
+      min_backoff: 500  # milliseconds, sobrescrito por SEARCH_SERVICE_RETRY_MIN_BACKOFF
+    circuit_breaker:
+      failure_rate_threshold: 50  # percentage, sobrescrito por SEARCH_SERVICE_CB_FAILURE_RATE_THRESHOLD
+      wait_duration_in_open_state: 10000  # milliseconds, sobrescrito por SEARCH_SERVICE_CB_WAIT_DURATION
+      sliding_window_size: 10  # Sobrescrito por SEARCH_SERVICE_CB_SLIDING_WINDOW_SIZE
+

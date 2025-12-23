@@ -1,0 +1,419 @@
+basePath: /api/v1
+definitions:
+  handlers.HealthResponse:
+    properties:
+      service:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  models.Brand:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    required:
+    - id
+    - name
+    type: object
+  models.Category:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: string
+      path:
+        type: string
+    required:
+    - id
+    - name
+    - path
+    type: object
+  models.ErrorResponse:
+    properties:
+      details:
+        additionalProperties:
+          type: string
+        type: object
+      error:
+        type: string
+      message:
+        type: string
+      path:
+        type: string
+      status:
+        type: integer
+      timestamp:
+        type: string
+    type: object
+  models.Product:
+    properties:
+      attributes:
+        items:
+          type: string
+        type: array
+      available_quantity:
+        type: integer
+      brand:
+        $ref: '#/definitions/models.Brand'
+      category:
+        $ref: '#/definitions/models.Category'
+      condition:
+        type: string
+      currency:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
+      is_active:
+        type: boolean
+      metrics:
+        $ref: '#/definitions/models.ProductMetrics'
+      price:
+        type: number
+      seller:
+        $ref: '#/definitions/models.Seller'
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+    required:
+    - brand
+    - category
+    - currency
+    - id
+    - price
+    - seller
+    - title
+    type: object
+  models.ProductMetrics:
+    properties:
+      average_rating:
+        type: number
+      ctr:
+        type: number
+      last_sale:
+        type: string
+      last_view:
+        type: string
+      popularity:
+        type: integer
+      quality:
+        type: number
+      stock_quantity:
+        type: integer
+      total_reviews:
+        type: integer
+      total_sales:
+        type: integer
+      total_views:
+        type: integer
+    type: object
+  models.SearchMetrics:
+    properties:
+      average_score:
+        type: number
+      index_size:
+        type: integer
+      indexed_documents:
+        type: integer
+      queries_per_second:
+        type: integer
+      shard_info:
+        type: string
+      used_cache:
+        type: boolean
+    type: object
+  models.SearchResult:
+    properties:
+      execution_time_ms:
+        type: integer
+      has_next_page:
+        type: boolean
+      has_previous_page:
+        type: boolean
+      metrics:
+        $ref: '#/definitions/models.SearchMetrics'
+      page_number:
+        type: integer
+      page_size:
+        type: integer
+      products:
+        items:
+          $ref: '#/definitions/models.Product'
+        type: array
+      total_count:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  models.Seller:
+    properties:
+      id:
+        type: string
+      member_since:
+        type: string
+      name:
+        type: string
+      reputation:
+        $ref: '#/definitions/models.SellerReputation'
+      status:
+        type: string
+      type:
+        type: string
+    required:
+    - id
+    - name
+    type: object
+  models.SellerReputation:
+    properties:
+      cancellation_rate:
+        type: number
+      delivery_performance:
+        type: number
+      negative_reviews:
+        type: integer
+      neutral_reviews:
+        type: integer
+      positive_reviews:
+        type: integer
+      score:
+        type: number
+      total_reviews:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: API Gateway para o sistema de busca de marketplace. Roteia requisições
+    para os serviços de catálogo e busca, com suporte a circuit breaker, retry e validação
+    de requisições.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: API Gateway - Marketplace Search System
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Verifica o status de saúde do API Gateway
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status do serviço
+          schema:
+            $ref: '#/definitions/handlers.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /metrics:
+    get:
+      consumes:
+      - application/json
+      description: Expõe métricas no formato Prometheus
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Métricas Prometheus
+          schema:
+            type: string
+      summary: Métricas Prometheus
+      tags:
+      - metrics
+  /products:
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo produto no catálogo através do catalog-service
+      parameters:
+      - description: Dados do produto a ser criado
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/models.Product'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Produto criado com sucesso
+          schema:
+            type: string
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "502":
+          description: Erro no catalog-service
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Criar produto
+      tags:
+      - products
+  /search/products:
+    get:
+      consumes:
+      - application/json
+      description: Busca produtos no marketplace usando o search-service com suporte
+        a filtros, paginação e ordenação
+      parameters:
+      - description: Termo de busca
+        in: query
+        name: query
+        required: true
+        type: string
+      - description: ID da categoria para filtrar
+        in: query
+        name: categoryId
+        type: string
+      - default: 0
+        description: 'Número da página (padrão: 0)'
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: 'Tamanho da página (padrão: 20, máximo: 100)'
+        in: query
+        maximum: 100
+        name: size
+        type: integer
+      - default: relevance
+        description: 'Critério de ordenação (padrão: relevance)'
+        in: query
+        name: sort
+        type: string
+      - description: ID do usuário para personalização
+        in: query
+        name: userId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resultado da busca
+          schema:
+            $ref: '#/definitions/models.SearchResult'
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "502":
+          description: Erro no search-service
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Buscar produtos
+      tags:
+      - search
+  /search/products/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Busca um produto específico pelo ID através do search-service
+      parameters:
+      - description: ID do produto
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Produto encontrado
+          schema:
+            $ref: '#/definitions/models.Product'
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Produto não encontrado
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "502":
+          description: Erro no search-service
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Obter produto por ID
+      tags:
+      - search
+  /search/suggestions:
+    get:
+      consumes:
+      - application/json
+      description: Retorna sugestões de termos de busca baseadas no termo parcial
+        fornecido
+      parameters:
+      - description: Termo parcial para busca de sugestões
+        in: query
+        name: term
+        required: true
+        type: string
+      - default: 10
+        description: 'Número máximo de sugestões (padrão: 10, máximo: 20)'
+        in: query
+        maximum: 20
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de sugestões
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "502":
+          description: Erro no search-service
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Obter sugestões de busca
+      tags:
+      - search
+schemes:
+- http
+- https
+swagger: "2.0"

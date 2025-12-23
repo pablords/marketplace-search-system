@@ -109,5 +109,21 @@
             "internalConsoleOptions": "neverOpen",
             "skipFiles": ["<node_internals>/**"]
         },
+        {
+            "type": "go",
+            "name": "🚪 API Gateway (Go)",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/api-gateway-go/cmd/gateway",
+            "args": [
+                "--config=${workspaceFolder}/api-gateway-go/configs/config.development.yaml"
+            ],
+            "env": {
+                "ENVIRONMENT": "development"
+            },
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/api-gateway-go",
+            "showLog": true
+        }
     ]
 }

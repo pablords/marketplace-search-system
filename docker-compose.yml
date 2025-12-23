@@ -34,9 +34,10 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - marketplace-network
-    command: redis-server --appendonly yes
+    command: redis-server /usr/local/etc/redis/redis.conf
 
   # OpenSearch e OpenSearch Dashboards
   open-search:

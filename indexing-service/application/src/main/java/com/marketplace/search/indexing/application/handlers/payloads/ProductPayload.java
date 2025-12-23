@@ -368,4 +368,19 @@ public class ProductPayload {
   public void setUpdatedAt(Long updatedAt) {
     this.updatedAt = updatedAt;
   }
+
+  @Override
+  public String toString() {
+    return "ProductPayload [id=" + id + ", title=" + title + ", description=" + description + ", price=" + price
+        + ", currency=" + currency + ", availableQuantity=" + availableQuantity + ", condition=" + condition
+        + ", status=" + status + ", categoryId=" + categoryId + ", categoryName=" + categoryName + ", categoryPath="
+        + categoryPath + ", brandId=" + brandId + ", brandName=" + brandName + ", brandDescription=" + brandDescription
+        + ", sellerId=" + sellerId + ", sellerName=" + sellerName + ", sellerType=" + sellerType + ", sellerStatus="
+        + sellerStatus + ", sellerScore=" + sellerScore + ", sellerTotalReviews=" + sellerTotalReviews
+        + ", sellerPositiveReviews=" + sellerPositiveReviews + ", sellerNeutralReviews=" + sellerNeutralReviews
+        + ", sellerNegativeReviews=" + sellerNegativeReviews + ", sellerCancellationRate=" + sellerCancellationRate
+        + ", sellerDeliveryPerformance=" + sellerDeliveryPerformance + ", totalSold=" + totalSold + ", viewCount="
+        + viewCount + ", ctr=" + ctr + ", averageRating=" + averageRating + ", reviewCount=" + reviewCount
+        + ", attributes=" + attributes + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + "]";
+  }
 }

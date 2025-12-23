@@ -49,5 +49,11 @@ public class BrandPayload {
   public void setCreatedAt(Long createdAt) {
     this.createdAt = createdAt;
   }
+
+  @Override
+  public String toString() {
+    return "BrandPayload [id=" + id + ", name=" + name + ", description=" + description + ", createdAt=" + createdAt
+        + "]";
+  }
 }
 

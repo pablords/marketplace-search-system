@@ -137,5 +137,13 @@ public class SellerPayload {
   public void setUpdatedAt(Long updatedAt) {
     this.updatedAt = updatedAt;
   }
+
+  @Override
+  public String toString() {
+    return "SellerPayload [id=" + id + ", name=" + name + ", type=" + type + ", status=" + status + ", score=" + score
+        + ", totalReviews=" + totalReviews + ", positiveReviews=" + positiveReviews + ", negativeReviews=" + negativeReviews
+        + ", neutralReviews=" + neutralReviews + ", cancellationRate=" + cancellationRate + ", deliveryPerformance="
+        + deliveryPerformance + ", updatedAt=" + updatedAt + "]";
+  }
 }
 

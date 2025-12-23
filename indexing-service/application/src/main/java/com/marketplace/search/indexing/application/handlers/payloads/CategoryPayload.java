@@ -60,5 +60,11 @@ public class CategoryPayload {
   public void setCreatedAt(Long createdAt) {
     this.createdAt = createdAt;
   }
+
+  @Override
+  public String toString() {
+    return "CategoryPayload [id=" + id + ", name=" + name + ", path=" + path + ", parentId=" + parentId + ", createdAt="
+        + createdAt + "]";
+  }
 }
 

@@ -5,9 +5,10 @@ import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.marketplace.search.indexing.application.dtos.BrandDTO;
-import com.marketplace.search.indexing.application.dtos.CategoryDTO;
-import com.marketplace.search.indexing.application.dtos.SellerDTO;
+import com.marketplace.search.indexing.application.handlers.payloads.BrandPayload;
+import com.marketplace.search.indexing.application.handlers.payloads.CategoryPayload;
+import com.marketplace.search.indexing.application.handlers.payloads.ProductMetricsPayload;
+import com.marketplace.search.indexing.application.handlers.payloads.SellerPayload;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,11 +25,11 @@ public record ProductCommand(
 
     @NotNull @JsonProperty("currency") String currency,
 
-    @NotNull @JsonProperty("category") CategoryDTO category,
+    @NotNull @JsonProperty("category") CategoryPayload category,
 
-    @NotNull @JsonProperty("brand") BrandDTO brand,
+    @NotNull @JsonProperty("brand") BrandPayload brand,
 
-    @NotNull @JsonProperty("seller") SellerDTO seller,
+    @NotNull @JsonProperty("seller") SellerPayload seller,
 
     @JsonProperty("images") List<String> images,
 
@@ -41,14 +42,15 @@ public record ProductCommand(
     @JsonProperty("condition") String condition,
 
     @JsonProperty("is_active") Boolean isActive,
+    @JsonProperty("metrics") ProductMetricsPayload productMetrics) {
 
-    @JsonProperty("total_sold") Integer totalSold,
-
-    @JsonProperty("review_count") Integer reviewCount,
-
-    @JsonProperty("average_rating") String averageRating,
-
-    @JsonProperty("ctr") String ctr) {
+  @Override
+  public String toString() {
+    return "ProductCommand [id=" + id + ", title=" + title + ", description=" + description + ", price=" + price
+        + ", currency=" + currency + ", category=" + category + ", brand=" + brand + ", seller=" + seller + ", images="
+        + images + ", attributes=" + attributes + ", tags=" + tags + ", stockQuantity=" + stockQuantity + ", condition="
+        + condition + ", isActive=" + isActive + ", productMetrics=" + productMetrics + "]";
+  }
 
   public static Builder builder() {
     return new Builder();
@@ -61,19 +63,16 @@ public record ProductCommand(
     private String description;
     private BigDecimal price;
     private String currency;
-    private CategoryDTO category;
-    private BrandDTO brand;
-    private SellerDTO seller;
+    private CategoryPayload category;
+    private BrandPayload brand;
+    private SellerPayload seller;
     private List<String> images;
     private Set<String> attributes;
     private Set<String> tags;
     private Integer stockQuantity;
     private String condition;
     private Boolean isActive;
-    private Integer totalSold;
-    private Integer reviewCount;
-    private String averageRating;
-    private String ctr;
+    private ProductMetricsPayload productMetrics;
 
     public Builder id(String id) {
       this.id = id;
@@ -100,17 +99,17 @@ public record ProductCommand(
       return this;
     }
 
-    public Builder category(CategoryDTO category) {
+    public Builder category(CategoryPayload category) {
       this.category = category;
       return this;
     }
 
-    public Builder brand(BrandDTO brand) {
+    public Builder brand(BrandPayload brand) {
       this.brand = brand;
       return this;
     }
 
-    public Builder seller(SellerDTO seller) {
+    public Builder seller(SellerPayload seller) {
       this.seller = seller;
       return this;
     }
@@ -145,23 +144,8 @@ public record ProductCommand(
       return this;
     }
 
-    public Builder totalSold(Integer totalSold) {
-      this.totalSold = totalSold;
-      return this;
-    }
-
-    public Builder reviewCount(Integer reviewCount) {
-      this.reviewCount = reviewCount;
-      return this;
-    }
-
-    public Builder averageRating(String averageRating) {
-      this.averageRating = averageRating;
-      return this;
-    }
-
-    public Builder ctr(String ctr) {
-      this.ctr = ctr;
+    public Builder productMetrics(ProductMetricsPayload productMetrics) {
+      this.productMetrics = productMetrics;
       return this;
     }
 
@@ -181,10 +165,9 @@ public record ProductCommand(
           stockQuantity,
           condition,
           isActive,
-          totalSold,
-          reviewCount,
-          averageRating,
-          ctr);
+          productMetrics
+
+      );
     }
   }
 

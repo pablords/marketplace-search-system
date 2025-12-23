@@ -14,6 +14,9 @@ public class ProductMetricsPayload {
   @JsonProperty("total_reviews")
   private Integer totalReviews;
 
+  @JsonProperty("total_views")
+  private Long totalViews;
+
   @JsonProperty("ctr")
   private String ctr;
 
@@ -53,6 +56,14 @@ public class ProductMetricsPayload {
 
   public void setTotalSales(Integer totalSales) {
     this.totalSales = totalSales;
+  }
+
+  public Long getTotalViews() {
+    return totalViews;
+  }
+
+  public void setTotalViews(Long totalViews) {
+    this.totalViews = totalViews;
   }
 
   public Integer getTotalReviews() {
@@ -130,7 +141,7 @@ public class ProductMetricsPayload {
   @Override
   public String toString() {
     return "ProductMetricsPayload [productId=" + productId + ", totalSales=" + totalSales + ", totalReviews=" + totalReviews
-        + ", ctr=" + ctr + ", averageRating=" + averageRating + ", stockQuantity=" + stockQuantity + ", popularity="
+        + ", totalViews=" + totalViews + ", ctr=" + ctr + ", averageRating=" + averageRating + ", stockQuantity=" + stockQuantity + ", popularity="
         + popularity + ", lastSale=" + lastSale + ", lastView=" + lastView + ", quality=" + quality + ", updatedAt="
         + updatedAt + "]";
   }

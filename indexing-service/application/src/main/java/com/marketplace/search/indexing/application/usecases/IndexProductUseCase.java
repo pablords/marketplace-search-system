@@ -45,12 +45,12 @@ public class IndexProductUseCase {
      * A indexação acontece em background usando o threadpool configurado.
      */
     @Async("asyncIndexingExecutor")
-    public CompletableFuture<Void> executeAsync(ProductCommand productDTO) {
+    public CompletableFuture<Void> executeAsync(ProductCommand productCommand) {
         logger.info("Indexing product asynchronously: id={}, title='{}'",
-                productDTO.id(), productDTO.title());
+        productCommand.id(), productCommand.title());
 
         try {
-            Product product = productMapper.toDomain(productDTO);
+            Product product = productMapper.toDomain(productCommand);
 
             // Indexar produto no OpenSearch
             indexRepository.indexProduct(product);
@@ -61,20 +61,20 @@ public class IndexProductUseCase {
             return CompletableFuture.completedFuture(null);
 
         } catch (Exception e) {
-            logger.error("Error indexing product: {}", productDTO.id(), e);
+            logger.error("Error indexing product: {}", productCommand.id(), e);
             return CompletableFuture.failedFuture(
-                    new IndexingException("Failed to index product: " + productDTO.id(), e));
+                    new IndexingException("Failed to index product: " + productCommand.id(), e));
         }
     }
 
     /**
      * Indexa múltiplos produtos em lote
      */
-    public void executeBatch(List<ProductCommand> productDTOs) {
-        logger.info("Indexing batch of {} products", productDTOs.size());
+    public void executeBatch(List<ProductCommand> productCommand) {
+        logger.info("Indexing batch of {} products", productCommand.size());
 
         try {
-            List<Product> products = productDTOs.stream()
+            List<Product> products = productCommand.stream()
                     .map(productMapper::toDomain)
                     .collect(Collectors.toList());
 

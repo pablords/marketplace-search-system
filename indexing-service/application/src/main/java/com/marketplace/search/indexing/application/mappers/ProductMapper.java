@@ -173,7 +173,7 @@ public class ProductMapper {
     var productMetrics = dto.productMetrics();
     
     // totalViews não está disponível no ProductPayload, manter 0
-    int totalViews = 0;
+    Long totalViews = productMetrics != null && productMetrics.getTotalViews() != null ? productMetrics.getTotalViews() : 0L;
     
     // totalSales vem de totalSold no payload
     int totalSales = productMetrics != null && productMetrics.getTotalSales() != null ? productMetrics.getTotalSales() : 0;
@@ -217,7 +217,7 @@ public class ProductMapper {
     }
 
     ProductMetrics metrics = new ProductMetrics(
-        totalViews,
+        totalViews.intValue(),
         totalSales,
         totalReviews,
         averageRating,

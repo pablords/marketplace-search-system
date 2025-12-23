@@ -111,6 +111,7 @@ public class ProductEventHandler {
 
       // Enriquecer o produto com dados de dimensões e métricas
       ProductPayload enrichedProduct = enrichmentService.enrich(productData);
+      logger.debug("Produto enriquecido: {}", enrichedProduct.toString());
       
       if (enrichedProduct == null) {
         logger.error("Falha ao enriquecer produto: {}", productData.getId());
@@ -129,6 +130,7 @@ public class ProductEventHandler {
       }
 
       ProductCommand productCommand = productMapper.mapProductPayloadToDTO(enrichedProduct);
+      logger.debug("Product Command Após Mapper: {}", productCommand.toString());
       indexProductUseCase.executeAsync(productCommand);
       return CompletableFuture.completedFuture(null);
       

@@ -126,5 +126,14 @@ public class ProductMetricsPayload {
   public void setUpdatedAt(Long updatedAt) {
     this.updatedAt = updatedAt;
   }
+
+  @Override
+  public String toString() {
+    return "ProductMetricsPayload [productId=" + productId + ", totalSales=" + totalSales + ", totalReviews=" + totalReviews
+        + ", ctr=" + ctr + ", averageRating=" + averageRating + ", stockQuantity=" + stockQuantity + ", popularity="
+        + popularity + ", lastSale=" + lastSale + ", lastView=" + lastView + ", quality=" + quality + ", updatedAt="
+        + updatedAt + "]";
+  }
+  
 }
 

@@ -13,7 +13,12 @@ import com.marketplace.search.indexing.application.dtos.CategoryDTO;
 import com.marketplace.search.indexing.application.dtos.ProductDTO;
 import com.marketplace.search.indexing.application.dtos.SellerDTO;
 import com.marketplace.search.indexing.application.dtos.SellerReputationDTO;
+import com.marketplace.search.indexing.application.handlers.payloads.BrandPayload;
+import com.marketplace.search.indexing.application.handlers.payloads.CategoryPayload;
+import com.marketplace.search.indexing.application.handlers.payloads.ProductMetricsPayload;
 import com.marketplace.search.indexing.application.handlers.payloads.ProductPayload;
+import com.marketplace.search.indexing.application.handlers.payloads.SellerPayload;
+import com.marketplace.search.indexing.application.services.ProductMetricsCacheService;
 import com.marketplace.search.indexing.domain.entities.Category;
 import com.marketplace.search.indexing.domain.entities.Product;
 import com.marketplace.search.indexing.domain.entities.Seller;
@@ -31,19 +36,27 @@ import com.marketplace.search.indexing.domain.valueobjects.SellerType;
 @Component("ProductMapperApplication")
 public class ProductMapper {
 
+  private final ProductMetricsCacheService metricsCacheService;
+
+  public ProductMapper(ProductMetricsCacheService metricsCacheService) {
+    this.metricsCacheService = metricsCacheService;
+  }
+
   public ProductCommand mapProductPayloadToDTO(ProductPayload data) {
     // Category
-    CategoryDTO category = new CategoryDTO(
-        data.getCategoryId(),
-        data.getCategoryName(),
-        null,
-        data.getCategoryPath());
+    CategoryPayload category = new CategoryPayload();
+    category.setId(data.getCategoryId());
+    category.setName(data.getCategoryName());
+    category.setPath(data.getCategoryPath());
+    category.setParentId(null);
+    category.setCreatedAt(null);
 
     // Brand
-    BrandDTO brand = new BrandDTO(
-        data.getBrandId(),
-        data.getBrandName(),
-        data.getDescription());
+    BrandPayload brand = new BrandPayload();
+    brand.setId(data.getBrandId());
+    brand.setName(data.getBrandName());
+    brand.setDescription(data.getBrandDescription());
+    brand.setCreatedAt(null);
 
     // Seller
     // Seller reputation (if available in payload)
@@ -68,28 +81,59 @@ public class ProductMapper {
     } catch (NumberFormatException ignored) {
     }
 
-    SellerReputationDTO reputation = null;
-    if (sellerScore != null || data.getSellerTotalReviews() != null || data.getSellerPositiveReviews() != null
-        || data.getSellerNeutralReviews() != null || data.getSellerNegativeReviews() != null
-        || cancellationRate != null || deliveryPerformance != null) {
-      reputation = SellerReputationDTO.builder()
-          .score(sellerScore)
-          .totalReviews(data.getSellerTotalReviews())
-          .positiveReviews(data.getSellerPositiveReviews())
-          .neutralReviews(data.getSellerNeutralReviews())
-          .negativeReviews(data.getSellerNegativeReviews())
-          .cancellationRate(cancellationRate)
-          .deliveryPerformance(deliveryPerformance)
-          .build();
-    }
+    
 
-    SellerDTO seller = SellerDTO.builder()
-        .id(data.getSellerId())
-        .name(data.getSellerName())
-        .reputation(reputation)
-        .type(data.getSellerType())
-        .status(data.getSellerStatus())
-        .build();
+    SellerPayload seller = new SellerPayload();
+    seller.setId(data.getSellerId());
+    seller.setName(data.getSellerName());
+    seller.setType(data.getSellerType());
+    seller.setStatus(data.getSellerStatus());
+    seller.setScore(data.getSellerScore());
+    seller.setTotalReviews(data.getSellerTotalReviews());
+    seller.setPositiveReviews(data.getSellerPositiveReviews());
+    seller.setNeutralReviews(data.getSellerNeutralReviews());
+    seller.setNegativeReviews(data.getSellerNegativeReviews());
+    seller.setCancellationRate(data.getSellerCancellationRate());
+    seller.setDeliveryPerformance(data.getSellerDeliveryPerformance());
+    seller.setUpdatedAt(null);
+
+    // ProductMetrics - tentar obter do cache primeiro, senão criar a partir dos dados enriquecidos do ProductPayload
+    ProductMetricsPayload productMetrics = metricsCacheService.getMetrics(data.getId());
+    
+    // Se não encontrou no cache, criar a partir dos dados do ProductPayload enriquecido
+    if (productMetrics == null) {
+      productMetrics = new ProductMetricsPayload();
+      productMetrics.setProductId(data.getId());
+      productMetrics.setTotalSales(data.getTotalSold());
+      productMetrics.setTotalReviews(data.getReviewCount());
+      productMetrics.setCtr(data.getCtr());
+      productMetrics.setAverageRating(data.getAverageRating());
+      productMetrics.setStockQuantity(data.getAvailableQuantity());
+      productMetrics.setLastSale(null);
+      productMetrics.setLastView(null);
+      productMetrics.setUpdatedAt(data.getUpdatedAt());
+    } else {
+      // Se encontrou no cache, garantir que os dados mais recentes do ProductPayload sejam usados
+      // (caso o ProductPayload tenha dados mais atualizados que o cache)
+      if (data.getTotalSold() != null) {
+        productMetrics.setTotalSales(data.getTotalSold());
+      }
+      if (data.getReviewCount() != null) {
+        productMetrics.setTotalReviews(data.getReviewCount());
+      }
+      if (data.getCtr() != null) {
+        productMetrics.setCtr(data.getCtr());
+      }
+      if (data.getAverageRating() != null) {
+        productMetrics.setAverageRating(data.getAverageRating());
+      }
+      if (data.getAvailableQuantity() != null) {
+        productMetrics.setStockQuantity(data.getAvailableQuantity());
+      }
+      if (data.getUpdatedAt() != null) {
+        productMetrics.setUpdatedAt(data.getUpdatedAt());
+      }
+    }
 
     // Product usando builder
     return ProductCommand.builder()
@@ -104,10 +148,7 @@ public class ProductMapper {
         .stockQuantity(data.getAvailableQuantity())
         .condition(data.getCondition())
         .isActive("ACTIVE".equals(data.getStatus()))
-        .totalSold(data.getTotalSold())
-        .reviewCount(data.getReviewCount())
-        .averageRating(data.getAverageRating())
-        .ctr(data.getCtr())
+        .productMetrics(productMetrics)
         .build();
   }
 
@@ -128,20 +169,23 @@ public class ProductMapper {
     Seller seller = mapSeller(dto.seller());
 
     // Mapear métricas enriquecidas do payload
+    // Verificar se productMetrics não é null antes de acessar
+    var productMetrics = dto.productMetrics();
+    
     // totalViews não está disponível no ProductPayload, manter 0
     int totalViews = 0;
     
     // totalSales vem de totalSold no payload
-    int totalSales = dto.totalSold() != null ? dto.totalSold() : 0;
+    int totalSales = productMetrics != null && productMetrics.getTotalSales() != null ? productMetrics.getTotalSales() : 0;
     
     // totalReviews vem de reviewCount no payload
-    int totalReviews = dto.reviewCount() != null ? dto.reviewCount() : 0;
+    int totalReviews = productMetrics != null && productMetrics.getTotalReviews() != null ? productMetrics.getTotalReviews() : 0;
     
     // averageRating vem do payload (string, precisa converter)
     double averageRating = 0.0;
     try {
-      if (dto.averageRating() != null && !dto.averageRating().isBlank()) {
-        averageRating = Double.parseDouble(dto.averageRating());
+      if (productMetrics != null && productMetrics.getAverageRating() != null && !productMetrics.getAverageRating().isBlank()) {
+        averageRating = Double.parseDouble(productMetrics.getAverageRating());
       }
     } catch (NumberFormatException e) {
       // Manter 0.0 se não conseguir converter
@@ -150,20 +194,27 @@ public class ProductMapper {
     // stockQuantity vem do payload
     int stockQuantity = dto.stockQuantity() != null ? dto.stockQuantity() : 0;
     
-    // conversionRate vem de ctr no payload (string, precisa converter)
+    // ctr vem de ctr no payload (string, precisa converter)
     double conversionRate = 0.0;
     try {
-      if (dto.ctr() != null && !dto.ctr().isBlank()) {
-        conversionRate = Double.parseDouble(dto.ctr());
+      if (productMetrics != null && productMetrics.getCtr() != null && !productMetrics.getCtr().isBlank()) {
+        conversionRate = Double.parseDouble(productMetrics.getCtr());
       }
     } catch (NumberFormatException e) {
       // Manter 0.0 se não conseguir converter
     }
     
-    // lastSale e lastView não estão disponíveis no ProductPayload atual
-    // Seriam obtidos de ProductMetricsPayload, mas não estão sendo mapeados ainda
+    // lastSale e lastView vêm do ProductMetricsPayload (timestamps em Long)
     Instant lastSale = null;
     Instant lastView = null;
+    if (productMetrics != null) {
+      if (productMetrics.getLastSale() != null) {
+        lastSale = Instant.ofEpochMilli(productMetrics.getLastSale());
+      }
+      if (productMetrics.getLastView() != null) {
+        lastView = Instant.ofEpochMilli(productMetrics.getLastView());
+      }
+    }
 
     ProductMetrics metrics = new ProductMetrics(
         totalViews,
@@ -210,8 +261,8 @@ public class ProductMapper {
         .build();
   }
 
-  private Category mapCategory(CategoryDTO dto) {
-    return new Category(dto.id(), dto.name(), dto.parentId(), dto.path());
+  private Category mapCategory(CategoryPayload dto) {
+    return new Category(dto.getId(), dto.getName(), dto.getParentId(), dto.getPath());
   }
 
   private CategoryDTO mapCategoryToDTO(Category category) {
@@ -222,25 +273,26 @@ public class ProductMapper {
         category.getPath());
   }
 
-  private Brand mapBrand(BrandDTO dto) {
-    return new Brand(dto.id(), dto.name(), dto.description());
+  private Brand mapBrand(BrandPayload dto) {
+    return new Brand(dto.getId(), dto.getName(), dto.getDescription());
   }
 
   private BrandDTO mapBrandToDTO(Brand brand) {
     return new BrandDTO(brand.id(), brand.name(), brand.description());
   }
 
-  private Seller mapSeller(SellerDTO dto) {
-    SellerReputation reputation = dto.reputation() != null ? mapSellerReputation(dto.reputation())
-        : new SellerReputation(5.0, 0, 0, 0, 0, 0.0, 1.0);
-
-    return new Seller(
-        dto.id(),
-        dto.name(),
-        mapSellerType(dto.type()),
-        reputation,
-        mapSellerStatus(dto.status()),
-        dto.memberSince() != null ? Instant.parse(dto.memberSince()) : null);
+  private Seller mapSeller(SellerPayload dto) {
+    double score = dto.getScore() != null ? Double.parseDouble(dto.getScore()) : 0.0;
+    int totalReviews = dto.getTotalReviews() != null ? dto.getTotalReviews() : 0;
+    int positiveReviews = dto.getPositiveReviews() != null ? dto.getPositiveReviews() : 0;
+    int neutralReviews = dto.getNeutralReviews() != null ? dto.getNeutralReviews() : 0;
+    int negativeReviews = dto.getNegativeReviews() != null ? dto.getNegativeReviews() : 0;
+    double cancellationRate = dto.getCancellationRate() != null ? Double.parseDouble(dto.getCancellationRate()) : 0.0;
+    double deliveryPerformance = dto.getDeliveryPerformance() != null ? Double.parseDouble(dto.getDeliveryPerformance()) : 1.0;
+    
+    var reputation = new SellerReputation(score, totalReviews, positiveReviews, neutralReviews, negativeReviews, cancellationRate, deliveryPerformance);
+    Instant updatedAt = dto.getUpdatedAt() != null ? Instant.ofEpochMilli(dto.getUpdatedAt()) : null;
+    return new Seller(dto.getId(), dto.getName(), mapSellerType(dto.getType()), reputation, mapSellerStatus(dto.getStatus()), updatedAt);
   }
 
   private SellerDTO mapSellerToDTO(Seller seller) {
@@ -250,7 +302,6 @@ public class ProductMapper {
         .type(seller.getType().name())
         .status(seller.getStatus().name())
         .reputation(mapSellerReputationToDTO(seller.getReputation()))
-        .memberSince(seller.getMemberSince() != null ? seller.getMemberSince().toString() : null)
         .build();
   }
 

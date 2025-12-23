@@ -46,11 +46,7 @@ public class CatalogServiceClient implements CatalogServicePort {
    * @throws CatalogServiceException se houver erro na comunicação
    */
   @Override
-  public URI createProduct(Object productObject) {
-    if (!(productObject instanceof ProductDTO)) {
-      throw new CatalogServiceException("Objeto deve ser do tipo ProductDTO");
-    }
-    ProductDTO productDTO = (ProductDTO) productObject;
+  public URI createProduct(ProductDTO productDTO) {
     return createProductAsync(productDTO).block();
   }
 

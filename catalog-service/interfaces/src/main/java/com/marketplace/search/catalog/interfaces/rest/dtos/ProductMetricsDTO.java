@@ -2,19 +2,21 @@ package com.marketplace.search.catalog.interfaces.rest.dtos;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ProductMetricsDTO(
-		@JsonProperty("total_views") int totalViews,
-		@JsonProperty("total_sales") int totalSales,
-		@JsonProperty("total_reviews") int totalReviews,
-		@JsonProperty("average_rating") double averageRating,
-		@JsonProperty("stock_quantity") int stockQuantity,
+		@JsonProperty("total_views") Integer totalViews,
+		@JsonProperty("total_sales") Integer totalSales,
+		@JsonProperty("total_reviews") Integer totalReviews,
+		@JsonProperty("average_rating") Double averageRating,
+		@JsonProperty("stock_quantity") Integer stockQuantity,
 		@JsonProperty("last_sale") Instant lastSale,
 		@JsonProperty("last_view") Instant lastView,
-		@JsonProperty("popularity") int popularity,
-		@JsonProperty("quality") double quality,
-		@JsonProperty("ctr") double ctr) {
+		@JsonProperty("popularity") Integer popularity,
+		@JsonProperty("quality") Double quality,
+		@JsonProperty("ctr") Double ctr) {
 
 	public static Builder builder() {
 		return new Builder();
@@ -22,38 +24,38 @@ public record ProductMetricsDTO(
 
 	public static class Builder {
 
-		private int totalViews;
-		private int totalSales;
-		private int totalReviews;
-		private double averageRating;
-		private int stockQuantity;
+		private Integer totalViews;
+		private Integer totalSales;
+		private Integer totalReviews;
+		private Double averageRating;
+		private Integer stockQuantity;
 		private Instant lastSale;
 		private Instant lastView;
-		private int popularity;
-		private double quality;
-		private double ctr;
+		private Integer popularity;
+		private Double quality;
+		private Double ctr;
 
-		public Builder totalViews(int totalViews) {
+		public Builder totalViews(Integer totalViews) {
 			this.totalViews = totalViews;
 			return this;
 		}
 
-		public Builder totalSales(int totalSales) {
+		public Builder totalSales(Integer totalSales) {
 			this.totalSales = totalSales;
 			return this;
 		}
 
-		public Builder totalReviews(int totalReviews) {
+		public Builder totalReviews(Integer totalReviews) {
 			this.totalReviews = totalReviews;
 			return this;
 		}
 
-		public Builder averageRating(double averageRating) {
+		public Builder averageRating(Double averageRating) {
 			this.averageRating = averageRating;
 			return this;
 		}
 
-		public Builder stockQuantity(int stockQuantity) {
+		public Builder stockQuantity(Integer stockQuantity) {
 			this.stockQuantity = stockQuantity;
 			return this;
 		}
@@ -68,17 +70,17 @@ public record ProductMetricsDTO(
 			return this;
 		}
 
-		public Builder popularity(int popularity) {
+		public Builder popularity(Integer popularity) {
 			this.popularity = popularity;
 			return this;
 		}
 
-		public Builder quality(double quality) {
+		public Builder quality(Double quality) {
 			this.quality = quality;
 			return this;
 		}
 
-		public Builder ctr(double ctr) {
+		public Builder ctr(Double ctr) {
 			this.ctr = ctr;
 			return this;
 		}

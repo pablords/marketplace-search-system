@@ -91,13 +91,22 @@ public class ProductEntityMapper {
             // O ID é mapeado automaticamente pelo @MapsId na entidade, mas o vínculo é
             // necessário
             metricsEntity.setTotalSales(metrics.totalSales());
-            metricsEntity.setCtr((BigDecimal.valueOf(metrics.conversionRate())));
+            metricsEntity.setCtr(BigDecimal.valueOf(metrics.ctr()));
             metricsEntity.setAverageRating(BigDecimal.valueOf(metrics.averageRating()));
             metricsEntity.setTotalReviews(metrics.totalReviews());
             metricsEntity.setStockQuantity(metrics.stockQuantity());
             metricsEntity.setLastSale(metrics.lastSale());
             metricsEntity.setLastView(metrics.lastView());
             metricsEntity.setQuality(metrics.quality());
+            metricsEntity.setPopularity(metrics.popularity());
+            metricsEntity.setTotalViews(metrics.totalViews());
+            metricsEntity.setTotalSales(metrics.totalSales());
+            metricsEntity.setTotalReviews(metrics.totalReviews());
+            metricsEntity.setStockQuantity(metrics.stockQuantity());
+            metricsEntity.setLastSale(metrics.lastSale());
+            metricsEntity.setLastView(metrics.lastView());
+            metricsEntity.setQuality(metrics.quality());
+            metricsEntity.setPopularity(metrics.popularity());
 
 
             // Método helper bidirecional (importante para JPA salvar corretamente)

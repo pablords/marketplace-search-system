@@ -33,7 +33,10 @@ public class ProductMapper {
         .seller(seller)
         .images(dto.images())
         .attributes(dto.attributes())
+        .tags(dto.tags())
         .stockQuantity(dto.stockQuantity())
+        .condition(dto.condition())
+        .isActive(dto.isActive())
         .productMetrics(mapProductMetrics(dto.productMetrics()))
         .build();
   }
@@ -79,16 +82,16 @@ public class ProductMapper {
     }
 
     return ProductMetricsPayload.builder()
-        .totalViews(dto.totalViews())
-        .totalSales(dto.totalSales())
-        .totalReviews(dto.totalReviews())
-        .averageRating(dto.averageRating())
-        .stockQuantity(dto.stockQuantity())
+        .totalViews(dto.totalViews() != null ? dto.totalViews() : 0)
+        .totalSales(dto.totalSales() != null ? dto.totalSales() : 0)
+        .totalReviews(dto.totalReviews() != null ? dto.totalReviews() : 0)
+        .averageRating(dto.averageRating() != null ? dto.averageRating() : 0.0)
+        .stockQuantity(dto.stockQuantity() != null ? dto.stockQuantity() : 0)
         .lastSale(dto.lastSale())
         .lastView(dto.lastView())
-        .popularity(dto.popularity())
-        .quality(dto.quality())
-        .ctr(dto.ctr())
+        .popularity(dto.popularity() != null ? dto.popularity() : 0)
+        .quality(dto.quality() != null ? dto.quality() : 0.0)
+        .ctr(dto.ctr() != null ? dto.ctr() : 0.0)
         .build();
   }
 

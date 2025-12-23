@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS product_metrics (
     product_id VARCHAR(255) PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
     total_sales INTEGER DEFAULT 0,
     total_reviews INTEGER DEFAULT 0,
+    total_views INTEGER DEFAULT 0,
     ctr DECIMAL(5, 2) DEFAULT 0.0,
     average_rating DECIMAL(3, 2) DEFAULT 0.0,
     stock_quantity INTEGER DEFAULT 0,

@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.marketplace.search.catalog.application.commands.ProductCommand;
@@ -30,6 +32,8 @@ import com.marketplace.search.catalog.domain.valueobjects.SellerType;
  */
 @Component("ProductMapperApplication")
 public class ProductMapper {
+
+  private static final Logger logger = LoggerFactory.getLogger(ProductMapper.class);
 
   public Product toDomain(ProductCommand dto) {
     ProductId id = ProductId.from(dto.id());
@@ -174,6 +178,7 @@ public class ProductMapper {
 
   private ProductMetrics mapProductMetrics(ProductMetricsPayload dto, int defaultStockQuantity) {
     if (dto == null) {
+      logger.info("ProductMetrics is null, creating default ProductMetrics");
       // Cria ProductMetrics padrão com valores iniciais quando não fornecido
       return ProductMetrics.builder()
           .totalViews(0)

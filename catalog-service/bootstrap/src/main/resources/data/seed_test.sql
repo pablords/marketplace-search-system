@@ -57,14 +57,15 @@ INSERT INTO products (id, title, description, price, currency, available_quantit
 INSERT INTO product_metrics (
     product_id, 
     total_sales, 
+    total_views,
     popularity, 
     ctr, 
     average_rating, 
     total_reviews
 ) VALUES 
-('MLB001', 2500, 15000, 0.16, 4.7, 850),
-('MLB002', 1800, 12000, 0.15, 4.8, 650),
-('MLB003', 5000, 25000, 0.20, 4.5, 2100);
+('MLB001', 2500, 15000, 1500, 0.16, 4.7, 850),
+('MLB002', 1800, 12000, 1200, 0.15, 4.8, 650),
+('MLB003', 5000, 25000, 2500, 0.20, 4.5, 2100);
 
 -- Validação
 SELECT 

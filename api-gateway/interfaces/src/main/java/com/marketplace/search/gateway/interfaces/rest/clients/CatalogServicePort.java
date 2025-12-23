@@ -2,6 +2,8 @@ package com.marketplace.search.gateway.interfaces.rest.clients;
 
 import java.net.URI;
 
+import com.marketplace.search.gateway.interfaces.rest.dtos.ProductDTO;
+
 /**
  * Porta (interface) para comunicação com o catalog-service.
  */
@@ -14,7 +16,7 @@ public interface CatalogServicePort {
    * @return URI do produto criado
    * @throws CatalogServiceException se houver erro na comunicação
    */
-  URI createProduct(Object productObject);
+  URI createProduct(ProductDTO productDTO);
 
   /**
    * Exceção customizada para erros de comunicação com o catalog-service.

@@ -54,7 +54,7 @@ public class ProductMetricsEntity {
     @Column(name = "quality")
     private double quality = 0;
 
+    @Column(name = "total_views")
+    private int totalViews = 0; 
 
-
-    // Construtores, Getters e Setters
 }

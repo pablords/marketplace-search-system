@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.NotBlank;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.Positive;
 /**
  * DTO para criação/atualização de produto
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ProductDTO(
 
     @NotNull @NotBlank @JsonProperty("id") String id,

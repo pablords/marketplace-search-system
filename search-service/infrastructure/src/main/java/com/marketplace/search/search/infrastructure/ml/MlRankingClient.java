@@ -36,7 +36,7 @@ public class MlRankingClient implements MLRankingService {
     private final Duration timeout;
 
     public MlRankingClient(
-            @Value("${ml.ranking.service.url:http://ml-ranking-service:8084}") String baseUrl,
+            @Value("${ml.ranking.service.url}") String baseUrl,
             @Value("${ml.ranking.service.timeout-seconds:5}") int timeoutSeconds,
             @Value("${ml.ranking.service.max-retries:3}") int maxRetries,
             WebClient.Builder webClientBuilder) {

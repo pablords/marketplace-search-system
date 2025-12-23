@@ -1,10 +1,12 @@
 package com.marketplace.search.search.infrastructure.opensearch.documents;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Documento para vendedor no OpenSearch
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SellerDocument {
 
 	@JsonProperty("id")

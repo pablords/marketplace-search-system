@@ -69,7 +69,7 @@ opensearch:
 ml:
   ranking:
     service:
-      url: ${ML_RANKING_SERVICE_URL:http://ml-ranking-service:8084}
+      url: ${ML_RANKING_SERVICE_URL:http://localhost:8084}
       timeout-seconds: ${ML_RANKING_SERVICE_TIMEOUT:15}
       max-retries: ${ML_RANKING_SERVICE_MAX_RETRIES:2}
       enabled: ${ML_RANKING_ENABLED:true}

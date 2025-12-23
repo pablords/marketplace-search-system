@@ -1,7 +1,6 @@
 package com.marketplace.search.indexing.infrastructure.opensearch.repositories;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,13 +11,13 @@ import org.opensearch.client.opensearch.core.BulkResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.ExistsRequest;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import com.marketplace.search.indexing.domain.entities.Product;
 import com.marketplace.search.indexing.domain.repositories.ProductIndexRepository;
 import com.marketplace.search.indexing.domain.valueobjects.ProductId;
 import com.marketplace.search.indexing.infrastructure.embedding.EmbeddingClient;
+import com.marketplace.search.indexing.infrastructure.opensearch.mappers.ProductDocumentMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,17 +27,17 @@ public class OpensearchRepository implements ProductIndexRepository {
 
 	private final OpenSearchClient client;
 	private final EmbeddingClient embeddingClient;
-	private final boolean embeddingEnabled;
+	private final ProductDocumentMapper mapper;
 	private static final String INDEX_NAME = "products_index";
 	private static final String VECTOR_FIELD = "product_vector";
 
 	public OpensearchRepository(
 			OpenSearchClient client,
 			EmbeddingClient embeddingClient,
-			@Value("${embedding.service.enabled:true}") boolean embeddingEnabled) {
+			ProductDocumentMapper mapper) {
 		this.client = client;
 		this.embeddingClient = embeddingClient;
-		this.embeddingEnabled = embeddingEnabled;
+		this.mapper = mapper;
 	}
 
 	@Override
@@ -71,7 +70,8 @@ public class OpensearchRepository implements ProductIndexRepository {
 						.properties("title", p -> p
 								.text(t -> t
 										.analyzer("standard") // Analisador padrão para português/inglês
-										.fields("keyword", f -> f.keyword(k -> k)))) // Subcampo keyword para exact match
+										.fields("keyword", f -> f.keyword(k -> k)))) // Subcampo keyword para exact
+																						// match
 						// Campo description para BM25
 						.properties("description", p -> p
 								.text(t -> t
@@ -95,34 +95,31 @@ public class OpensearchRepository implements ProductIndexRepository {
 		List<float[]> embeddings = new ArrayList<>();
 
 		// Gerar embeddings se o serviço estiver habilitado
-		if (embeddingEnabled) {
-			log.debug("Gerando embeddings em batch para " + products.size() + " documentos...");
-			
-			// Extrair títulos dos produtos para gerar embeddings
-			List<String> titles = new ArrayList<>();
-			for (Product product : products) {
-				String title = product.getInfo().getTitle();
-				if (title != null && !title.trim().isEmpty()) {
-					titles.add(title);
-				} else {
-					// Se não houver título, usar descrição ou string vazia
-					String description = product.getInfo().getDescription();
-					titles.add(description != null && !description.trim().isEmpty() ? description : "");
-				}
-			}
 
-			// Chamar Embedding Service para gerar embeddings em batch
-			Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(titles);
-			
-			if (embeddingsOptional.isPresent()) {
-				embeddings = embeddingsOptional.get();
-				long embeddingTime = System.currentTimeMillis() - startTime;
-				log.debug("Embeddings gerados em " + embeddingTime + "ms para " + embeddings.size() + " textos");
+		log.debug("Gerando embeddings em batch para " + products.size() + " documentos...");
+
+		// Extrair títulos dos produtos para gerar embeddings
+		List<String> titles = new ArrayList<>();
+		for (Product product : products) {
+			String title = product.getInfo().getTitle();
+			if (title != null && !title.trim().isEmpty()) {
+				titles.add(title);
 			} else {
-				log.warn("Falha ao gerar embeddings. Indexando documentos sem vetores (apenas BM25).");
+				// Se não houver título, usar descrição ou string vazia
+				String description = product.getInfo().getDescription();
+				titles.add(description != null && !description.trim().isEmpty() ? description : "");
 			}
+		}
+
+		// Chamar Embedding Service para gerar embeddings em batch
+		Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(titles);
+
+		if (embeddingsOptional.isPresent()) {
+			embeddings = embeddingsOptional.get();
+			long embeddingTime = System.currentTimeMillis() - startTime;
+			log.debug("Embeddings gerados em " + embeddingTime + "ms para " + embeddings.size() + " textos");
 		} else {
-			log.debug("Embedding Service desabilitado. Indexando documentos sem vetores.");
+			log.warn("Falha ao gerar embeddings. Indexando documentos sem vetores (apenas BM25).");
 		}
 
 		// Criar requisição Bulk
@@ -130,16 +127,10 @@ public class OpensearchRepository implements ProductIndexRepository {
 
 		for (int i = 0; i < products.size(); i++) {
 			var product = products.get(i);
-			String title = product.getInfo().getTitle();
-			String description = product.getInfo().getDescription();
-			String category = product.getInfo().getCategory().getName();
 			String productId = product.getId().getValue();
 
-			// Criar documento com TODOS os campos para busca híbrida
-			Map<String, Object> docBody = new HashMap<>();
-			docBody.put("title", title);
-			docBody.put("description", description);
-			docBody.put("category", category);
+			// Criar documento completo usando o mapper
+			Map<String, Object> docBody = mapper.toDocumentMap(product);
 
 			// Incluir vetor se disponível
 			if (i < embeddings.size()) {
@@ -170,7 +161,7 @@ public class OpensearchRepository implements ProductIndexRepository {
 			}
 		} else {
 			int withVectors = embeddings.size();
-			log.debug("✓ " + products.size() + " documentos indexados com sucesso! " + 
+			log.debug("✓ " + products.size() + " documentos indexados com sucesso! " +
 					(withVectors > 0 ? "(" + withVectors + " com vetores)" : "(sem vetores)"));
 		}
 
@@ -189,33 +180,27 @@ public class OpensearchRepository implements ProductIndexRepository {
 
 	@Override
 	public void updateProduct(Product product) throws Exception {
+		// Criar documento completo usando o mapper
+		Map<String, Object> docBody = mapper.toDocumentMap(product);
+
 		String title = product.getInfo().getTitle();
 		String description = product.getInfo().getDescription();
-		String category = product.getInfo().getCategory().getName();
+		String textForEmbedding = title;
+		if (textForEmbedding == null || textForEmbedding.trim().isEmpty()) {
+			textForEmbedding = (description != null && !description.trim().isEmpty()) ? description : "";
+		}
 
-		// Criar documento com campos estruturados
-		Map<String, Object> docBody = new HashMap<>();
-		docBody.put("title", title);
-		docBody.put("description", description);
-		docBody.put("category", category);
+		if (!textForEmbedding.isEmpty()) {
+			List<String> texts = List.of(textForEmbedding);
+			Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(texts);
 
-		// Gerar embedding se o serviço estiver habilitado
-		if (embeddingEnabled) {
-			String textForEmbedding = (title != null && !title.trim().isEmpty()) 
-					? title 
-					: (description != null && !description.trim().isEmpty() ? description : "");
-			
-			if (!textForEmbedding.isEmpty()) {
-				List<String> texts = List.of(textForEmbedding);
-				Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(texts);
-				
-				if (embeddingsOptional.isPresent() && !embeddingsOptional.get().isEmpty()) {
-					float[] vector = embeddingsOptional.get().get(0);
-					docBody.put(VECTOR_FIELD, vector);
-					log.debug("Embedding gerado e incluído na atualização do produto " + product.getId().getValue());
-				} else {
-					log.warn("Falha ao gerar embedding para atualização do produto " + product.getId().getValue() + ". Atualizando sem vetor.");
-				}
+			if (embeddingsOptional.isPresent() && !embeddingsOptional.get().isEmpty()) {
+				float[] vector = embeddingsOptional.get().get(0);
+				docBody.put(VECTOR_FIELD, vector);
+				log.debug("Embedding gerado e incluído na atualização do produto " + product.getId().getValue());
+			} else {
+				log.warn("Falha ao gerar embedding para atualização do produto " + product.getId().getValue()
+						+ ". Atualizando sem vetor.");
 			}
 		}
 
@@ -228,33 +213,27 @@ public class OpensearchRepository implements ProductIndexRepository {
 
 	@Override
 	public void indexProduct(Product product) throws Exception {
+		// Criar documento completo usando o mapper
+		Map<String, Object> docBody = mapper.toDocumentMap(product);
+
 		String title = product.getInfo().getTitle();
 		String description = product.getInfo().getDescription();
-		String category = product.getInfo().getCategory().getName();
+		String textForEmbedding = title;
+		if (textForEmbedding == null || textForEmbedding.trim().isEmpty()) {
+			textForEmbedding = (description != null && !description.trim().isEmpty()) ? description : "";
+		}
 
-		// Criar documento com campos estruturados
-		Map<String, Object> docBody = new HashMap<>();
-		docBody.put("title", title);
-		docBody.put("description", description);
-		docBody.put("category", category);
+		if (!textForEmbedding.isEmpty()) {
+			List<String> texts = List.of(textForEmbedding);
+			Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(texts);
 
-		// Gerar embedding se o serviço estiver habilitado
-		if (embeddingEnabled) {
-			String textForEmbedding = (title != null && !title.trim().isEmpty()) 
-					? title 
-					: (description != null && !description.trim().isEmpty() ? description : "");
-			
-			if (!textForEmbedding.isEmpty()) {
-				List<String> texts = List.of(textForEmbedding);
-				Optional<List<float[]>> embeddingsOptional = embeddingClient.generateEmbeddings(texts);
-				
-				if (embeddingsOptional.isPresent() && !embeddingsOptional.get().isEmpty()) {
-					float[] vector = embeddingsOptional.get().get(0);
-					docBody.put(VECTOR_FIELD, vector);
-					log.debug("Embedding gerado e incluído no documento do produto " + product.getId().getValue());
-				} else {
-					log.warn("Falha ao gerar embedding para produto " + product.getId().getValue() + ". Indexando sem vetor.");
-				}
+			if (embeddingsOptional.isPresent() && !embeddingsOptional.get().isEmpty()) {
+				float[] vector = embeddingsOptional.get().get(0);
+				docBody.put(VECTOR_FIELD, vector);
+				log.debug("Embedding gerado e incluído no documento do produto " + product.getId().getValue());
+			} else {
+				log.warn("Falha ao gerar embedding para produto " + product.getId().getValue()
+						+ ". Indexando sem vetor.");
 			}
 		}
 

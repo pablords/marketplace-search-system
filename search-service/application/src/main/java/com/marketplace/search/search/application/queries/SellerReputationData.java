@@ -3,19 +3,19 @@ package com.marketplace.search.search.application.queries;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record SellerReputationData(
-    @JsonProperty("score") Double score,
-
-    @JsonProperty("total_reviews") Integer totalReviews,
-
-    @JsonProperty("positive_reviews") Integer positiveReviews,
-
-    @JsonProperty("neutral_reviews") Integer neutralReviews,
-
-    @JsonProperty("negative_reviews") Integer negativeReviews,
-
-    @JsonProperty("cancellation_rate") Double cancellationRate,
-
-    @JsonProperty("delivery_performance") Double deliveryPerformance) {
+  @JsonProperty("score") Double score,
+    
+  @JsonProperty("total_reviews") Integer totalReviews,
+  
+  @JsonProperty("positive_reviews") Integer positiveReviews,
+  
+  @JsonProperty("neutral_reviews") Integer neutralReviews,
+  
+  @JsonProperty("negative_reviews") Integer negativeReviews,
+  
+  @JsonProperty("cancellation_rate") Double cancellationRate,
+  
+  @JsonProperty("delivery_performance") Double deliveryPerformance) {
 
   public static Builder builder() {
     return new Builder();

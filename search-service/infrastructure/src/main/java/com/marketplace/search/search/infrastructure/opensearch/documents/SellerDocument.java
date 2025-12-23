@@ -21,18 +21,18 @@ public class SellerDocument {
 	@JsonProperty("type")
 	private String type;
 
-	@JsonProperty("reputation_score")
-	private double reputationScore;
+	@JsonProperty("reputation")
+	private SellerReputationDocument reputation;
 
 	public SellerDocument() {
 	}
 
-	public SellerDocument(String id, String name, String status, String type, double reputationScore) {
+	public SellerDocument(String id, String name, String status, String type, SellerReputationDocument reputation) {
 		this.id = id;
 		this.name = name;
 		this.status = status;
 		this.type = type;
-		this.reputationScore = reputationScore;
+		this.reputation = reputation;
 	}
 
 	public String getId() {
@@ -67,12 +67,11 @@ public class SellerDocument {
 		this.type = type;
 	}
 
-	public double getReputationScore() {
-		return reputationScore;
+	public SellerReputationDocument getReputation() {
+		return reputation;
 	}
 
-	public void setReputationScore(double reputationScore) {
-		this.reputationScore = reputationScore;
+	public void setReputation(SellerReputationDocument reputation) {
+		this.reputation = reputation;
 	}
 }
-

@@ -117,7 +117,7 @@ public class SearchProductsUseCase {
       int fromIndex = Math.min(query.offset(), rankedProducts.size());
       int toIndex = Math.min(query.offset() + query.limit(), rankedProducts.size());
       List<Product> finalProducts = rankedProducts.subList(fromIndex, toIndex);
-      logger.info("Final products: {}", finalProducts.size());
+      logger.info("Final product: {}", finalProducts.get(0).toString());
 
       Duration executionTime = Duration.between(startTime, Instant.now());
 

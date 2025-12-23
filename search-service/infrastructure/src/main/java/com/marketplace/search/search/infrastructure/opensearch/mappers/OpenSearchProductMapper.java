@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.marketplace.search.search.domain.entities.Category;
 import com.marketplace.search.search.domain.entities.Product;
+import com.marketplace.search.search.domain.entities.Seller;
 import com.marketplace.search.search.domain.valueobjects.Brand;
 import com.marketplace.search.search.domain.valueobjects.ProductId;
 import com.marketplace.search.search.domain.valueobjects.ProductInfo;
@@ -20,6 +21,7 @@ import com.marketplace.search.search.infrastructure.opensearch.documents.Product
 import com.marketplace.search.search.infrastructure.opensearch.documents.ProductSearchDocument;
 import com.marketplace.search.search.infrastructure.opensearch.documents.ProductStatusDocument;
 import com.marketplace.search.search.infrastructure.opensearch.documents.SellerDocument;
+import com.marketplace.search.search.infrastructure.opensearch.documents.SellerReputationDocument;
 
 /**
  * Mapper entre entidades de domínio e documentos do OpenSearch
@@ -102,23 +104,35 @@ public class OpenSearchProductMapper {
 		return new Brand(document.getId(), document.getName(), document.getDescription());
 	}
 
-	private SellerDocument mapSellerToDocument(com.marketplace.search.search.domain.entities.Seller seller) {
+	private SellerDocument mapSellerToDocument(Seller seller) {
 		SellerDocument doc = new SellerDocument();
 		doc.setId(seller.getId());
 		doc.setName(seller.getName());
 		doc.setType(seller.getType().name());
-		doc.setReputationScore(seller.getReputationScore());
+		doc.setReputation(mapSellerReputationToDocument(seller.getReputation()));
 		doc.setStatus(seller.getStatus().name());
 		return doc;
 	}
 
-	private com.marketplace.search.search.domain.entities.Seller mapSellerToDomain(SellerDocument document) {
-		// Recrear reputação com valores padrão - em um cenário real seria mais completo
-		SellerReputation reputation = new SellerReputation(
-				document.getReputationScore() > 0 ? document.getReputationScore() : 5.0, 0, 0, 0, 0, 0.0, 1.0);
+	private SellerReputationDocument mapSellerReputationToDocument(SellerReputation reputation) {
+		return new SellerReputationDocument(reputation.getScore(), reputation.getTotalReviews(), reputation.getPositiveReviews(), reputation.getNeutralReviews(), reputation.getNegativeReviews(), reputation.getCancellationRate(), reputation.getDeliveryPerformance());
+	}
 
-		return new com.marketplace.search.search.domain.entities.Seller(document.getId(), document.getName(),
-				mapSellerType(document.getType()), reputation, mapSellerStatus(document.getStatus()), null);
+	private Seller mapSellerToDomain(SellerDocument document) {
+		if (document == null) {
+			logger.warn("SellerDocument é null, não é possível mapear para domínio");
+			throw new IllegalArgumentException("SellerDocument não pode ser null");
+		}
+		return new Seller(document.getId(), document.getName(), mapSellerType(document.getType()), mapSellerReputationToDomain(document.getReputation()), mapSellerStatus(document.getStatus()), null);
+	}
+
+	private SellerReputation mapSellerReputationToDomain(SellerReputationDocument document) {
+		if (document == null) {
+			// Se o documento de reputação não estiver disponível, criar uma reputação padrão
+			logger.warn("SellerReputationDocument é null, usando valores padrão");
+			return new SellerReputation(5.0, 0, 0, 0, 0, 0.0, 1.0);
+		}
+		return new SellerReputation(document.getScore(), document.getTotalReviews(), document.getPositiveReviews(), document.getNeutralReviews(), document.getNegativeReviews(), document.getCancellationRate(), document.getDeliveryPerformance());
 	}
 
 	private ProductMetricsDocument mapMetricsToDocument(ProductMetrics metrics) {

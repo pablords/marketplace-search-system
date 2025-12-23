@@ -6,17 +6,17 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record SellerData(
-    @NotNull @NotBlank @JsonProperty("id") String id,
-
-    @NotNull @NotBlank @JsonProperty("name") String name,
-
-    @JsonProperty("type") String type,
-
-    @JsonProperty("reputation") SellerReputationData reputation,
-
-    @JsonProperty("status") String status,
-
-    @JsonProperty("member_since") String memberSince) {
+  @NotNull @NotBlank @JsonProperty("id") String id,
+    
+  @NotNull @NotBlank @JsonProperty("name") String name,
+  
+  @JsonProperty("type") String type,
+  
+  @JsonProperty("reputation") SellerReputationData reputation,
+  
+  @JsonProperty("status") String status,
+  
+  @JsonProperty("member_since") String memberSince) {
 
   public static Builder builder() {
     return new Builder();

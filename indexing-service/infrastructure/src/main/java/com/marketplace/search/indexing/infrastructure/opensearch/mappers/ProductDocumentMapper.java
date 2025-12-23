@@ -15,6 +15,7 @@ import com.marketplace.search.indexing.domain.entities.Seller;
 import com.marketplace.search.indexing.domain.valueobjects.Brand;
 import com.marketplace.search.indexing.domain.valueobjects.ProductMetrics;
 import com.marketplace.search.indexing.domain.valueobjects.ProductStatus;
+import com.marketplace.search.indexing.domain.valueobjects.SellerReputation;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -116,6 +117,19 @@ public class ProductDocumentMapper {
 		sellerMap.put("status", seller.getStatus().name());
 		sellerMap.put("type", seller.getType().name());
 		sellerMap.put("reputation_score", seller.getReputationScore());
+		
+		// Mapear dados completos da reputação
+		Map<String, Object> reputationMap = new HashMap<>();
+		SellerReputation reputation = seller.getReputation();
+		reputationMap.put("score", reputation.getScore());
+		reputationMap.put("total_reviews", reputation.getTotalReviews());
+		reputationMap.put("positive_reviews", reputation.getPositiveReviews());
+		reputationMap.put("neutral_reviews", reputation.getNeutralReviews());
+		reputationMap.put("negative_reviews", reputation.getNegativeReviews());
+		reputationMap.put("cancellation_rate", reputation.getCancellationRate());
+		reputationMap.put("delivery_performance", reputation.getDeliveryPerformance());
+		
+		sellerMap.put("reputation", reputationMap);
 		return sellerMap;
 	}
 

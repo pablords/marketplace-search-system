@@ -5,6 +5,8 @@ package com.marketplace.search.indexing.domain.valueobjects;
  */
 public enum SellerType {
     REGULAR,
+    PROFESSIONAL,
+    INDIVIDUAL,
     MERCADO_LIDER,
     OFFICIAL_STORE
 }

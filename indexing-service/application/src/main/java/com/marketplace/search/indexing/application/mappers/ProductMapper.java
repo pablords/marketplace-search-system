@@ -292,7 +292,8 @@ public class ProductMapper {
     
     var reputation = new SellerReputation(score, totalReviews, positiveReviews, neutralReviews, negativeReviews, cancellationRate, deliveryPerformance);
     Instant updatedAt = dto.getUpdatedAt() != null ? Instant.ofEpochMilli(dto.getUpdatedAt()) : null;
-    return new Seller(dto.getId(), dto.getName(), mapSellerType(dto.getType()), reputation, mapSellerStatus(dto.getStatus()), updatedAt);
+    SellerType mappedType = mapSellerType(dto.getType());
+    return new Seller(dto.getId(), dto.getName(), mappedType, reputation, mapSellerStatus(dto.getStatus()), updatedAt);
   }
 
   private SellerDTO mapSellerToDTO(Seller seller) {

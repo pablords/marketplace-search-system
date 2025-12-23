@@ -336,7 +336,7 @@ def create_products_on_demand(api_url, total_products=10):
                 print(f"Produto criado com sucesso: {product_payload['id']}")
             else:
                 print(f"Erro ao criar produto: {response.status_code} - {response.text}")
-            time.sleep(index * 0.5)  # Pequena pausa para evitar sobrecarga no servidor
+            # time.sleep(index * 0.1)  # Pequena pausa para evitar sobrecarga no servidor
     except Exception as e:
         print(f"Erro na requisição: {e}")
 

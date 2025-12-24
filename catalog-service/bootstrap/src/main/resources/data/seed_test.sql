@@ -3,27 +3,28 @@ TRUNCATE product_metrics, products, sellers, brands, categories CASCADE;
 
 -- 1. Inserir Categorias
 INSERT INTO categories (id, name, path) VALUES 
-('CAT001', 'Eletrônicos', 'Eletrônicos > Celulares > Smartphones'),
-('CAT002', 'Informática', 'Informática > Notebooks > Notebooks para Trabalho'),
-('CAT003', 'Moda e Beleza', 'Moda e Beleza > Calçados > Tênis'),
-('CAT004', 'Casa e Moveis', 'Casa e Moveis'),
-('CAT005', 'Decoração', 'Decoração'),
-('CAT006', 'Vestuário', 'Vestuário');
+('Celulares', 'Eletrônicos', 'Eletrônicos > Celulares > Smartphones'),
+('Notebooks', 'Informática', 'Informática > Notebooks > Notebooks para Trabalho'),
+('TV e Áudio', 'Moda e Beleza', 'Moda e Beleza > Calçados > Tênis'),
+('Móveis', 'Casa e Moveis', 'Casa e Moveis'),
+('Decoração', 'Decoração', 'Decoração'),
+('Vestuário', 'Vestuário', 'Vestuário');
 
 -- 2. Inserir Marcas
 INSERT INTO brands (id, name, description) VALUES 
-('BRAND001', 'Samsung', 'Marca líder mundial em tecnologia e inovação'),
-('BRAND002', 'Dell', 'Qualidade e confiabilidade'),
-('BRAND003', 'Nike', 'Just Do It'),
-('BRAND004', 'Adidas', 'adidas');
+('Samsung', 'Samsung', 'Marca líder mundial em tecnologia e inovação'),
+('Dell', 'Dell', 'Qualidade e confiabilidade'),
+('Nike', 'Nike', 'Just Do It'),
+('Adidas', 'Adidas', 'adidas'),
+('Apple', 'Apple', 'Inovação e design');
 
 -- 3. Inserir Vendedores
 -- IMPORTANTE: total_reviews DEVE ser igual a positive_reviews + neutral_reviews + negative_reviews
 INSERT INTO sellers (id, name, type, status, score, total_reviews, positive_reviews, neutral_reviews, negative_reviews, cancellation_rate, delivery_performance) VALUES 
-('SELLER001', 'TechStore', 'PROFESSIONAL', 'ACTIVE', 4.8, 1500, 1400, 80, 20, 0.02, 0.98),
-('SELLER002', 'InfoShop', 'PROFESSIONAL', 'ACTIVE', 4.9, 2000, 1950, 40, 10, 0.01, 0.99),
-('SELLER003', 'SportCenter', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 70, 30, 0.05, 0.95),
-('SELLER004', 'Sport', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 70, 30, 0.05, 0.95);
+('TechStore', 'TechStore', 'PROFESSIONAL', 'ACTIVE', 4.8, 1500, 1400, 80, 20, 0.02, 0.98),
+('InfoShop', 'InfoShop', 'PROFESSIONAL', 'ACTIVE', 4.9, 2000, 1950, 40, 10, 0.01, 0.99),
+('SportCenter', 'SportCenter', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 70, 30, 0.05, 0.95),
+('Sport', 'Sport', 'PROFESSIONAL', 'ACTIVE', 4.6, 800, 700, 70, 30, 0.05, 0.95);
 
 -- 4. Inserir Produtos
 INSERT INTO products (id, title, description, price, currency, available_quantity, condition, active, category_id, brand_id, seller_id, attributes) VALUES 
@@ -32,7 +33,7 @@ INSERT INTO products (id, title, description, price, currency, available_quantit
     'Smartphone Samsung Galaxy S23', 
     'Smartphone top de linha com câmera de 50MP', 
     3499.99, 'BRL', 50, 'NEW', TRUE,
-    'CAT001', 'BRAND001', 'SELLER001',
+    'Celulares', 'Samsung', 'TechStore',
     '{"cor": "Preto", "memoria": "256GB"}'::jsonb
 ),
 (
@@ -40,16 +41,16 @@ INSERT INTO products (id, title, description, price, currency, available_quantit
     'Notebook Dell Inspiron 15', 
     'Notebook com i7 e 16GB RAM', 
     4299.00, 'BRL', 30, 'NEW', TRUE,
-    'CAT002', 'BRAND002', 'SELLER002',
+    'Notebooks', 'Dell', 'InfoShop',
     '{"processador": "i7", "ram": "16GB"}'::jsonb
 ),
 (
     'MLB003', 
-    'Tênis Nike Air Max 270', 
+    'Smart TV 4K Samsung', 
     'Conforto máximo', 
-    599.90, 'BRL', 100, 'NEW', TRUE,
-    'CAT003', 'BRAND003', 'SELLER003',
-    '{"tamanho": "42", "cor": "Branco"}'::jsonb
+    599.90, 'BRL', 100, 'NEW', TRUE,    
+    'TV e Áudio', 'Nike', 'SportCenter',
+    '{"resolucao": "4K", "polegadas": "55"}'::jsonb
 );
 
 

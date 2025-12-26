@@ -120,7 +120,7 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "rank": "/api/v1/ml/rank",
-            "health": "/health"
+            "health": "/api/v1/health"
         }
     }
 

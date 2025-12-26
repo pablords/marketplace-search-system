@@ -4,11 +4,12 @@ Sistema de busca inteligente para marketplace com arquitetura de microserviços,
 
 ## 🏗️ Arquitetura
 
-O projeto segue **Arquitetura de Microserviços** com API Gateway para roteamento e serviços especializados:
+O projeto segue **Arquitetura de Microserviços** com Traefik como gateway único e API Gateway interno para roteamento:
 
 ```
 marketplace-search-system/
-├── api-gateway/          # 🚪 API Gateway - Roteamento de requisições
+├── traefik/              # 🌐 Traefik Gateway - Gateway único exposto (porta 80/443)
+├── api-gateway/          # 🚪 API Gateway - Roteamento interno de requisições
 ├── catalog-service/      # 📦 Catalog Service - CRUD de produtos
 ├── indexing-service/     # 🔍 Indexing Service - Indexação via Kafka CDC
 ├── search-service/       # 🔎 Search Service - Busca com ML ranking
@@ -18,14 +19,17 @@ marketplace-search-system/
 
 ### Componentes
 
-| Serviço | Porta | Descrição |
-|---------|-------|-----------|
-| **API Gateway** | 8080 | Roteia requisições para os microserviços |
-| **Catalog Service** | 8081 | Gerencia produtos no PostgreSQL |
-| **Indexing Service** | 8082 | Indexa produtos no OpenSearch via Kafka CDC |
-| **Search Service** | 8083 | Realiza buscas no OpenSearch com ML ranking |
-| **ML Ranking Service** | 8084 | Re-ranqueia produtos usando Machine Learning |
-| **ML Embedding Service** | 8085 | Gera embeddings vetoriais para busca semântica |
+| Serviço | Porta Interna | Acesso Público | Descrição |
+|---------|---------------|----------------|-----------|
+| **Traefik Gateway** | 80/443 | ✅ `http://localhost` | Gateway único exposto, cache de borda para search |
+| **API Gateway** | 8080 | ❌ Via Traefik | Roteia requisições para os microserviços |
+| **Catalog Service** | 8081 | ❌ Via API Gateway | Gerencia produtos no PostgreSQL |
+| **Indexing Service** | 8082 | ❌ Privado | Indexa produtos no OpenSearch via Kafka CDC |
+| **Search Service** | 8083 | ❌ Via API Gateway | Realiza buscas no OpenSearch com ML ranking |
+| **ML Ranking Service** | 8084 | ❌ Privado | Re-ranqueia produtos usando Machine Learning |
+| **ML Embedding Service** | 8085 | ❌ Privado | Gera embeddings vetoriais para busca semântica |
+| **Grafana** | 3000 | ✅ Via Traefik `/grafana` | Visualização de métricas |
+| **OpenSearch Dashboards** | 5601 | ✅ Via Traefik `/opensearch-dashboards` | Dashboard do OpenSearch |
 
 ## 🚀 Tecnologias
 
@@ -47,6 +51,7 @@ marketplace-search-system/
 - **PyTorch** - Backend para modelos de ML
 
 ### Infraestrutura
+- **Traefik v2.10** - Gateway reverso, load balancer e cache HTTP de borda
 - **PostgreSQL 15** - Banco de dados transacional
 - **Redis 7** - Cache de alta performance e Feature Store
 - **Docker Compose** - Ambiente de desenvolvimento
@@ -65,6 +70,9 @@ marketplace-search-system/
 - [x] **Idempotência na Criação** - Verificação de produtos duplicados antes de criar
 - [x] **Cache Inteligente** - Redis para consultas frequentes
 - [x] **Cache nos Serviços ML** - Redis para embeddings e features nos serviços ML
+- [x] **Cache de Borda** - Cache HTTP no Traefik para rotas de search (TTL configurável)
+- [x] **Gateway Único** - Traefik como único ponto de entrada exposto
+- [x] **Privatização de Serviços** - Todos os serviços privados exceto Traefik, Grafana e OpenSearch Dashboards
 - [x] **ML Ranking** - Re-ranking com 17 features usando modelo ML
 - [x] **Embeddings Vetoriais** - Busca semântica com k-NN
 - [x] **Feature Store** - Cache de features ML no Redis
@@ -103,11 +111,14 @@ cd marketplace-search-system
 ### 2. Subir Infraestrutura
 
 ```bash
-# Subir todos os serviços (PostgreSQL, Redis, OpenSearch, Kafka, etc.)
+# Subir todos os serviços (Traefik, PostgreSQL, Redis, OpenSearch, Kafka, etc.)
 docker-compose up -d
 
 # Verificar se os serviços estão rodando
 docker-compose ps
+
+# Ver logs do Traefik
+docker-compose logs -f traefik
 ```
 
 ### 3. Compilar e Executar
@@ -140,18 +151,18 @@ java -jar search-service/bootstrap/target/bootstrap-*.jar
 ### 4. Verificar Health
 
 ```bash
-# Health check do API Gateway
-curl http://localhost:8080/api/v1/health
+# Health check via Traefik (gateway único)
+curl http://localhost/api/v1/health
 
-# Health check dos microserviços
+# Health check direto dos microserviços (apenas interno)
 curl http://localhost:8081/api/v1/actuator/health  # Catalog Service
 curl http://localhost:8082/api/v1/actuator/health  # Indexing Service
 curl http://localhost:8083/api/v1/actuator/health  # Search Service
 curl http://localhost:8084/health                   # ML Ranking Service
 curl http://localhost:8085/health                  # ML Embedding Service
 
-# Métricas Prometheus
-curl http://localhost:8080/api/v1/actuator/prometheus
+# Métricas Prometheus (via Traefik)
+curl http://localhost/api/v1/metrics
 ```
 
 ## 🔧 Configuração
@@ -189,20 +200,27 @@ EMBEDDING_SERVICE_URL=http://localhost:8085
 
 # Kafka Deduplication (Indexing Service)
 KAFKA_DEDUPLICATION_TTL_HOURS=168  # 7 dias (padrão)
+
+# Traefik Cache (Cache de Borda)
+CACHE_SEARCH_TTL_SECONDS=300  # 5 minutos (padrão) - TTL do cache HTTP para rotas de search
 ```
 
 ## 📊 Monitoramento
 
 ### Acessar Dashboards
 
-- **API Gateway**: http://localhost:8080/api/v1
-- **Swagger UI**: http://localhost:8080/api/v1/swagger-ui.html
-- **OpenSearch**: http://localhost:9200
-- **OpenSearch Dashboards**: http://localhost:5601
-- **Kafka UI**: http://localhost:9091
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **Debezium UI**: http://localhost:9094
+**Via Traefik (Gateway Único):**
+- **API Gateway**: http://localhost/api/v1
+- **Swagger UI**: http://localhost/api/v1/swagger-ui.html
+- **Grafana**: http://localhost/grafana (admin/admin)
+- **OpenSearch Dashboards**: http://localhost/opensearch-dashboards
+- **Traefik Dashboard**: http://localhost:8080 (apenas interno)
+
+**Serviços Privados (sem acesso público):**
+- **OpenSearch**: http://localhost:9200 (apenas interno)
+- **Kafka UI**: http://localhost:9091 (apenas interno)
+- **Prometheus**: http://localhost:9090 (apenas interno)
+- **Debezium UI**: http://localhost:9094 (apenas interno)
 
 ### Métricas Principais
 
@@ -245,10 +263,11 @@ Content-Type: application/json
 }
 ```
 
-#### Buscar Produtos
+#### Buscar Produtos (com Cache de Borda)
 ```http
 GET /api/v1/search/products?query=smartphone&categoryId=eletronicos&page=0&size=20&sortBy=relevance
 ```
+**Nota**: As rotas de search (`/api/v1/search/*`) têm cache HTTP de borda no Traefik com TTL configurável (padrão: 5 minutos). O cache é baseado na URL completa incluindo query parameters.
 
 #### Health Check
 ```http
@@ -298,10 +317,18 @@ O sistema implementa uma busca em 2 fases para otimizar performance e relevânci
 6. **Indexação no OpenSearch** → Produto indexado com vetor de embedding (k-NN)
 7. **Cache de Features** → Features ML armazenadas no Redis
 
+### Traefik Gateway
+
+- **Gateway único exposto** - Único ponto de entrada público (porta 80/443)
+- **Cache HTTP de borda** - Cache para rotas de search com TTL configurável
+- **Load balancing** - Distribuição de carga entre instâncias
+- **Roteamento dinâmico** - Configuração via labels Docker
+- **Dashboard administrativo** - Interface web para monitoramento (porta 8080, apenas interno)
+
 ### API Gateway
 
 - Implementado em **Go** com Gin Framework
-- Roteia requisições para os microserviços
+- Roteia requisições para os microserviços (acessível apenas via Traefik)
 - Health checks dos serviços downstream
 - Documentação OpenAPI/Swagger
 - Tratamento de erros e timeouts
@@ -363,6 +390,7 @@ O sistema implementa uma busca em 2 fases para otimizar performance e relevânci
 
 ### Otimizações
 
+- **Cache de Borda (Traefik)** - Cache HTTP para rotas de search, reduzindo carga nos serviços backend
 - **Cache Redis** - TTL inteligente por tipo de consulta
 - **OpenSearch** - Índices otimizados e queries eficientes
 - **Kafka** - Processamento assíncrono para indexação
@@ -517,7 +545,8 @@ graph TD
         DEBEZIUM["Debezium<br/>CDC Connector"]
     end
 
-    CLIENT --> GATEWAY
+    CLIENT --> TRAEFIK["Traefik Gateway<br/>Porta 80/443<br/>Cache de Borda"]
+    TRAEFIK --> GATEWAY
     GATEWAY --> CATALOG
     GATEWAY --> SEARCH
     

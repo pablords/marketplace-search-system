@@ -1,0 +1,28 @@
+# Configuração dinâmica do Traefik
+http:
+  middlewares:
+    # Middleware de cache HTTP para rotas de search
+    # Nota: O Traefik v2.10 não tem suporte nativo para cache HTTP via plugin.
+    # Esta configuração usa headers de cache HTTP padrão.
+    # Para cache real de borda, considere usar uma imagem customizada do Traefik
+    # com plugin de cache ou uma solução externa como Varnish/nginx.
+    cache-search:
+      headers:
+        customRequestHeaders:
+          Cache-Control: "public, max-age=${CACHE_SEARCH_TTL_SECONDS:-300}"
+        customResponseHeaders:
+          Cache-Control: "public, max-age=${CACHE_SEARCH_TTL_SECONDS:-300}"
+          Vary: "Accept-Encoding, Query-String"
+    
+    # Middleware para remover prefixo do Grafana
+    grafana-stripprefix:
+      stripprefix:
+        prefixes:
+          - "/grafana"
+    
+    # Middleware para remover prefixo do OpenSearch Dashboards
+    opensearch-stripprefix:
+      stripprefix:
+        prefixes:
+          - "/opensearch-dashboards"
+

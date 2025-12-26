@@ -30,8 +30,9 @@ marketplace-search-system/
 ## 🚀 Tecnologias
 
 ### Backend
-- **Java 17** + **Spring Boot 3.2.0**
-- **Maven** - Gerenciamento de dependências
+- **Go 1.24+** - API Gateway (Gin Framework)
+- **Java 17** + **Spring Boot 3.2.0** - Microserviços Java
+- **Maven** - Gerenciamento de dependências Java
 - **Arquitetura Hexagonal** - Separação de responsabilidades
 
 ### Busca e Indexação
@@ -68,7 +69,6 @@ marketplace-search-system/
 - [x] **API Gateway** - Roteamento centralizado com OpenAPI
 
 ### 🔄 Em Desenvolvimento
-- [ ] **Testes** - Unit, Integration e Performance
 - [ ] **Dead Letter Queue** - Tratamento de erros persistentes
 - [ ] **Circuit Breaker** - Resiliência para serviços downstream
 - [ ] **Retry Automático** - Retry com backoff exponencial
@@ -82,7 +82,8 @@ marketplace-search-system/
 ## 🛠️ Setup do Ambiente
 
 ### Pré-requisitos
-- Java 17+
+- Go 1.24+ (para API Gateway)
+- Java 17+ (para microserviços Java)
 - Maven 3.8+
 - Docker & Docker Compose
 - Python 3.11+ (para serviços ML)
@@ -104,28 +105,18 @@ docker-compose up -d
 docker-compose ps
 ```
 
-### 3. Configurar Debezium CDC
-
-Aguarde cerca de 30 segundos para o Kafka Connect iniciar completamente, depois execute:
+### 3. Compilar e Executar
 
 ```bash
-# Dar permissão de execução ao script
-chmod +x docker/debezium/product-created-connector.sh
+# Compilar e executar o API Gateway (Go)
+cd api-gateway
+go run cmd/gateway/main.go
 
-# Registrar o conector Debezium
-./docker/debezium/product-created-connector.sh
-```
+# Ou compilar o binário
+go build -o gateway cmd/gateway/main.go
+./gateway
 
-### 4. Compilar e Executar
-
-```bash
-# Compilar o projeto
-mvn clean compile
-
-# Executar o API Gateway
-mvn spring-boot:run -pl api-gateway/bootstrap
-
-# Executar os microserviços (em terminais separados)
+# Executar os microserviços Java (em terminais separados)
 mvn spring-boot:run -pl catalog-service/bootstrap
 mvn spring-boot:run -pl indexing-service/bootstrap
 mvn spring-boot:run -pl search-service/bootstrap
@@ -134,12 +125,14 @@ mvn spring-boot:run -pl search-service/bootstrap
 cd ml-ranking-service && python main.py
 cd ml-embedding-service && python main.py
 
-# Ou executar os JARs
+# Ou executar os JARs dos microserviços Java
 mvn clean package
-java -jar api-gateway/bootstrap/target/bootstrap-*.jar
+java -jar catalog-service/bootstrap/target/bootstrap-*.jar
+java -jar indexing-service/bootstrap/target/bootstrap-*.jar
+java -jar search-service/bootstrap/target/bootstrap-*.jar
 ```
 
-### 5. Verificar Health
+### 4. Verificar Health
 
 ```bash
 # Health check do API Gateway
@@ -297,10 +290,12 @@ O sistema implementa uma busca em 2 fases para otimizar performance e relevânci
 
 ### API Gateway
 
+- Implementado em **Go** com Gin Framework
 - Roteia requisições para os microserviços
 - Health checks dos serviços downstream
 - Documentação OpenAPI/Swagger
 - Tratamento de erros e timeouts
+- Circuit Breaker e Retry para resiliência
 
 ### Catalog Service
 
@@ -361,12 +356,6 @@ O sistema implementa uma busca em 2 fases para otimizar performance e relevânci
 ```bash
 # Unit Tests
 mvn test
-
-# Integration Tests
-mvn test -Dtest="*IntegrationTest"
-
-# Performance Tests
-mvn test -Dtest="*PerformanceTest"
 ```
 
 ## 🚀 Deploy
@@ -374,7 +363,8 @@ mvn test -Dtest="*PerformanceTest"
 ### Docker
 
 ```bash
-# Build da imagem do API Gateway
+# Build da imagem do API Gateway (Go)
+cd api-gateway
 docker build -t api-gateway:latest .
 
 # Run do container
@@ -384,15 +374,6 @@ docker run -p 8080:8080 api-gateway:latest
 docker-compose up -d
 ```
 
-### Kubernetes
-
-```bash
-# Apply dos manifestos
-kubectl apply -f k8s/
-
-# Verificar pods
-kubectl get pods -l app=marketplace-search
-```
 
 ## 🔄 Fluxo de Dados
 
@@ -456,7 +437,7 @@ graph TD
     end
 
     subgraph "API Gateway"
-        GATEWAY[API Gateway<br/>Porta 8080]
+        GATEWAY[API Gateway (Go)<br/>Porta 8080]
     end
 
     subgraph "Microserviços Java"
@@ -511,19 +492,19 @@ Script Python → API REST → PostgreSQL → Debezium (CDC) → Kafka → Consu
 ### Executar
 
 ```bash
+# Navegar para o diretório do script
+cd dataset-generate
+
 # Instalar dependências
-pip install requests faker
+pip install -r requirements.txt
 
 # Executar script
-python3 scripts/data_gen.py
+python3 data_gen.py
 ```
 
 ## 📚 Documentação Adicional
 
 - [Arquitetura Detalhada](docs/ARCHITECTURE.md)
-- [Setup de Desenvolvimento](docs/DEV_SETUP.md)
-- [Configuração CDC](docs/CDC-SETUP.md)
-- [Kafka CDC Consumer](docs/KAFKA-CDC-CONSUMER.md)
 
 ## 🤝 Contribuição
 

@@ -21,6 +21,7 @@ import com.marketplace.search.indexing.application.commands.ProductCommand;
 import com.marketplace.search.indexing.application.events.DebeziumCDCEvent;
 import com.marketplace.search.indexing.application.handlers.payloads.ProductPayload;
 import com.marketplace.search.indexing.application.mappers.ProductMapper;
+import com.marketplace.search.indexing.application.services.EventDeduplicationService;
 import com.marketplace.search.indexing.application.services.ProductEnrichmentService;
 import com.marketplace.search.indexing.application.usecases.IndexProductUseCase;
 
@@ -33,13 +34,16 @@ public class ProductEventHandler {
   private final ProductMapper productMapper;
   private final IndexProductUseCase indexProductUseCase;
   private final ProductEnrichmentService enrichmentService;
+  private final EventDeduplicationService deduplicationService;
   private final ObjectMapper objectMapper;
 
   public ProductEventHandler(IndexProductUseCase indexProductUseCase, ProductMapper productMapper,
-      ProductEnrichmentService enrichmentService, @Nullable ObjectMapper objectMapper) {
+      ProductEnrichmentService enrichmentService, EventDeduplicationService deduplicationService,
+      @Nullable ObjectMapper objectMapper) {
     this.indexProductUseCase = indexProductUseCase;
     this.productMapper = productMapper;
     this.enrichmentService = enrichmentService;
+    this.deduplicationService = deduplicationService;
 
     if (objectMapper == null) {
       ObjectMapper om = new ObjectMapper();
@@ -69,6 +73,26 @@ public class ProductEventHandler {
 
       logger.info("Operação CDC: {}, Table: {}", cdcEvent.getOperation(),
           cdcEvent.getSource() != null ? cdcEvent.getSource().getTable() : "unknown");
+
+      // Verificar idempotência: extrair productId do evento antes de processar
+      String productId = extractProductId(cdcEvent);
+      Long eventTimestamp = cdcEvent.getTimestamp();
+      Long kafkaOffset = record.offset();
+
+      // Verificar se o evento já foi processado (deduplicação)
+      if (productId != null && eventTimestamp != null && kafkaOffset != null) {
+        if (deduplicationService.isDuplicate(productId, eventTimestamp, kafkaOffset)) {
+          logger.warn("Evento duplicado ignorado - ProductId: {}, Timestamp: {}, Offset: {}. " +
+              "Evento já foi processado anteriormente.", productId, eventTimestamp, kafkaOffset);
+          // Acknowledge o evento duplicado para não reprocessar
+          acknowledgment.acknowledge();
+          return;
+        }
+      } else {
+        logger.warn("Não foi possível extrair informações para deduplicação - ProductId: {}, " +
+            "Timestamp: {}, Offset: {}. Continuando processamento sem verificação de duplicação.",
+            productId, eventTimestamp, kafkaOffset);
+      }
 
       CompletableFuture<Void> processingFuture = switch (cdcEvent.getOperation()) {
         case "c", "r", "u" -> processProductUpsert(cdcEvent); // create, read (snapshot), update
@@ -138,6 +162,35 @@ public class ProductEventHandler {
       logger.error("Erro ao processar upsert de produto", e);
       return CompletableFuture.failedFuture(e);
     }
+  }
+
+  /**
+   * Extrai o ID do produto do evento CDC.
+   * Tenta extrair do campo 'after' para operações de criação/atualização
+   * ou do campo 'before' para operações de deleção.
+   */
+  private String extractProductId(DebeziumCDCEvent cdcEvent) {
+    try {
+      // Para operações de criação/atualização, usar 'after'
+      if (cdcEvent.getAfter() != null) {
+        ProductPayload productData = objectMapper.convertValue(cdcEvent.getAfter(), ProductPayload.class);
+        if (productData != null && productData.getId() != null) {
+          return productData.getId();
+        }
+      }
+      
+      // Para operações de deleção, usar 'before'
+      if (cdcEvent.getBefore() != null) {
+        ProductPayload productData = objectMapper.convertValue(cdcEvent.getBefore(), ProductPayload.class);
+        if (productData != null && productData.getId() != null) {
+          return productData.getId();
+        }
+      }
+    } catch (Exception e) {
+      logger.debug("Erro ao extrair productId do evento CDC: {}", e.getMessage());
+    }
+    
+    return null;
   }
 
   /**

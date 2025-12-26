@@ -75,6 +75,10 @@ kafka:
     product-metrics-events: ${KAFKA_PRODUCT_METRICS_EVENTS_TOPIC:catalog-db.public.product_metrics}
   consumer:
     group-id: ${KAFKA_CONSUMER_GROUP_ID:marketplace-search-indexer-service}
+  # Configuração de deduplicação de eventos
+  # TTL em horas para chaves de deduplicação no Redis (padrão: 7 dias = 168 horas)
+  deduplication:
+    ttl-hours: ${KAFKA_DEDUPLICATION_TTL_HOURS:168}
 
 # Logging
 logging:

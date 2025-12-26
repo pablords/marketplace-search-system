@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/gin-gonic/gin v1.11.0
-	github.com/go-playground/validator/v10 v10.30.0
+	github.com/go-playground/validator/v10 v10.19.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sony/gobreaker v1.0.0
 	github.com/spf13/viper v1.21.0

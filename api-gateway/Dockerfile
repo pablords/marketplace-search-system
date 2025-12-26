@@ -7,6 +7,9 @@ FROM golang:1.23-alpine AS builder
 # Instalar dependências de build
 RUN apk add --no-cache git ca-certificates tzdata
 
+# Configurar GOTOOLCHAIN para permitir download automático de versões mais novas se necessário
+ENV GOTOOLCHAIN=auto
+
 # Definir diretório de trabalho
 WORKDIR /build
 

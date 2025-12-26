@@ -3,12 +3,14 @@ Ranking Service
 Serviço que orquestra o re-ranking usando o modelo LTR
 """
 
-from typing import List, TYPE_CHECKING
+import time
+from typing import List, Optional, TYPE_CHECKING
 from models.ltr_model import LearningToRankModel, InternalFeatureVector
+from cache.redis_cache import RedisCache
 import logging
 
 if TYPE_CHECKING:
-    from main import FeatureVector, RankedProduct
+    from api.schemas import FeatureVector, RankedProduct
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +18,44 @@ logger = logging.getLogger(__name__)
 class RankingService:
     """
     Serviço de ranking que utiliza o modelo LTR para re-ranquear produtos.
+    Integra cache Redis para melhor performance.
     """
     
-    def __init__(self):
-        """Inicializa o serviço com o modelo LTR"""
+    def __init__(self, redis_cache: Optional[RedisCache] = None):
+        """
+        Inicializa o serviço com o modelo LTR e cache Redis.
+        
+        Args:
+            redis_cache: Cliente Redis para cache (opcional)
+        """
         self.model = LearningToRankModel()
-        logger.info("RankingService inicializado")
+        self.redis_cache = redis_cache
+        
+        if self.redis_cache:
+            redis_connected = self.redis_cache.is_connected()
+            if redis_connected:
+                logger.info(
+                    "RankingService inicializado com cache Redis",
+                    extra={
+                        "redis_enabled": True,
+                        "redis_connected": True
+                    }
+                )
+            else:
+                logger.warning(
+                    "RankingService inicializado, mas Redis não está disponível. Usando apenas processamento direto.",
+                    extra={
+                        "redis_enabled": True,
+                        "redis_connected": False
+                    }
+                )
+        else:
+            logger.info(
+                "RankingService inicializado sem cache Redis",
+                extra={
+                    "redis_enabled": False
+                }
+            )
     
     def rank(
         self,
@@ -31,10 +65,11 @@ class RankingService:
     ) -> List['RankedProduct']:
         """
         Re-ranqueia produtos candidatos usando o modelo ML.
+        Verifica cache Redis primeiro, depois processa e salva no cache.
         
         Args:
             candidates: Lista de FeatureVectors com produtos candidatos
-            query: Query de busca (opcional, para logging)
+            query: Query de busca (opcional, para logging e cache)
             top_k: Número de produtos a retornar (padrão: 20)
             
         Returns:
@@ -43,6 +78,45 @@ class RankingService:
         if not candidates:
             return []
         
+        start_time = time.time()
+        candidate_ids = [c.product_id for c in candidates]
+        
+        logger.info(
+            "Iniciando re-ranking de produtos",
+            extra={
+                "candidates_count": len(candidates),
+                "top_k": top_k,
+                "query": query or "N/A"
+            }
+        )
+        
+        # 1. Verificar cache Redis primeiro (se disponível)
+        if self.redis_cache and self.redis_cache.is_connected():
+            cached_ranking = self.redis_cache.get_ranking(query, candidate_ids)
+            if cached_ranking:
+                # Converter do cache para RankedProduct
+                from api.schemas import RankedProduct
+                ranked_products = [
+                    RankedProduct(
+                        product_id=item["product_id"],
+                        ml_score=item["ml_score"],
+                        rank=item["rank"]
+                    )
+                    for item in cached_ranking
+                ]
+                
+                elapsed = (time.time() - start_time) * 1000
+                logger.info(
+                    "Ranking recuperado do cache Redis",
+                    extra={
+                        "candidates_count": len(candidates),
+                        "ranking_count": len(ranked_products),
+                        "elapsed_ms": round(elapsed, 2)
+                    }
+                )
+                return ranked_products
+        
+        # 2. Processar ranking (cache miss ou Redis não disponível)
         # Converter FeatureVectors para formato interno
         feature_vectors = [
             self._to_internal_format(candidate)
@@ -53,7 +127,7 @@ class RankingService:
         ranked_results = self.model.rank(feature_vectors, top_k=top_k)
         
         # Importar aqui para evitar importação circular
-        from main import RankedProduct
+        from api.schemas import RankedProduct
         
         # Converter para RankedProduct
         ranked_products = [
@@ -65,11 +139,37 @@ class RankingService:
             for idx, (product_id, score) in enumerate(ranked_results)
         ]
         
-        if query:
-            logger.info(
-                f"Query: '{query}' - Ranqueados {len(ranked_products)} produtos "
-                f"de {len(candidates)} candidatos"
-            )
+        # 3. Salvar no cache Redis (se disponível)
+        if ranked_products and self.redis_cache and self.redis_cache.is_connected():
+            try:
+                # Converter para formato de cache
+                cache_data = [
+                    {
+                        "product_id": p.product_id,
+                        "ml_score": p.ml_score,
+                        "rank": p.rank
+                    }
+                    for p in ranked_products
+                ]
+                self.redis_cache.set_ranking(query, candidate_ids, cache_data)
+            except Exception as e:
+                logger.warning(
+                    f"Erro ao salvar ranking no cache: {str(e)}",
+                    extra={"error": str(e)}
+                )
+        
+        elapsed = (time.time() - start_time) * 1000
+        
+        logger.info(
+            "Re-ranking concluído",
+            extra={
+                "candidates_count": len(candidates),
+                "ranking_count": len(ranked_products),
+                "top_k": top_k,
+                "query": query or "N/A",
+                "elapsed_ms": round(elapsed, 2)
+            }
+        )
         
         return ranked_products
     

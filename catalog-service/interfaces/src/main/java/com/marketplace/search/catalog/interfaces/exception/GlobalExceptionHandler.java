@@ -18,6 +18,8 @@ import org.springframework.web.context.request.WebRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
+import com.marketplace.search.catalog.domain.exceptions.ProductAlreadyExistsException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -106,6 +108,23 @@ public class GlobalExceptionHandler {
         logger.error("NullPointerException: {}", message, ex);
 
         return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    @ExceptionHandler(ProductAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleProductAlreadyExistsException(
+            ProductAlreadyExistsException ex, WebRequest request) {
+        
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Product Already Exists")
+                .message(ex.getMessage())
+                .path(request.getDescription(false))
+                .build();
+
+        logger.warn("Tentativa de criar produto duplicado: {}", ex.getProductId());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
     @ExceptionHandler(RuntimeException.class)

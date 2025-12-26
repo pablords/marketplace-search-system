@@ -57,4 +57,15 @@ public class ProductRepositoryAdapter implements ProductRepository {
         
         logger.debug("Product {} deleted successfully", productId);
     }
+
+    @Override
+    public boolean existsById(String productId) {
+        logger.debug("Checking if product {} exists in PostgreSQL", productId);
+        
+        boolean exists = productJpaRepository.existsById(productId);
+        
+        logger.debug("Product {} exists: {}", productId, exists);
+        
+        return exists;
+    }
 }

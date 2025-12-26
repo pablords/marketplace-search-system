@@ -28,4 +28,12 @@ public interface ProductRepository {
 	 * @param productId ID do produto
 	 */
 	void delete(String productId);
+
+	/**
+	 * Verifica se um produto existe pelo ID.
+	 * 
+	 * @param productId ID do produto
+	 * @return true se o produto existe, false caso contrário
+	 */
+	boolean existsById(String productId);
 }

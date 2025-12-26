@@ -22,12 +22,14 @@ public interface ProductSearchRepository {
 
   /**
    * Busca candidatos para re-ranking ML (Top 400) e retorna produtos com seus scores
+   * Executa buscas em paralelo: BM25 (textual) + k-NN (semântica)
    * 
    * @param query Query de busca
    * @param userContext Contexto do usuário
+   * @param queryEmbedding Embedding opcional da query para busca k-NN (gerado pelo Embedding Service)
    * @return Resultado com produtos e mapa de productId -> (bm25Score, knnScore)
    */
-  CandidatesWithScores searchCandidatesWithScores(SearchQuery query, UserContext userContext);
+  CandidatesWithScores searchCandidatesWithScores(SearchQuery query, UserContext userContext, Optional<float[]> queryEmbedding);
 
   /**
    * Busca produtos similares a um produto específico

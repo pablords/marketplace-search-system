@@ -88,7 +88,7 @@ ml:
 # Embedding Service Configuration
 embedding:
   service:
-    url: ${EMBEDDING_SERVICE_URL:http://embedding-service:8085}
+    url: ${EMBEDDING_SERVICE_URL:http://localhost:8085}
     timeout-seconds: ${EMBEDDING_SERVICE_TIMEOUT:5}
     max-retries: ${EMBEDDING_SERVICE_MAX_RETRIES:3}
     enabled: ${EMBEDDING_SERVICE_ENABLED:true}

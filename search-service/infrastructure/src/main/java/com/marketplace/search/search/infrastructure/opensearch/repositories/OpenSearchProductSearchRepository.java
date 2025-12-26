@@ -4,6 +4,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -28,7 +31,6 @@ import com.marketplace.search.search.domain.valueobjects.SearchMetrics;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
-import com.marketplace.search.search.infrastructure.embedding.EmbeddingClient;
 import com.marketplace.search.search.infrastructure.opensearch.documents.ProductSearchDocument;
 import com.marketplace.search.search.infrastructure.opensearch.mappers.OpenSearchProductMapper;
 import com.marketplace.search.search.infrastructure.opensearch.queries.OpenSearchQueryBuilder;
@@ -47,15 +49,15 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 	private final OpenSearchClient openSearchClient;
 	private final OpenSearchProductMapper productMapper;
 	private final OpenSearchQueryBuilder queryBuilder;
-	private final EmbeddingClient embeddingClient;
+	private final ExecutorService executorService;
 
 	public OpenSearchProductSearchRepository(OpenSearchClient openSearchClient,
-			OpenSearchProductMapper productMapper, OpenSearchQueryBuilder queryBuilder,
-			EmbeddingClient embeddingClient) {
+			OpenSearchProductMapper productMapper, OpenSearchQueryBuilder queryBuilder) {
 		this.openSearchClient = openSearchClient;
 		this.productMapper = productMapper;
 		this.queryBuilder = queryBuilder;
-		this.embeddingClient = embeddingClient;
+		// Executor para buscas paralelas
+		this.executorService = Executors.newFixedThreadPool(2);
 	}
 
 	@Override
@@ -66,19 +68,9 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 		Instant startTime = Instant.now();
 
 		try {
-			// Tentar gerar embedding para busca híbrida
-			Optional<float[]> queryEmbedding = embeddingClient.generateQueryEmbedding(query.terms());
-			
-			// Construir query do OpenSearch (híbrida se embedding disponível, senão apenas BM25)
-			Query osQuery = queryEmbedding
-					.map(embedding -> {
-						logger.debug("Usando busca híbrida (BM25 + k-NN) para query: '{}'", query.terms());
-						return queryBuilder.buildQuery(query, userContext, Optional.of(embedding));
-					})
-					.orElseGet(() -> {
-						logger.debug("Usando busca apenas BM25 (embedding não disponível) para query: '{}'", query.terms());
-						return queryBuilder.buildQuery(query, userContext);
-					});
+			// Construir query BM25 (o método search() não usa busca híbrida, apenas BM25)
+			// A busca híbrida é feita apenas em searchCandidatesWithScores()
+			Query osQuery = queryBuilder.buildBm25Query(query, userContext);
 			
 			logger.debug("OpenSearch Query: {}", osQuery);
 
@@ -305,57 +297,140 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 	}
 
 	@Override
-	public ProductSearchRepository.CandidatesWithScores searchCandidatesWithScores(SearchQuery query, UserContext userContext) {
-		logger.debug("Buscando candidatos para ML ranking: query='{}', limit=400", query.terms());
+	public ProductSearchRepository.CandidatesWithScores searchCandidatesWithScores(SearchQuery query, UserContext userContext, Optional<float[]> queryEmbedding) {
+		if (queryEmbedding.isPresent()) {
+			logger.info("Buscando candidatos com busca híbrida (BM25 + k-NN): query='{}', limit=200", query.terms());
+		} else {
+			logger.info("Buscando candidatos apenas com BM25 (fallback - Embedding Service não disponível): query='{}', limit=200", query.terms());
+		}
 
 		Instant startTime = Instant.now();
 
 		try {
-			// Criar query modificada para buscar Top 400 candidatos
+			// Criar query modificada para buscar Top 200 candidatos
 			SearchQuery candidatesQuery = new SearchQuery(
 					query.terms(),
 					query.category(),
 					query.filters(),
 					query.sort(),
 					0, // offset = 0
-					400 // limit = 400 para fase 1
+					200 // limit = 200 para fase 1
 			);
 
-			// Tentar gerar embedding para busca híbrida
-			Optional<float[]> queryEmbedding = embeddingClient.generateQueryEmbedding(query.terms());
+			// PASSO 1: Embedding já foi gerado pelo UseCase (não gerar aqui)
+			// O embedding é passado como parâmetro para permitir controle do fluxo no UseCase
+			// Se embedding não estiver disponível, fazer apenas busca BM25 (fallback)
 			
-			// Construir query do OpenSearch (híbrida se embedding disponível, senão apenas BM25)
-			Query osQuery = queryEmbedding
-					.map(embedding -> {
-						logger.debug("Usando busca híbrida (BM25 + k-NN) para candidatos: '{}'", query.terms());
-						return queryBuilder.buildQuery(candidatesQuery, userContext, Optional.of(embedding));
-					})
-					.orElseGet(() -> {
-						logger.debug("Usando busca apenas BM25 (embedding não disponível) para candidatos: '{}'", query.terms());
-						return queryBuilder.buildQuery(candidatesQuery, userContext);
-					});
+			// PASSO 2: Construir query BM25 (sempre executada)
+			Query bm25Query = queryBuilder.buildBm25Query(candidatesQuery, userContext);
 			
-			logger.debug("OpenSearch Query para candidatos: {}", osQuery);
+			logger.debug("Query BM25 para candidatos: {}", bm25Query);
 
-			// Executar busca
-			SearchRequest searchRequest = SearchRequest.of(s -> s.index(INDEX_NAME).query(osQuery)
-					.from(0).size(400).sort(queryBuilder.buildSort(candidatesQuery.sort()))
-					.trackTotalHits(t -> t.enabled(true)));
+			// PASSO 3: Executar buscas
+			// Se embedding disponível: BM25 + k-NN em paralelo
+			// Se embedding não disponível: apenas BM25 (fallback)
+			CompletableFuture<SearchResponse<ProductSearchDocument>> bm25Future = CompletableFuture.supplyAsync(() -> {
+				try {
+					SearchRequest bm25Request = SearchRequest.of(s -> s
+							.index(INDEX_NAME)
+							.query(bm25Query)
+							.from(0)
+							.size(200)
+							.sort(queryBuilder.buildSort(candidatesQuery.sort()))
+							.trackTotalHits(t -> t.enabled(true)));
+					
+					logger.debug("Executando busca BM25 em paralelo");
+					return openSearchClient.search(bm25Request, ProductSearchDocument.class);
+				} catch (Exception e) {
+					logger.error("Erro ao executar busca BM25", e);
+					return null;
+				}
+			}, executorService);
 
-			SearchResponse<ProductSearchDocument> response = openSearchClient.search(searchRequest,
-					ProductSearchDocument.class);
+			CompletableFuture<SearchResponse<ProductSearchDocument>> knnFuture = queryEmbedding.map(embedding -> {
+				return CompletableFuture.supplyAsync(() -> {
+					try {
+						String vectorField = queryBuilder.getVectorField();
+						
+						// Busca k-NN pura (sem BM25)
+						// Aplicar apenas filtros de status e categoria, sem query de texto
+						Query knnQuery = Query.of(q -> q.knn(k -> k
+								.field(vectorField)
+								.vector(embedding)
+								.k(200) // Buscar até 200 candidatos para k-NN
+								.boost(1.0f)));
+						
+						// Combinar k-NN com filtros usando bool query
+						// k-NN no should, filtros no filter
+						org.opensearch.client.opensearch._types.query_dsl.BoolQuery.Builder knnBoolBuilder = 
+								new org.opensearch.client.opensearch._types.query_dsl.BoolQuery.Builder();
+						
+						// Adicionar k-NN como should
+						knnBoolBuilder.should(knnQuery);
+						
+						// Adicionar filtros de status
+						knnBoolBuilder.filter(queryBuilder.buildStatusFilters());
+						
+						// Adicionar filtros de categoria se houver
+						if (candidatesQuery.hasCategoryFilter()) {
+							knnBoolBuilder.filter(queryBuilder.buildCategoryFilter(candidatesQuery.category()));
+						}
+						
+						// Adicionar outros filtros se houver
+						if (candidatesQuery.hasFilters()) {
+							List<Query> filters = candidatesQuery.filters().stream()
+									.map(queryBuilder::buildFilter)
+									.collect(Collectors.toList());
+							knnBoolBuilder.filter(filters);
+						}
+						
+						knnBoolBuilder.minimumShouldMatch("1");
+						
+						Query finalKnnQuery = Query.of(q -> q.bool(knnBoolBuilder.build()));
+						
+						SearchRequest knnRequest = SearchRequest.of(s -> s
+								.index(INDEX_NAME)
+								.query(finalKnnQuery)
+								.from(0)
+								.size(200)
+								.trackTotalHits(t -> t.enabled(true)));
+						
+						logger.debug("Executando busca k-NN em paralelo");
+						return openSearchClient.search(knnRequest, ProductSearchDocument.class);
+					} catch (Exception e) {
+						logger.error("Erro ao executar busca k-NN", e);
+						return null;
+					}
+				}, executorService);
+			}).orElse(CompletableFuture.completedFuture(null));
 
-			var hitsMetadata = response.hits();
-			List<Hit<ProductSearchDocument>> hitList = hitsMetadata != null && hitsMetadata.hits() != null
-					? hitsMetadata.hits()
+			// PASSO 4: Aguardar buscas completarem
+			SearchResponse<ProductSearchDocument> bm25Response = bm25Future.join();
+			SearchResponse<ProductSearchDocument> knnResponse = null;
+			
+			// Só aguardar k-NN se embedding estiver disponível
+			if (queryEmbedding.isPresent()) {
+				knnResponse = knnFuture.join();
+			}
+
+			// PASSO 5: Extrair hits das buscas
+			List<Hit<ProductSearchDocument>> bm25Hits = bm25Response != null && bm25Response.hits() != null && bm25Response.hits().hits() != null
+					? bm25Response.hits().hits()
 					: List.of();
+			
+			List<Hit<ProductSearchDocument>> knnHits = List.of();
+			if (queryEmbedding.isPresent() && knnResponse != null && knnResponse.hits() != null && knnResponse.hits().hits() != null) {
+				knnHits = knnResponse.hits().hits();
+			}
 
-			// Extrair produtos e scores
-			java.util.Map<String, ProductSearchRepository.ScorePair> scoresMap = new java.util.HashMap<>();
-			List<Product> products = new java.util.ArrayList<>();
+			if (queryEmbedding.isPresent()) {
+				logger.debug("Busca híbrida: BM25 retornou {} hits, k-NN retornou {} hits", bm25Hits.size(), knnHits.size());
+			} else {
+				logger.debug("Busca BM25 (fallback): retornou {} hits", bm25Hits.size());
+			}
 
-			// Normalizar scores para o intervalo [0.0, 1.0]
-			double maxScore = hitList.stream()
+			// PASSO 6: Normalizar scores de cada busca separadamente
+			double maxBm25Score = bm25Hits.stream()
 					.mapToDouble(hit -> {
 						Double score = hit.score();
 						return score != null ? score : 0.0;
@@ -363,40 +438,78 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 					.max()
 					.orElse(1.0);
 
-			// Se busca híbrida foi usada, tentar extrair scores separados
-			// Caso contrário, usar estimativas baseadas no score combinado
-			boolean isHybridSearch = queryEmbedding.isPresent();
-			
-			for (Hit<ProductSearchDocument> hit : hitList) {
+			double maxKnnScore = knnHits.stream()
+					.mapToDouble(hit -> {
+						Double score = hit.score();
+						return score != null ? score : 0.0;
+					})
+					.max()
+					.orElse(1.0);
+
+			// PASSO 7: Combinar resultados e remover duplicados
+			java.util.Map<String, ProductSearchRepository.ScorePair> scoresMap = new java.util.HashMap<>();
+			java.util.Map<String, Product> productsMap = new java.util.HashMap<>();
+			java.util.Set<String> seenProductIds = new java.util.HashSet<>();
+
+			// Processar hits BM25
+			for (Hit<ProductSearchDocument> hit : bm25Hits) {
+				Product product = productMapper.toDomain(hit.source());
+				String productId = product.getId().getValue();
+
+				if (seenProductIds.contains(productId)) {
+					// Produto já visto, atualizar scores se necessário
+					ProductSearchRepository.ScorePair existing = scoresMap.get(productId);
+					Double rawScore = hit.score();
+					double normalizedBm25 = rawScore != null && maxBm25Score > 0 ? rawScore / maxBm25Score : 0.0;
+					
+					// Manter o maior score BM25
+					if (normalizedBm25 > existing.bm25Score()) {
+						scoresMap.put(productId, new ProductSearchRepository.ScorePair(normalizedBm25, existing.knnScore()));
+					}
+					continue;
+				}
+
+				seenProductIds.add(productId);
+				Double rawScore = hit.score();
+				double normalizedBm25 = rawScore != null && maxBm25Score > 0 ? rawScore / maxBm25Score : 0.0;
+
+				scoresMap.put(productId, new ProductSearchRepository.ScorePair(normalizedBm25, 0.0));
+				productsMap.put(productId, product);
+			}
+
+			// Processar hits k-NN (apenas se busca híbrida estiver ativa)
+			// Se embedding não estiver disponível, knnHits será vazio e este loop não executará
+			for (Hit<ProductSearchDocument> hit : knnHits) {
 				Product product = productMapper.toDomain(hit.source());
 				String productId = product.getId().getValue();
 
 				Double rawScore = hit.score();
-				double normalizedScore = rawScore != null && maxScore > 0 ? rawScore / maxScore : 0.0;
+				double normalizedKnn = rawScore != null && maxKnnScore > 0 ? rawScore / maxKnnScore : 0.0;
 
-				// Para busca híbrida, o OpenSearch combina BM25 e k-NN automaticamente
-				// Como não temos acesso direto aos scores separados, estimamos baseado no score combinado
-				// Em uma implementação mais avançada, poderíamos usar explicações do OpenSearch
-				double bm25Score;
-				double knnScore;
-				
-				if (isHybridSearch) {
-					// Na busca híbrida, assumimos que o score é uma combinação
-					// Estimamos: 60% BM25 + 40% k-NN (baseado na FeatureExtractor)
-					bm25Score = normalizedScore * 0.6;
-					knnScore = normalizedScore * 0.4;
+				if (seenProductIds.contains(productId)) {
+					// Produto já visto, atualizar score k-NN
+					ProductSearchRepository.ScorePair existing = scoresMap.get(productId);
+					scoresMap.put(productId, new ProductSearchRepository.ScorePair(existing.bm25Score(), normalizedKnn));
 				} else {
-					// Apenas BM25, k-NN é zero
-					bm25Score = normalizedScore;
-					knnScore = 0.0;
+					// Novo produto, adicionar
+					seenProductIds.add(productId);
+					scoresMap.put(productId, new ProductSearchRepository.ScorePair(0.0, normalizedKnn));
+					productsMap.put(productId, product);
 				}
-
-				scoresMap.put(productId, new ProductSearchRepository.ScorePair(bm25Score, knnScore));
-				products.add(product);
 			}
 
+			// Converter Map para List
+			List<Product> products = new java.util.ArrayList<>(productsMap.values());
+			
 			Duration executionTime = Duration.between(startTime, Instant.now());
-			logger.debug("Candidatos buscados: {} produtos em {}ms", products.size(), executionTime.toMillis());
+			
+			if (queryEmbedding.isPresent()) {
+				logger.debug("Produtos após combinação e remoção de duplicados: {} (BM25: {}, k-NN: {}) em {}ms (busca híbrida)", 
+						products.size(), bm25Hits.size(), knnHits.size(), executionTime.toMillis());
+			} else {
+				logger.debug("Produtos encontrados: {} em {}ms (busca BM25 - fallback)", 
+						products.size(), executionTime.toMillis());
+			}
 
 			return new ProductSearchRepository.CandidatesWithScores(products, scoresMap);
 

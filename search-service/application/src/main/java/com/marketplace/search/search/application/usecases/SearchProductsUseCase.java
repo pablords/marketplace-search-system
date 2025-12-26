@@ -24,6 +24,7 @@ import com.marketplace.search.search.application.queries.SearchResultQuery;
 import com.marketplace.search.search.domain.entities.Product;
 import com.marketplace.search.search.domain.repositories.CacheRepository;
 import com.marketplace.search.search.domain.repositories.ProductSearchRepository;
+import com.marketplace.search.search.domain.services.EmbeddingService;
 import com.marketplace.search.search.domain.services.SearchDomainService;
 import com.marketplace.search.search.domain.valueobjects.SearchMetrics;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
@@ -45,24 +46,27 @@ public class SearchProductsUseCase {
   private final SearchCacheProperties cacheProperties;
   private final RankWithMLUseCase rankWithMLUseCase;
   private final ProductSearchRepository productSearchRepository;
+  private final EmbeddingService embeddingService;
 
   public SearchProductsUseCase(SearchDomainService searchDomainService,
       SearchMapper searchMapper,
       CacheRepository cacheRepository,
       SearchCacheProperties cacheProperties,
       RankWithMLUseCase rankWithMLUseCase,
-      ProductSearchRepository productSearchRepository) {
+      ProductSearchRepository productSearchRepository,
+      EmbeddingService embeddingService) {
     this.searchDomainService = searchDomainService;
     this.searchMapper = searchMapper;
     this.cacheRepository = cacheRepository;
     this.cacheProperties = cacheProperties;
     this.rankWithMLUseCase = rankWithMLUseCase;
     this.productSearchRepository = productSearchRepository;
+    this.embeddingService = embeddingService;
   }
 
   /**
    * Executa busca padrão de produtos com fluxo de 2 fases:
-   * Fase 1: Busca Top 400 candidatos no OpenSearch
+   * Fase 1: Busca Top 200 candidatos no OpenSearch
    * Fase 2: Extração de features, ML ranking e retorno Top 20
    */
   public SearchResultQuery execute(SearchRequestQuery request) {
@@ -82,10 +86,35 @@ public class SearchProductsUseCase {
         return cachedResult;
       }
 
-      // FASE 1: Buscar Top 400 candidatos no OpenSearch com scores
-      logger.debug("Fase 1: Buscando Top 400 candidatos no OpenSearch");
+      // PASSO 1: Chamar Embedding Service para gerar vetor da query
+      // Se falhar, continuar apenas com busca BM25 (fallback)
+      logger.debug("PASSO 1: Gerando embedding para query: '{}'", query.terms());
+      Optional<float[]> queryEmbedding = Optional.empty();
+      
+      try {
+        queryEmbedding = embeddingService.generateQueryEmbedding(query.terms());
+        if (queryEmbedding.isPresent()) {
+          logger.info("Embedding gerado com sucesso para query: '{}' - busca híbrida será usada", query.terms());
+        } else {
+          logger.warn("Embedding Service retornou vazio para query: '{}' - usando apenas busca BM25 (fallback)", query.terms());
+        }
+      } catch (Exception e) {
+        logger.warn("Erro ao gerar embedding para query: '{}' - usando apenas busca BM25 (fallback). Erro: {}", 
+            query.terms(), e.getMessage());
+        queryEmbedding = Optional.empty();
+      }
+
+      // FASE 1: Buscar Top 200 candidatos no OpenSearch
+      // Se embedding disponível: busca híbrida (BM25 + k-NN em paralelo)
+      // Se embedding não disponível: apenas busca BM25 (fallback)
+      if (queryEmbedding.isPresent()) {
+        logger.debug("Fase 1: Buscando Top 200 candidatos no OpenSearch (busca híbrida: BM25 + k-NN em paralelo)");
+      } else {
+        logger.debug("Fase 1: Buscando Top 200 candidatos no OpenSearch (apenas BM25 - fallback)");
+      }
+      
       ProductSearchRepository.CandidatesWithScores candidatesWithScores = 
-          productSearchRepository.searchCandidatesWithScores(query, userContext);
+          productSearchRepository.searchCandidatesWithScores(query, userContext, queryEmbedding);
       
       List<Product> candidates = candidatesWithScores.products();
       Map<String, ProductSearchRepository.ScorePair> scoresMap = 

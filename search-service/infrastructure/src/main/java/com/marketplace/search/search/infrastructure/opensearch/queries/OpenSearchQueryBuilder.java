@@ -35,32 +35,19 @@ public class OpenSearchQueryBuilder {
 	}
 
 	/**
-	 * Constrói query principal de busca com suporte a busca híbrida (BM25 + k-NN)
+	 * Constrói query BM25 (apenas texto, sem k-NN)
+	 * Para busca híbrida, o k-NN deve ser usado no nível superior do SearchRequest
 	 * 
 	 * @param searchQuery Query de busca
 	 * @param userContext Contexto do usuário
-	 * @param queryEmbedding Embedding opcional da query para busca k-NN
-	 * @return Query do OpenSearch
+	 * @return Query BM25 do OpenSearch
 	 */
-	public Query buildQuery(SearchQuery searchQuery, UserContext userContext, Optional<float[]> queryEmbedding) {
+	public Query buildBm25Query(SearchQuery searchQuery, UserContext userContext) {
 		BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
 		// Query de texto principal (BM25)
 		Query textQuery = buildTextQuery(searchQuery.terms());
-		
-		// Se houver embedding, criar query híbrida (BM25 + k-NN)
-		if (queryEmbedding.isPresent()) {
-			float[] embedding = queryEmbedding.get();
-			Query knnQuery = buildKnnQuery(embedding);
-			
-			// Combinar BM25 e k-NN usando should (OpenSearch combina os scores)
-			boolQueryBuilder.should(textQuery);
-			boolQueryBuilder.should(knnQuery);
-			boolQueryBuilder.minimumShouldMatch("1"); // Pelo menos uma deve corresponder
-		} else {
-			// Apenas BM25 se não houver embedding
-			boolQueryBuilder.must(textQuery);
-		}
+		boolQueryBuilder.must(textQuery);
 
 		// Filtros de categoria
 		if (searchQuery.hasCategoryFilter()) {
@@ -89,6 +76,20 @@ public class OpenSearchQueryBuilder {
 	}
 
 	/**
+	 * Constrói query principal de busca (mantido para compatibilidade)
+	 * 
+	 * @param searchQuery Query de busca
+	 * @param userContext Contexto do usuário
+	 * @param queryEmbedding Embedding opcional da query para busca k-NN (não usado mais)
+	 * @return Query do OpenSearch
+	 * @deprecated Use buildBm25Query() e adicione k-NN no nível superior do SearchRequest
+	 */
+	@Deprecated
+	public Query buildQuery(SearchQuery searchQuery, UserContext userContext, Optional<float[]> queryEmbedding) {
+		return buildBm25Query(searchQuery, userContext);
+	}
+
+	/**
 	 * Constrói query de texto com multiple match
 	 */
 	private Query buildTextQuery(String terms) {
@@ -98,37 +99,30 @@ public class OpenSearchQueryBuilder {
 	}
 
 	/**
-	 * Constrói query k-NN para busca semântica usando embedding
-	 * 
-	 * @param queryEmbedding Vetor de embedding da query (384 dimensões)
-	 * @return Query k-NN do OpenSearch
+	 * Retorna o nome do campo de vetor
 	 */
-	private Query buildKnnQuery(float[] queryEmbedding) {
-		if (queryEmbedding == null || queryEmbedding.length == 0) {
-			throw new IllegalArgumentException("Query embedding não pode ser nulo ou vazio");
-		}
-
-		// Criar query k-NN usando a API do OpenSearch
-		// O método vector() aceita float[] diretamente
-		return Query.of(q -> q.knn(k -> k
-				.field(VECTOR_FIELD)
-				.vector(queryEmbedding)
-				.k(100) // Número de vizinhos mais próximos a buscar
-				.boost(0.5f))); // Boost para balancear com BM25
+	public String getVectorField() {
+		return VECTOR_FIELD;
 	}
 
 	/**
 	 * Constrói filtro de categoria
+	 * 
+	 * @param category Categoria para filtrar
+	 * @return Query com filtro de categoria
 	 */
-	private Query buildCategoryFilter(Category category) {
+	public Query buildCategoryFilter(Category category) {
 		return Query.of(q -> q.bool(b -> b.should(s -> s.term(t -> t.field("category.id").value(org.opensearch.client.opensearch._types.FieldValue.of(category.getId()))))
 				.should(s -> s.prefix(p -> p.field("category.path").value(category.getPath())))));
 	}
 
 	/**
 	 * Constrói filtro individual
+	 * 
+	 * @param filter Filtro a ser construído
+	 * @return Query com o filtro aplicado
 	 */
-	private Query buildFilter(SearchFilter filter) {
+	public Query buildFilter(SearchFilter filter) {
 		return switch (filter.type()) {
 		case TERM -> buildTermFilter(filter);
 		case TERMS -> buildTermsFilter(filter);
@@ -169,7 +163,12 @@ public class OpenSearchQueryBuilder {
 	/**
 	 * Filtros de status básicos
 	 */
-	private Query buildStatusFilters() {
+	/**
+	 * Constrói filtros de status (produtos ativos, não suspensos)
+	 * 
+	 * @return Query com filtros de status
+	 */
+	public Query buildStatusFilters() {
 		return Query.of(q -> q.bool(b -> b.must(m -> m.term(t -> t.field("status.is_active").value(v -> v.booleanValue(true))))
 				.must(m -> m.term(t -> t.field("status.is_suspended").value(v -> v.booleanValue(false))))));
 	}

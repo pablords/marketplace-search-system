@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClientException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.marketplace.search.search.domain.services.EmbeddingService;
 
 import reactor.util.retry.Retry;
 
@@ -23,7 +24,7 @@ import reactor.util.retry.Retry;
  * Usado para gerar embeddings de queries de busca
  */
 @Component
-public class EmbeddingClient {
+public class EmbeddingClient implements EmbeddingService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmbeddingClient.class);
     
@@ -33,10 +34,10 @@ public class EmbeddingClient {
     private final boolean enabled;
 
     public EmbeddingClient(
-            @Value("${embedding.service.url:http://embedding-service:8085}") String baseUrl,
-            @Value("${embedding.service.timeout-seconds:5}") int timeoutSeconds,
-            @Value("${embedding.service.max-retries:3}") int maxRetries,
-            @Value("${embedding.service.enabled:true}") boolean enabled,
+            @Value("${embedding.service.url}") String baseUrl,
+            @Value("${embedding.service.timeout-seconds}") int timeoutSeconds,
+            @Value("${embedding.service.max-retries}") int maxRetries,
+            @Value("${embedding.service.enabled}") boolean enabled,
             WebClient.Builder webClientBuilder) {
         this.timeout = Duration.ofSeconds(timeoutSeconds);
         this.maxRetries = maxRetries;

@@ -12,6 +12,7 @@ Este serviço recebe candidatos de produtos (até 400) com suas 17 features extr
 - **FastAPI** - Framework web assíncrono
 - **Pydantic** - Validação de dados
 - **Uvicorn** - ASGI server
+- **Redis 7** - Cache de features e resultados de ranking
 
 ## Estrutura
 
@@ -110,14 +111,15 @@ Re-ranqueia produtos candidatos usando modelo ML.
 
 ### GET /health
 
-Health check do serviço.
+Health check do serviço com verificação de Redis.
 
 **Response:**
 ```json
 {
   "status": "healthy",
   "service": "ml-ranking-service",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "redis_connected": true
 }
 ```
 
@@ -157,11 +159,34 @@ Atualmente utiliza um modelo baseado em pesos fixos. Futuramente será substitu�
 - Contexto: 10%
 - Popularidade: 20%
 
+## Cache Redis
+
+O serviço utiliza Redis para cachear:
+- **Features calculadas**: Features extraídas dos candidatos
+- **Resultados de ranking**: Rankings já calculados para evitar reprocessamento
+- **TTL Configurável**: TTL do cache pode ser configurado via variáveis de ambiente
+
+### Configuração
+
+```bash
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+REDIS_TTL_SECONDS=3600  # TTL padrão: 1 hora
+
+# Servidor
+PORT=8084
+LOG_LEVEL=INFO
+```
+
 ## Logs
 
 O serviço utiliza logging padrão do Python. Logs incluem:
 - Requisições recebidas
 - Número de candidatos processados
+- Cache hits/misses
 - Erros e exceções
 - Versão do modelo utilizado
 

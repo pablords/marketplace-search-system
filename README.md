@@ -57,21 +57,26 @@ marketplace-search-system/
 
 ### ✅ Implementado
 - [x] **Busca de Produtos** - Busca textual com filtros, ordenação e paginação
+- [x] **Busca Híbrida** - Combinação de BM25 (textual) + k-NN (semântica) em paralelo
 - [x] **Busca em 2 Fases** - Top 400 candidatos + ML ranking para Top 20
 - [x] **Indexação Automática** - Eventos CDC via Kafka (Debezium)
 - [x] **Indexação Assíncrona** - Processamento paralelo com ThreadPool
+- [x] **Deduplicação de Eventos** - Prevenção de processamento duplicado via Redis
+- [x] **Idempotência na Criação** - Verificação de produtos duplicados antes de criar
 - [x] **Cache Inteligente** - Redis para consultas frequentes
+- [x] **Cache nos Serviços ML** - Redis para embeddings e features nos serviços ML
 - [x] **ML Ranking** - Re-ranking com 17 features usando modelo ML
 - [x] **Embeddings Vetoriais** - Busca semântica com k-NN
 - [x] **Feature Store** - Cache de features ML no Redis
+- [x] **Inicialização de Índices** - Criação automática de índices k-NN no OpenSearch
 - [x] **Métricas & Observabilidade** - Micrometer + Prometheus
 - [x] **Arquitetura Hexagonal** - Preparada para microserviços
 - [x] **API Gateway** - Roteamento centralizado com OpenAPI
 
 ### 🔄 Em Desenvolvimento
 - [ ] **Dead Letter Queue** - Tratamento de erros persistentes
-- [ ] **Circuit Breaker** - Resiliência para serviços downstream
-- [ ] **Retry Automático** - Retry com backoff exponencial
+- [ ] **Circuit Breaker** - Resiliência para serviços downstream (parcialmente implementado no API Gateway)
+- [ ] **Retry Automático** - Retry com backoff exponencial (parcialmente implementado no API Gateway)
 
 ### 📋 Roadmap
 - [ ] **Analytics** - Métricas de busca e comportamento
@@ -181,6 +186,9 @@ KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 # ML Services
 ML_RANKING_SERVICE_URL=http://localhost:8084
 EMBEDDING_SERVICE_URL=http://localhost:8085
+
+# Kafka Deduplication (Indexing Service)
+KAFKA_DEDUPLICATION_TTL_HOURS=168  # 7 dias (padrão)
 ```
 
 ## 📊 Monitoramento
@@ -269,7 +277,9 @@ GET /api/v1/health
 O sistema implementa uma busca em 2 fases para otimizar performance e relevância:
 
 **Fase 1: Busca de Candidatos (Top 400)**
-- Busca textual no OpenSearch usando BM25 e k-NN
+- Busca híbrida no OpenSearch: BM25 (textual) + k-NN (semântica) executadas em paralelo
+- Embedding da query gerado pelo ML Embedding Service
+- Combinação de scores BM25 e k-NN para relevância híbrida
 - Retorna até 400 candidatos com scores de relevância
 - Filtros aplicados nesta fase
 
@@ -280,12 +290,12 @@ O sistema implementa uma busca em 2 fases para otimizar performance e relevânci
 
 ### Fluxo de Indexação CDC
 
-1. **Criação/Atualização de Produto** → Catalog Service salva no PostgreSQL
+1. **Criação/Atualização de Produto** → Catalog Service verifica idempotência e salva no PostgreSQL
 2. **Debezium captura mudança** → Lê WAL do PostgreSQL
 3. **Kafka recebe evento** → Publica no tópico `catalog-db.public.products`
-4. **Indexing Service consome** → Processa evento de forma assíncrona
-5. **Geração de Embedding** → Chama ML Embedding Service
-6. **Indexação no OpenSearch** → Produto disponível para busca
+4. **Indexing Service consome** → Verifica deduplicação via Redis (evita reprocessamento)
+5. **Geração de Embedding** → Chama ML Embedding Service (com cache Redis)
+6. **Indexação no OpenSearch** → Produto indexado com vetor de embedding (k-NN)
 7. **Cache de Features** → Features ML armazenadas no Redis
 
 ### API Gateway
@@ -301,20 +311,24 @@ O sistema implementa uma busca em 2 fases para otimizar performance e relevânci
 
 - Gerencia produtos no PostgreSQL
 - Expõe API REST para CRUD de produtos
+- **Idempotência**: Verifica se produto já existe antes de criar (evita duplicação)
 - Publica eventos CDC via Debezium/Kafka
 - Validações de negócio
 
 ### Indexing Service
 
 - Consome eventos CDC do Kafka
+- **Deduplicação de Eventos**: Usa Redis para evitar reprocessamento de eventos duplicados
 - Processamento assíncrono com ThreadPool
-- Indexa produtos no OpenSearch
-- Gera embeddings via ML Embedding Service
+- Indexa produtos no OpenSearch com vetores de embedding (k-NN)
+- **Inicialização de Índices**: Cria automaticamente índices k-NN no OpenSearch
+- Gera embeddings via ML Embedding Service (com cache Redis)
 - Calcula e cacheia features ML no Redis
 
 ### Search Service
 
-- Realiza buscas no OpenSearch
+- Realiza buscas híbridas no OpenSearch (BM25 + k-NN em paralelo)
+- Gera embeddings de queries via ML Embedding Service
 - Cache Redis para consultas frequentes
 - Integração com ML Ranking Service
 - Extração de features para ML
@@ -323,15 +337,19 @@ O sistema implementa uma busca em 2 fases para otimizar performance e relevânci
 ### ML Ranking Service
 
 - Re-ranqueia produtos usando 17 features
+- **Cache Redis**: Cacheia features e resultados de ranking
 - Modelo baseado em pesos fixos (futuro: modelo treinado)
 - API REST para ranking de candidatos
+- Health check com verificação de Redis
 
 ### ML Embedding Service
 
 - Gera embeddings vetoriais para produtos e queries
+- **Cache Redis**: Cacheia embeddings gerados para melhor performance
 - Modelo: `sentence-transformers/all-MiniLM-L6-v2`
 - Dimensão: 384
 - Normalização L2
+- Health check com verificação de Redis
 
 ## 📈 Performance
 
@@ -396,33 +414,73 @@ sequenceDiagram
 
     Client->>APIGateway: POST /api/v1/products
     APIGateway->>CatalogService: POST /api/v1/products (HTTP)
-    CatalogService->>PostgreSQL: INSERT produto
-    PostgreSQL-->>CatalogService: 201 Created
-    CatalogService-->>APIGateway: 201 Created
-    APIGateway-->>Client: 201 Created
+    CatalogService->>PostgreSQL: Verifica se produto existe (idempotência)
+    alt Produto já existe
+        PostgreSQL-->>CatalogService: Produto existe
+        CatalogService-->>APIGateway: 409 Conflict
+        APIGateway-->>Client: 409 Conflict
+    else Produto não existe
+        CatalogService->>PostgreSQL: INSERT produto
+        PostgreSQL-->>CatalogService: 201 Created
+        CatalogService-->>APIGateway: 201 Created
+        APIGateway-->>Client: 201 Created
+    end
     
     Note over PostgreSQL,Kafka: Debezium CDC captura mudança
     PostgreSQL->>Debezium: WAL Event
     Debezium->>Kafka: Publica evento CDC
     Kafka->>IndexingService: Consome evento
-    IndexingService->>EmbeddingService: Gera embedding
-    EmbeddingService-->>IndexingService: Retorna embedding
-    IndexingService->>OpenSearch: Indexa produto
-    IndexingService->>Redis: Cacheia features ML
+    IndexingService->>Redis: Verifica deduplicação
+    alt Evento duplicado
+        Redis-->>IndexingService: Evento já processado
+        IndexingService->>Kafka: Acknowledge (ignora)
+    else Evento novo
+        Redis-->>IndexingService: Evento novo
+        IndexingService->>EmbeddingService: Gera embedding
+        EmbeddingService->>Redis: Verifica cache de embedding
+        alt Cache Hit
+            Redis-->>EmbeddingService: Retorna embedding cacheado
+        else Cache Miss
+            EmbeddingService->>EmbeddingService: Gera embedding (modelo ML)
+            EmbeddingService->>Redis: Cacheia embedding
+        end
+        EmbeddingService-->>IndexingService: Retorna embedding
+        IndexingService->>OpenSearch: Indexa produto (com vetor k-NN)
+        IndexingService->>Redis: Cacheia features ML
+        IndexingService->>Redis: Marca evento como processado
+    end
 
     Client->>APIGateway: GET /api/v1/search/products?q=smartphone
     APIGateway->>SearchService: GET /api/v1/search/products?q=smartphone
-    SearchService->>Redis: Verifica cache
+    SearchService->>Redis: Verifica cache de resultado
     alt Cache Hit
-        Redis-->>SearchService: Retorna resultado
+        Redis-->>SearchService: Retorna resultado cacheado
     else Cache Miss
-        SearchService->>OpenSearch: Fase 1: Busca Top 400 candidatos
-        OpenSearch-->>SearchService: Retorna candidatos + scores
+        SearchService->>EmbeddingService: Gera embedding da query
+        EmbeddingService->>Redis: Verifica cache de embedding
+        alt Embedding cacheado
+            Redis-->>EmbeddingService: Retorna embedding
+        else Gera novo embedding
+            EmbeddingService->>EmbeddingService: Gera embedding (modelo ML)
+            EmbeddingService->>Redis: Cacheia embedding
+        end
+        EmbeddingService-->>SearchService: Retorna embedding
+        Note over SearchService,OpenSearch: Fase 1: Busca Híbrida (BM25 + k-NN em paralelo)
+        SearchService->>OpenSearch: Busca BM25 (textual)
+        SearchService->>OpenSearch: Busca k-NN (semântica)
+        OpenSearch-->>SearchService: Retorna candidatos + scores híbridos
         SearchService->>Redis: Busca features dos candidatos
         Redis-->>SearchService: Retorna features
         SearchService->>MLRankingService: Re-ranqueia com ML
+        MLRankingService->>Redis: Verifica cache de ranking
+        alt Ranking cacheado
+            Redis-->>MLRankingService: Retorna ranking cacheado
+        else Calcula novo ranking
+            MLRankingService->>MLRankingService: Calcula ranking ML
+            MLRankingService->>Redis: Cacheia ranking
+        end
         MLRankingService-->>SearchService: Retorna Top 20 ranqueados
-        SearchService->>Redis: Cacheia resultado
+        SearchService->>Redis: Cacheia resultado completo
     end
     SearchService-->>APIGateway: Retorna resultados
     APIGateway-->>Client: Retorna resultados

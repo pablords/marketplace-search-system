@@ -53,6 +53,7 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 
 **Responsabilidades:**
 - CRUD de produtos
+- **Idempotência**: Verifica se produto já existe antes de criar (evita duplicação)
 - Gerenciamento de categorias, marcas e vendedores
 - Validações de negócio
 - Publicação automática de eventos CDC via Debezium
@@ -62,11 +63,18 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - PostgreSQL 15
 - Arquitetura Hexagonal
 
+**Idempotência:**
+- Verifica `existsById()` antes de criar produto
+- Lança `ProductAlreadyExistsException` se produto já existe
+- Evita duplicação no banco e consequente duplicação no Kafka
+
 ### Indexing Service (Porta 8082)
 
 **Responsabilidades:**
 - Consumo de eventos CDC do Kafka
+- **Deduplicação de Eventos**: Previne reprocessamento de eventos duplicados via Redis
 - Indexação assíncrona no OpenSearch
+- **Inicialização de Índices**: Cria automaticamente índices k-NN no OpenSearch
 - Geração de embeddings via ML Embedding Service
 - Cálculo e cache de features ML no Redis
 
@@ -77,10 +85,19 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - Redis 7
 - Processamento assíncrono com ThreadPool
 
+**Deduplicação de Eventos:**
+- Usa Redis para rastrear eventos processados
+- Chave única: `event:processed:{productId}:{timestamp}:{offset}`
+- TTL configurável (padrão: 7 dias = 168 horas)
+- Operação atômica usando SETNX
+- Evita reprocessamento em caso de retry ou rebalanceamento do Kafka
+
 ### Search Service (Porta 8083)
 
 **Responsabilidades:**
+- **Busca Híbrida**: Combinação de BM25 (textual) + k-NN (semântica) em paralelo
 - Busca de produtos em 2 fases
+- Geração de embeddings de queries via ML Embedding Service
 - Cache inteligente com Redis
 - Integração com ML Ranking Service
 - Extração de features para ML
@@ -90,6 +107,14 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - OpenSearch 3.x
 - Redis 7
 - ML Ranking Service
+- ML Embedding Service
+
+**Busca Híbrida:**
+- Fase 1: Executa BM25 e k-NN em paralelo no OpenSearch
+- Embedding da query gerado pelo ML Embedding Service
+- Combina scores BM25 e k-NN para relevância híbrida
+- Retorna Top 400 candidatos
+- Fallback para apenas BM25 se Embedding Service indisponível
 
 ### ML Ranking Service (Porta 8084)
 
@@ -97,24 +122,40 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - Re-ranking de produtos usando Machine Learning
 - Processamento de 17 features
 - Retorno dos Top 20 ranqueados
+- **Cache Redis**: Cacheia features e resultados de ranking
 
 **Tecnologias:**
 - Python 3.11
 - FastAPI
+- Redis 7 (cache)
 - Modelo baseado em pesos fixos (futuro: modelo treinado)
+
+**Cache:**
+- Cacheia embeddings e features calculadas
+- Health check verifica conectividade com Redis
+- TTL configurável para otimização de memória
 
 ### ML Embedding Service (Porta 8085)
 
 **Responsabilidades:**
-- Geração de embeddings vetoriais
+- Geração de embeddings vetoriais para produtos e queries
+- **Cache Redis**: Cacheia embeddings gerados para melhor performance
 - Modelo: sentence-transformers/all-MiniLM-L6-v2
 - Dimensão: 384
+- Normalização L2
 
 **Tecnologias:**
 - Python 3.11
 - FastAPI
+- Redis 7 (cache)
 - sentence-transformers
 - PyTorch
+
+**Cache:**
+- Cacheia embeddings de produtos e queries
+- Reduz chamadas ao modelo ML
+- Health check verifica conectividade com Redis
+- TTL configurável para otimização de memória
 
 ## Arquitetura Hexagonal
 
@@ -200,18 +241,39 @@ sequenceDiagram
     participant Redis
 
     App->>CatalogService: POST /products
-    CatalogService->>PostgreSQL: INSERT produto
-    PostgreSQL-->>CatalogService: Success
-    CatalogService-->>App: 201 Created
+    CatalogService->>PostgreSQL: Verifica se produto existe
+    alt Produto já existe
+        PostgreSQL-->>CatalogService: Produto existe
+        CatalogService-->>App: 409 Conflict
+    else Produto não existe
+        CatalogService->>PostgreSQL: INSERT produto
+        PostgreSQL-->>CatalogService: Success
+        CatalogService-->>App: 201 Created
+    end
     
     Note over PostgreSQL,Kafka: CDC Automático
     PostgreSQL->>Debezium: WAL Event
     Debezium->>Kafka: Publica evento CDC
     Kafka->>IndexingService: Consome evento
-    IndexingService->>EmbeddingService: Gera embedding
-    EmbeddingService-->>IndexingService: Retorna embedding
-    IndexingService->>OpenSearch: Indexa produto
-    IndexingService->>Redis: Cacheia features ML
+    IndexingService->>Redis: Verifica deduplicação
+    alt Evento duplicado
+        Redis-->>IndexingService: Já processado
+        IndexingService->>Kafka: Acknowledge (ignora)
+    else Evento novo
+        Redis-->>IndexingService: Novo evento
+        IndexingService->>EmbeddingService: Gera embedding
+        EmbeddingService->>Redis: Verifica cache
+        alt Cache Hit
+            Redis-->>EmbeddingService: Embedding cacheado
+        else Cache Miss
+            EmbeddingService->>EmbeddingService: Gera embedding (ML)
+            EmbeddingService->>Redis: Cacheia embedding
+        end
+        EmbeddingService-->>IndexingService: Retorna embedding
+        IndexingService->>OpenSearch: Indexa produto (k-NN)
+        IndexingService->>Redis: Cacheia features ML
+        IndexingService->>Redis: Marca evento como processado
+    end
 ```
 
 ### Fluxo de Busca (2 Fases)
@@ -220,26 +282,48 @@ sequenceDiagram
 sequenceDiagram
     participant Client
     participant SearchService
+    participant EmbeddingService
     participant Cache
     participant OpenSearch
     participant FeatureStore
     participant MLRankingService
 
     Client->>SearchService: GET /search/products?q=smartphone
-    SearchService->>Cache: Verifica cache
+    SearchService->>Cache: Verifica cache de resultado
     alt Cache Hit
-        Cache-->>SearchService: Retorna resultado
+        Cache-->>SearchService: Retorna resultado cacheado
     else Cache Miss
-        Note over SearchService,OpenSearch: Fase 1: Top 400
-        SearchService->>OpenSearch: Busca candidatos
-        OpenSearch-->>SearchService: Retorna 400 candidatos
+        SearchService->>EmbeddingService: Gera embedding da query
+        EmbeddingService->>Cache: Verifica cache de embedding
+        alt Embedding cacheado
+            Cache-->>EmbeddingService: Retorna embedding
+        else Gera novo embedding
+            EmbeddingService->>EmbeddingService: Gera embedding (ML)
+            EmbeddingService->>Cache: Cacheia embedding
+        end
+        EmbeddingService-->>SearchService: Retorna embedding
+        
+        Note over SearchService,OpenSearch: Fase 1: Busca Híbrida (BM25 + k-NN em paralelo)
+        par Busca BM25
+            SearchService->>OpenSearch: Busca textual (BM25)
+        and Busca k-NN
+            SearchService->>OpenSearch: Busca semântica (k-NN)
+        end
+        OpenSearch-->>SearchService: Retorna 400 candidatos (scores híbridos)
         
         Note over SearchService,MLRankingService: Fase 2: ML Ranking
         SearchService->>FeatureStore: Busca features
         FeatureStore-->>SearchService: Retorna features
         SearchService->>MLRankingService: Re-ranqueia
+        MLRankingService->>Cache: Verifica cache de ranking
+        alt Ranking cacheado
+            Cache-->>MLRankingService: Retorna ranking cacheado
+        else Calcula novo ranking
+            MLRankingService->>MLRankingService: Calcula ranking ML
+            MLRankingService->>Cache: Cacheia ranking
+        end
         MLRankingService-->>SearchService: Top 20 ranqueados
-        SearchService->>Cache: Cacheia resultado
+        SearchService->>Cache: Cacheia resultado completo
     end
     SearchService-->>Client: Retorna resultados
 ```
@@ -258,6 +342,9 @@ sequenceDiagram
 **Redis 7**
 - Cache de resultados de busca (TTL: 1 hora)
 - Feature Store para features ML (TTL: 1 hora)
+- **Deduplicação de eventos**: Chaves `event:processed:{productId}:{timestamp}:{offset}` (TTL: 7 dias)
+- **Cache de embeddings**: Embeddings de produtos e queries (TTL configurável)
+- **Cache de rankings**: Resultados de ranking ML (TTL configurável)
 - Chaves prefixadas por tipo
 
 ### Motor de Busca
@@ -265,7 +352,9 @@ sequenceDiagram
 **OpenSearch 3.x**
 - Índice de produtos para busca
 - Suporte a BM25 e k-NN (busca semântica)
-- Queries híbridas (BM25 + k-NN)
+- **Queries híbridas**: BM25 + k-NN executadas em paralelo
+- **Inicialização automática**: Índices k-NN criados automaticamente
+- Vetores de embedding armazenados no índice (dimensão: 384)
 
 ### Mensageria
 
@@ -306,8 +395,14 @@ Sincronização via eventos CDC, processamento assíncrono.
 
 ### 2-Phase Search
 
-- **Fase 1**: Busca rápida de candidatos (Top 400)
+- **Fase 1**: Busca híbrida rápida de candidatos (Top 400)
+  - BM25 (textual) e k-NN (semântica) executadas em paralelo
+  - Embedding da query gerado pelo ML Embedding Service
+  - Combinação de scores para relevância híbrida
 - **Fase 2**: Re-ranking ML para Top 20
+  - Extração de 17 features dos candidatos
+  - Re-ranking via ML Ranking Service
+  - Cache de features e resultados
 
 ## Escalabilidade
 

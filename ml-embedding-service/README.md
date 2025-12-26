@@ -17,6 +17,7 @@ Este serviço gera embeddings vetoriais (representações numéricas) de textos 
 - **PyTorch** - Backend para modelos de ML
 - **Pydantic** - Validação de dados
 - **Uvicorn** - ASGI server
+- **Redis 7** - Cache de embeddings para melhor performance
 
 ## Modelo de Embedding
 
@@ -98,7 +99,7 @@ Alias para `/generate` com `type="query"`. Gera embedding para uma query de busc
 
 ### GET /health
 
-Health check endpoint.
+Health check endpoint com verificação de Redis.
 
 **Response:**
 ```json
@@ -106,7 +107,8 @@ Health check endpoint.
   "status": "healthy",
   "service": "embedding-service",
   "version": "1.0.0",
-  "model_loaded": true
+  "model_loaded": true,
+  "redis_connected": true
 }
 ```
 
@@ -163,8 +165,10 @@ POST http://embedding-service:8085/api/v1/embeddings/query
 ## Performance
 
 - **Batch Processing**: Suporta processamento em lote (até 100 textos por request)
-- **Cache**: Modelo é carregado uma vez na inicialização
+- **Cache de Modelo**: Modelo é carregado uma vez na inicialização
+- **Cache Redis**: Embeddings gerados são cacheados no Redis para evitar recálculo
 - **Normalização**: Embeddings são normalizados para melhor performance em busca k-NN
+- **TTL Configurável**: TTL do cache Redis pode ser configurado via variáveis de ambiente
 
 ## Limitações
 
@@ -172,9 +176,26 @@ POST http://embedding-service:8085/api/v1/embeddings/query
 - **Memória**: Modelo consome ~80MB de RAM
 - **Primeira Requisição**: Pode ser mais lenta devido ao carregamento do modelo
 
+## Configuração
+
+### Variáveis de Ambiente
+
+```bash
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+REDIS_TTL_SECONDS=3600  # TTL padrão: 1 hora
+
+# Servidor
+PORT=8085
+LOG_LEVEL=INFO
+```
+
 ## Monitoramento
 
-- Health check disponível em `/health`
+- Health check disponível em `/health` (verifica Redis)
 - Logs estruturados com nível INFO
 - Métricas podem ser adicionadas via Prometheus (futuro)
 

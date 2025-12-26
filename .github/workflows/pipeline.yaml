@@ -12,25 +12,65 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  build:
-    name: Build and Test
+  build-api-gateway:
+    name: Build API Gateway (Go)
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.go-version.outputs.VERSION }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'api-gateway/go.mod'
+
+      - name: Cache Go Modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Get Go Version
+        id: go-version
+        run: |
+          cd api-gateway
+          VERSION=$(grep -E '^go ' go.mod | awk '{print $2}' | sed 's/\.0$//')
+          echo "VERSION=${VERSION:-1.0.0}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION:-1.0.0}" >> $GITHUB_OUTPUT
+
+      - name: Build API Gateway
+        working-directory: api-gateway
+        run: |
+          go mod download
+          go build -o gateway cmd/gateway/main.go
+
+      - name: Run Go Tests
+        working-directory: api-gateway
+        run: go test ./... -v
+
+  build-java-services:
+    name: Build Java Microservices
     runs-on: ubuntu-latest
     outputs:
       VERSION: ${{ steps.project-version.outputs.VERSION }}
 
     steps:
-      # Checkout do código
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Configura a versão do Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: "17"
           distribution: "temurin"
 
-      # Cache do Maven
       - name: Cache Maven Dependencies
         uses: actions/cache@v4
         with:
@@ -39,30 +79,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      # Obtém a versão do projeto
       - name: Get Project Version
         id: project-version
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>/dev/null || echo "1.0.0")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      # Build da aplicação (multi-módulo)
-      - name: Build Application
-        run: mvn clean package -DskipTests
+      - name: Build Java Services
+        run: |
+          mvn clean package -DskipTests -pl catalog-service/bootstrap,indexing-service/bootstrap,search-service/bootstrap -am
 
-      # Executar testes unitários
       - name: Run Unit Tests
-        run: mvn test
-
-      # Gerar relatório de cobertura
-      - name: Generate Coverage Report
-        run: mvn jacoco:report
+        run: mvn test -pl catalog-service,indexing-service,search-service
 
   code-quality:
     name: Code Quality Analysis
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build-api-gateway, build-java-services]
     if: github.event_name == 'pull_request'
 
     steps:
@@ -77,6 +111,11 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'api-gateway/go.mod'
+
       - name: Cache Maven Dependencies
         uses: actions/cache@v4
         with:
@@ -85,75 +124,162 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      # Análise estática de código
-      - name: Run Static Analysis
-        run: mvn verify -DskipTests
+      - name: Cache Go Modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
-      # Verificação de segurança com OWASP Dependency Check
-      - name: OWASP Dependency Check
-        run: mvn org.owasp:dependency-check-maven:check || true
+      - name: Run Java Static Analysis
+        run: mvn verify -DskipTests -pl catalog-service,indexing-service,search-service
 
+      - name: Run Go Linting
+        working-directory: api-gateway
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest || true
+          go vet ./...
 
+      - name: OWASP Dependency Check (Java)
+        run: mvn org.owasp:dependency-check-maven:check -pl catalog-service,indexing-service,search-service || true
 
   package:
-    name: Package Application as Docker Image
+    name: Package Docker Images
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build-api-gateway, build-java-services]
 
     steps:
-      # Checkout do código
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Configura a versão do Java (necessário para o build no Docker)
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: "17"
-          distribution: "temurin"
-
-      # Cache do Maven
-      - name: Cache Maven Dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      # Build da aplicação novamente (para gerar o JAR)
-      - name: Build Application
-        run: mvn clean package -DskipTests
-
-      # Debug para verificar o JAR gerado
-      - name: Verify JAR
-        run: |
-          echo "Listing bootstrap/target directory:"
-          ls -la bootstrap/target/
-          echo "VERSION=${{ needs.build.outputs.VERSION }}"
-
-      # Setup Docker Buildx (necessário para cache)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login no Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build e Push da imagem Docker
-      - name: Build and Push Docker Image
+      - name: Get Version
+        id: version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>/dev/null || echo "1.0.0")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      # Build API Gateway (Go)
+      - name: Build and Push API Gateway Image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./api-gateway
+          file: ./api-gateway/Dockerfile
           push: true
           tags: |
-            ${{ env.DOCKER_REPO }}/marketplace-search:${{ needs.build.outputs.VERSION }}
-            ${{ env.DOCKER_REPO }}/marketplace-search:latest
+            ${{ env.DOCKER_REPO }}/api-gateway:${{ env.VERSION }}
+            ${{ env.DOCKER_REPO }}/api-gateway:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Build Catalog Service (Java) - apenas se Dockerfile existir
+      - name: Check Catalog Service Dockerfile
+        id: check-catalog-dockerfile
+        run: |
+          if [ -f "./catalog-service/bootstrap/Dockerfile" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and Push Catalog Service Image
+        if: steps.check-catalog-dockerfile.outputs.exists == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./catalog-service
+          file: ./catalog-service/bootstrap/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_REPO }}/catalog-service:${{ env.VERSION }}
+            ${{ env.DOCKER_REPO }}/catalog-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build Indexing Service (Java) - apenas se Dockerfile existir
+      - name: Check Indexing Service Dockerfile
+        id: check-indexing-dockerfile
+        run: |
+          if [ -f "./indexing-service/bootstrap/Dockerfile" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and Push Indexing Service Image
+        if: steps.check-indexing-dockerfile.outputs.exists == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./indexing-service
+          file: ./indexing-service/bootstrap/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_REPO }}/indexing-service:${{ env.VERSION }}
+            ${{ env.DOCKER_REPO }}/indexing-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build Search Service (Java) - apenas se Dockerfile existir
+      - name: Check Search Service Dockerfile
+        id: check-search-dockerfile
+        run: |
+          if [ -f "./search-service/bootstrap/Dockerfile" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and Push Search Service Image
+        if: steps.check-search-dockerfile.outputs.exists == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./search-service
+          file: ./search-service/bootstrap/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_REPO }}/search-service:${{ env.VERSION }}
+            ${{ env.DOCKER_REPO }}/search-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build ML Ranking Service (Python)
+      - name: Build and Push ML Ranking Service Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ml-ranking-service
+          file: ./ml-ranking-service/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_REPO }}/ml-ranking-service:${{ env.VERSION }}
+            ${{ env.DOCKER_REPO }}/ml-ranking-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        continue-on-error: true
+
+      # Build ML Embedding Service (Python)
+      - name: Build and Push ML Embedding Service Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ml-embedding-service
+          file: ./ml-embedding-service/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_REPO }}/ml-embedding-service:${{ env.VERSION }}
+            ${{ env.DOCKER_REPO }}/ml-embedding-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        continue-on-error: true
 
   deploy:
     name: Deploy Application
@@ -162,16 +288,26 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      # Checkout do código
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Deploy da aplicação
+      - name: Get Version
+        id: version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>/dev/null || echo "1.0.0")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Deploy Application
         run: |
           echo "🚀 Deploy Marketplace Search System"
-          echo "Version: ${{ needs.build.outputs.VERSION }}"
-          echo "Docker Image: ${{ env.DOCKER_REPO }}/marketplace-search:${{ needs.build.outputs.VERSION }}"
+          echo "Version: ${{ env.VERSION }}"
+          echo "Docker Images:"
+          echo "  - ${{ env.DOCKER_REPO }}/api-gateway:${{ env.VERSION }}"
+          echo "  - ${{ env.DOCKER_REPO }}/catalog-service:${{ env.VERSION }}"
+          echo "  - ${{ env.DOCKER_REPO }}/indexing-service:${{ env.VERSION }}"
+          echo "  - ${{ env.DOCKER_REPO }}/search-service:${{ env.VERSION }}"
+          echo "  - ${{ env.DOCKER_REPO }}/ml-ranking-service:${{ env.VERSION }}"
+          echo "  - ${{ env.DOCKER_REPO }}/ml-embedding-service:${{ env.VERSION }}"
           # TODO: Adicione os comandos para realizar o deploy
           # Exemplos:
           # - kubectl apply -f k8s/

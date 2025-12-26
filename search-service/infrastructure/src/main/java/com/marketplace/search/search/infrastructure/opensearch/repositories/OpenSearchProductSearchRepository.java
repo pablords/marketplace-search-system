@@ -352,53 +352,48 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 					try {
 						String vectorField = queryBuilder.getVectorField();
 						
-						// Busca k-NN pura (sem BM25)
-						// Aplicar apenas filtros de status e categoria, sem query de texto
-						Query knnQuery = Query.of(q -> q.knn(k -> k
-								.field(vectorField)
-								.vector(embedding)
-								.k(200) // Buscar até 200 candidatos para k-NN
-								.boost(1.0f)));
-						
-						// Combinar k-NN com filtros usando bool query
-						// k-NN no should, filtros no filter
-						org.opensearch.client.opensearch._types.query_dsl.BoolQuery.Builder knnBoolBuilder = 
-								new org.opensearch.client.opensearch._types.query_dsl.BoolQuery.Builder();
-						
-						// Adicionar k-NN como should
-						knnBoolBuilder.should(knnQuery);
-						
-						// Adicionar filtros de status
-						knnBoolBuilder.filter(queryBuilder.buildStatusFilters());
-						
-						// Adicionar filtros de categoria se houver
-						if (candidatesQuery.hasCategoryFilter()) {
-							knnBoolBuilder.filter(queryBuilder.buildCategoryFilter(candidatesQuery.category()));
-						}
-						
-						// Adicionar outros filtros se houver
-						if (candidatesQuery.hasFilters()) {
-							List<Query> filters = candidatesQuery.filters().stream()
-									.map(queryBuilder::buildFilter)
-									.collect(Collectors.toList());
-							knnBoolBuilder.filter(filters);
-						}
-						
-						knnBoolBuilder.minimumShouldMatch("1");
-						
-						Query finalKnnQuery = Query.of(q -> q.bool(knnBoolBuilder.build()));
+						// No OpenSearch 3.x, a sintaxe correta é:
+						// query: { knn: { "field_name": { vector: [...], k: N } } }
+						// No Java client, isso é construído usando Query.of com knn
+						// IMPORTANTE: No OpenSearch 3.x, o campo deve ser passado como string
+						// e o vetor como float[]
+						Query knnQuery = Query.of(q -> q
+								.knn(k -> k
+										.field(vectorField)
+										.vector(embedding)
+										.k(200)));
 						
 						SearchRequest knnRequest = SearchRequest.of(s -> s
 								.index(INDEX_NAME)
-								.query(finalKnnQuery)
+								.query(knnQuery)
 								.from(0)
 								.size(200)
 								.trackTotalHits(t -> t.enabled(true)));
 						
-						logger.debug("Executando busca k-NN em paralelo");
-						return openSearchClient.search(knnRequest, ProductSearchDocument.class);
+						logger.debug("Executando busca k-NN simples em paralelo (filtros serão aplicados depois)");
+						logger.debug("Campo vetor: {}, Dimensão do vetor: {}, k: 200", vectorField, embedding.length);
+						
+						SearchResponse<ProductSearchDocument> response = openSearchClient.search(knnRequest, ProductSearchDocument.class);
+						
+						// Filtros serão aplicados depois na combinação dos resultados
+						return response;
+						
 					} catch (Exception e) {
-						logger.error("Erro ao executar busca k-NN", e);
+						logger.error("Erro ao executar busca k-NN: {}", e.getMessage());
+						
+						// Capturar causa raiz do erro para debug
+						Throwable cause = e.getCause();
+						if (cause != null) {
+							logger.error("Causa do erro k-NN: {}", cause.getMessage());
+							if (cause.getCause() != null) {
+								logger.error("Causa raiz do erro k-NN: {}", cause.getCause().getMessage());
+							}
+						}
+						
+						logger.debug("Stack trace completo:", e);
+						
+						// Retornar null para indicar que busca k-NN falhou
+						// O sistema continuará apenas com BM25 (fallback)
 						return null;
 					}
 				}, executorService);
@@ -410,7 +405,15 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 			
 			// Só aguardar k-NN se embedding estiver disponível
 			if (queryEmbedding.isPresent()) {
-				knnResponse = knnFuture.join();
+				try {
+					knnResponse = knnFuture.join();
+					if (knnResponse == null) {
+						logger.warn("Busca k-NN retornou null - continuando apenas com BM25 (fallback)");
+					}
+				} catch (Exception e) {
+					logger.warn("Erro ao aguardar busca k-NN - continuando apenas com BM25 (fallback): {}", e.getMessage());
+					knnResponse = null;
+				}
 			}
 
 			// PASSO 5: Extrair hits das buscas
@@ -477,11 +480,30 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 				productsMap.put(productId, product);
 			}
 
-			// Processar hits k-NN (apenas se busca híbrida estiver ativa)
+			// Processar hits k-NN (aplicar filtros em memória)
 			// Se embedding não estiver disponível, knnHits será vazio e este loop não executará
 			for (Hit<ProductSearchDocument> hit : knnHits) {
 				Product product = productMapper.toDomain(hit.source());
 				String productId = product.getId().getValue();
+
+				// Aplicar filtros em memória (já que não foram aplicados na query k-NN)
+				// Filtrar por status
+				if (!product.getStatus().isActive() || product.getStatus().isSuspended()) {
+					logger.debug("Produto k-NN filtrado por status: {}", productId);
+					continue;
+				}
+				
+				// Filtrar por categoria se necessário
+				if (candidatesQuery.hasCategoryFilter()) {
+					String categoryId = candidatesQuery.category().getId();
+					if (!product.getInfo().getCategory().getId().equals(categoryId) && 
+							!product.getInfo().getCategory().getPath().startsWith(candidatesQuery.category().getPath())) {
+						logger.debug("Produto k-NN filtrado por categoria: {}", productId);
+						continue;
+					}
+				}
+				
+				// Outros filtros podem ser aplicados aqui se necessário
 
 				Double rawScore = hit.score();
 				double normalizedKnn = rawScore != null && maxKnnScore > 0 ? rawScore / maxKnnScore : 0.0;

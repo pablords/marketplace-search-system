@@ -6,11 +6,15 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.mapping.Property;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
+import org.opensearch.client.opensearch.indices.DeleteIndexRequest;
 import org.opensearch.client.opensearch.indices.ExistsRequest;
+import org.opensearch.client.opensearch.indices.GetMappingRequest;
+import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.springframework.stereotype.Repository;
 
 import com.marketplace.search.indexing.domain.entities.Product;
@@ -43,45 +47,108 @@ public class OpensearchRepository implements ProductIndexRepository {
 	@Override
 	public void createKnnIndex(int vectorDim) throws Exception {
 		// Verificar se o índice já existe
-		if (client.indices().exists(new ExistsRequest.Builder().index(INDEX_NAME).build()).value()) {
-			log.debug("Índice '" + INDEX_NAME + "' já existe. Pulando criação.");
-			return;
+		boolean indexExists = client.indices().exists(new ExistsRequest.Builder().index(INDEX_NAME).build()).value();
+		
+		if (indexExists) {
+			// Verificar se o campo product_vector está configurado como knn_vector
+			if (!isKnnVectorFieldConfigured()) {
+				log.warn("Índice existe mas campo '{}' não está configurado como knn_vector. Recriando índice...", VECTOR_FIELD);
+				// Deletar índice existente
+				client.indices().delete(new DeleteIndexRequest.Builder().index(INDEX_NAME).build());
+				log.info("Índice deletado. Recriando com mapeamento correto...");
+			} else {
+				log.debug("Índice '" + INDEX_NAME + "' já existe com mapeamento correto. Pulando criação.");
+				return;
+			}
 		}
 
 		log.debug("Criando índice para busca híbrida (BM25 + Semântica): " + INDEX_NAME);
 
 		// Criar o índice com k-NN habilitado e campos otimizados para BM25
-		CreateIndexRequest createReq = new CreateIndexRequest.Builder()
-				.index(INDEX_NAME)
-				.settings(s -> s
-						.index(i -> i
-								.knn(true) // Habilitar k-NN no índice
-						))
-				.mappings(m -> m
-						// Campo de vetor para busca semântica
-						.properties(VECTOR_FIELD, p -> p
-								.knnVector(kv -> kv
-										.dimension(vectorDim)
-										.method(method -> method
-												.name("hnsw") // Algoritmo HNSW
-												.spaceType("cosinesimil") // Similaridade de cosseno
-												.engine("lucene"))))
-						// Campo title para BM25 (com boost)
-						.properties("title", p -> p
-								.text(t -> t
-										.analyzer("standard") // Analisador padrão para português/inglês
-										.fields("keyword", f -> f.keyword(k -> k)))) // Subcampo keyword para exact
-																						// match
-						// Campo description para BM25
-						.properties("description", p -> p
-								.text(t -> t
-										.analyzer("standard")))
-						// Campo category para filtros
-						.properties("category", p -> p
-								.keyword(k -> k)))
-				.build();
+		CreateIndexRequest.Builder builder = new CreateIndexRequest.Builder();
+		builder.index(INDEX_NAME);
+		builder.settings(s -> s.index(i -> i.knn(true)));
+		
+		// Configurar mapeamentos
+		builder.mappings(m -> m
+				.properties(VECTOR_FIELD, p -> p
+						.knnVector(kv -> kv
+								.dimension(vectorDim)
+								.method(method -> method
+										.name("hnsw")
+										.spaceType("cosinesimil")
+										.engine("lucene"))))
+				.properties("title", p -> p
+						.text(t -> t
+								.analyzer("standard")
+								.fields("keyword", f -> f.keyword(k -> k))))
+				.properties("description", p -> p
+						.text(t -> t.analyzer("standard")))
+				.properties("category", p -> p
+						.object(o -> o
+								.properties("id", id -> id.keyword(k -> k))
+								.properties("name", name -> name.keyword(k -> k))
+								.properties("path", path -> path.keyword(k -> k))
+								.properties("parent_id", parentId -> parentId.keyword(k -> k))))
+				.properties("brand", p -> p
+						.object(o -> o
+								.properties("id", id -> id.keyword(k -> k))
+								.properties("name", name -> name.text(t -> t.analyzer("standard")))
+								.properties("description", desc -> desc.text(t -> t.analyzer("standard")))))
+				.properties("seller", p -> p
+						.object(o -> o
+								.properties("id", id -> id.keyword(k -> k))
+								.properties("name", name -> name.keyword(k -> k))
+								.properties("status", status -> status.keyword(k -> k))
+								.properties("type", type -> type.keyword(k -> k))
+								.properties("reputation", rep -> rep.object(repObj -> repObj)))));
+		
+		CreateIndexRequest createReq = builder.build();
 
 		client.indices().create(createReq);
+		log.info("Índice '{}' criado com sucesso com suporte a k-NN (dimensão: {})", INDEX_NAME, vectorDim);
+	}
+
+	/**
+	 * Verifica se o campo product_vector está configurado como knn_vector
+	 */
+	private boolean isKnnVectorFieldConfigured() {
+		try {
+			GetMappingResponse mapping = client.indices().getMapping(
+					new GetMappingRequest.Builder().index(INDEX_NAME).build());
+			
+			if (mapping.result().isEmpty()) {
+				log.debug("Nenhum mapeamento encontrado para o índice {}", INDEX_NAME);
+				return false;
+			}
+			
+			var indexMapping = mapping.result().get(INDEX_NAME);
+			if (indexMapping == null || indexMapping.mappings() == null) {
+				log.debug("Mapeamento vazio para o índice {}", INDEX_NAME);
+				return false;
+			}
+			
+			var properties = indexMapping.mappings().properties();
+			if (properties == null || properties.isEmpty()) {
+				log.debug("Nenhuma propriedade encontrada no mapeamento do índice {}", INDEX_NAME);
+				return false;
+			}
+			
+			Property vectorProperty = properties.get(VECTOR_FIELD);
+			if (vectorProperty == null) {
+				log.debug("Campo '{}' não encontrado no mapeamento", VECTOR_FIELD);
+				return false;
+			}
+			
+			// Verificar se é do tipo knn_vector
+			boolean isKnnVector = vectorProperty._kind() == Property.Kind.KnnVector;
+			log.debug("Campo '{}' é do tipo knn_vector: {}", VECTOR_FIELD, isKnnVector);
+			return isKnnVector;
+			
+		} catch (Exception e) {
+			log.warn("Erro ao verificar mapeamento do campo {}: {}", VECTOR_FIELD, e.getMessage());
+			return false;
+		}
 	}
 
 	@Override

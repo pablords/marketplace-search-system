@@ -3,26 +3,6 @@
     "configurations": [
         {
             "type": "java",
-            "name": "🚪 API Gateway",
-            "request": "launch",
-            "mainClass": "com.marketplace.search.gateway.bootstrap.GatewayApp",
-            "args": ["--spring.profiles.active=development"],
-            "vmArgs": [
-                "-Dspring.devtools.restart.enabled=true",
-                "-Dspring.devtools.livereload.enabled=true",
-                "-Dspring.output.ansi.enabled=always",
-                "-Xmx1G",
-                "-XX:+UseG1GC"
-            ],
-            "envFile": "${workspaceFolder}/api-gateway/.env",
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "cwd": "${workspaceFolder}/api-gateway/bootstrap",
-            "preLaunchTask": "maven: compile api-gateway",
-            "noDebug": true
-        },
-        {
-            "type": "java",
             "name": "📦 Catalog Service",
             "request": "launch",
             "mainClass": "com.marketplace.search.catalog.bootstrap.CatalogApp",
@@ -111,18 +91,18 @@
         },
         {
             "type": "go",
-            "name": "🚪 API Gateway (Go)",
+            "name": "🚪 API Gateway",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/api-gateway-go/cmd/gateway",
+            "program": "${workspaceFolder}/api-gateway/cmd/gateway",
             "args": [
-                "--config=${workspaceFolder}/api-gateway-go/configs/config.development.yaml"
+                "--config=${workspaceFolder}/api-gateway/configs/config.development.yaml"
             ],
             "env": {
                 "ENVIRONMENT": "development"
             },
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/api-gateway-go",
+            "cwd": "${workspaceFolder}/api-gateway",
             "showLog": true
         }
     ]

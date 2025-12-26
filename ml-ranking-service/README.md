@@ -167,3 +167,4 @@ O serviço utiliza logging padrão do Python. Logs incluem:
 
 
 
+

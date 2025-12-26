@@ -203,12 +203,35 @@ services:
       retries: 10
       start_period: 120s
 
+  # Jaeger (para tracing distribuído)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: marketplace-jaeger
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jaeger.rule=PathPrefix(`/jaeger`)"
+      - "traefik.http.routers.jaeger.entrypoints=web"
+      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
+      - "traefik.http.middlewares.jaeger-stripprefix.stripprefix.prefixes=/jaeger"
+      - "traefik.http.routers.jaeger.middlewares=jaeger-stripprefix"
+    networks:
+      - marketplace-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:16686/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
   # Prometheus (para métricas)
   prometheus:
     image: prom/prometheus:latest
     container_name: marketplace-prometheus
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/rules:/etc/prometheus/rules
       - prometheus_data:/prometheus
     networks:
       - marketplace-network
@@ -217,6 +240,7 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
 
   # Grafana (para visualização de métricas)
   grafana:
@@ -230,9 +254,11 @@ services:
       - "traefik.http.routers.grafana.middlewares=grafana-stripprefix"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - marketplace-network
 

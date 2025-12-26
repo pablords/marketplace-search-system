@@ -25,4 +25,10 @@ http:
       stripprefix:
         prefixes:
           - "/opensearch-dashboards"
+    
+    # Middleware para remover prefixo do Jaeger
+    jaeger-stripprefix:
+      stripprefix:
+        prefixes:
+          - "/jaeger"
 

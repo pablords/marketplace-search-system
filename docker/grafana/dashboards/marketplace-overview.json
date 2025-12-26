@@ -1,0 +1,112 @@
+{
+  "dashboard": {
+    "title": "Marketplace Search System - Overview",
+    "tags": ["marketplace", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate (RPS)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[1m]))",
+            "legendFormat": "Total Requests/sec"
+          },
+          {
+            "expr": "sum(rate(http_requests_total{method=\"GET\"}[1m]))",
+            "legendFormat": "GET Requests/sec"
+          },
+          {
+            "expr": "sum(rate(http_requests_total{method=\"POST\"}[1m]))",
+            "legendFormat": "POST Requests/sec"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m]))",
+            "legendFormat": "5xx Errors/sec"
+          },
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"4..\"}[1m]))",
+            "legendFormat": "4xx Errors/sec"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Errors/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Response Time (P95)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95 Latency"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P99 Latency"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Service Health",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "up{job=\"api-gateway\"}",
+            "legendFormat": "API Gateway"
+          },
+          {
+            "expr": "up{job=\"search-service\"}",
+            "legendFormat": "Search Service"
+          },
+          {
+            "expr": "up{job=\"catalog-service\"}",
+            "legendFormat": "Catalog Service"
+          },
+          {
+            "expr": "up{job=\"indexing-service\"}",
+            "legendFormat": "Indexing Service"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": 0, "color": "red"},
+              {"value": 1, "color": "green"}
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+

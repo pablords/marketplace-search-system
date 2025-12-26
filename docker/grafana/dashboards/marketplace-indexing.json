@@ -1,0 +1,124 @@
+{
+  "dashboard": {
+    "title": "Marketplace Search - Indexing Performance",
+    "tags": ["marketplace", "indexing"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Kafka Consumer Lag",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "kafka_consumer_lag_sum{application=\"indexing-service\"}",
+            "legendFormat": "Consumer Lag"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Messages"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [1000], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "last"},
+              "type": "query"
+            }
+          ]
+        }
+      },
+      {
+        "id": 2,
+        "title": "Events Processed Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(kafka_consumer_messages_consumed_total{application=\"indexing-service\"}[1m]))",
+            "legendFormat": "Events Processed/sec"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Events/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Indexing Success Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(indexing_operations_total{status=\"success\",application=\"indexing-service\"}[5m])) / sum(rate(indexing_operations_total{application=\"indexing-service\"}[5m]))",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Success Rate", "max": 1, "min": 0},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Indexing Duration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(indexing_duration_seconds_bucket{application=\"indexing-service\"}[5m])) by (le))",
+            "legendFormat": "P95 Indexing Duration"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(indexing_duration_seconds_bucket{application=\"indexing-service\"}[5m])) by (le))",
+            "legendFormat": "P99 Indexing Duration"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Embedding Generation Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(embedding_generation_duration_seconds_bucket{application=\"indexing-service\"}[5m])) by (le))",
+            "legendFormat": "P95 Embedding Generation"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Deduplication Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(events_deduplicated_total{application=\"indexing-service\"}[5m])) / sum(rate(kafka_consumer_messages_consumed_total{application=\"indexing-service\"}[5m]))",
+            "legendFormat": "Deduplication Rate"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Rate", "max": 1, "min": 0},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}
+

@@ -1,10 +1,12 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    cluster: 'marketplace-search'
+    environment: 'development'
 
 rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  - "/etc/prometheus/rules/*.yml"
 
 scrape_configs:
   # Prometheus itself
@@ -12,18 +14,65 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # Marketplace Search System
-  - job_name: 'marketplace-search'
-    metrics_path: '/api/v1/actuator/prometheus'
+  # API Gateway (Go)
+  - job_name: 'api-gateway'
+    metrics_path: '/api/v1/metrics'
     static_configs:
-      - targets: ['host.docker.internal:8080']
+      - targets: ['api-gateway:8080']
     scrape_interval: 10s
     scrape_timeout: 5s
 
-  # Elasticsearch metrics (if using elasticsearch_exporter)
-  - job_name: 'elasticsearch'
+  # Catalog Service
+  - job_name: 'catalog-service'
+    metrics_path: '/api/v1/actuator/prometheus'
     static_configs:
-      - targets: ['elasticsearch:9200']
+      - targets: ['catalog-service:8081']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Search Service
+  - job_name: 'search-service'
+    metrics_path: '/api/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['search-service:8083']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Indexing Service
+  - job_name: 'indexing-service'
+    metrics_path: '/api/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['indexing-service:8082']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # ML Ranking Service
+  - job_name: 'ml-ranking-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ml-ranking-service:8084']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # ML Embedding Service
+  - job_name: 'ml-embedding-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['embedding-service:8085']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Traefik
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # OpenSearch metrics (if using opensearch_exporter)
+  - job_name: 'opensearch'
+    static_configs:
+      - targets: ['open-search:9200']
     metrics_path: '/_prometheus/metrics'
     scrape_interval: 30s
 

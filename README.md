@@ -55,8 +55,9 @@ marketplace-search-system/
 - **PostgreSQL 15** - Banco de dados transacional
 - **Redis 7** - Cache de alta performance e Feature Store
 - **Docker Compose** - Ambiente de desenvolvimento
-- **Prometheus** - Métricas
-- **Grafana** - Visualização de métricas
+- **Prometheus** - Coleta e armazenamento de métricas
+- **Grafana** - Visualização de métricas e dashboards
+- **Jaeger** - Tracing distribuído para observabilidade
 
 ## 📦 Funcionalidades
 
@@ -73,6 +74,8 @@ marketplace-search-system/
 - [x] **Cache de Borda** - Cache HTTP no Traefik para rotas de search (TTL configurável)
 - [x] **Gateway Único** - Traefik como único ponto de entrada exposto
 - [x] **Privatização de Serviços** - Todos os serviços privados exceto Traefik, Grafana e OpenSearch Dashboards
+- [x] **Tracing Distribuído** - Jaeger para rastreamento de requisições entre serviços
+- [x] **Dashboards de Métricas** - Dashboards do Grafana para monitoramento de casos de uso
 - [x] **ML Ranking** - Re-ranking com 17 features usando modelo ML
 - [x] **Embeddings Vetoriais** - Busca semântica com k-NN
 - [x] **Feature Store** - Cache de features ML no Redis
@@ -203,6 +206,12 @@ KAFKA_DEDUPLICATION_TTL_HOURS=168  # 7 dias (padrão)
 
 # Traefik Cache (Cache de Borda)
 CACHE_SEARCH_TTL_SECONDS=300  # 5 minutos (padrão) - TTL do cache HTTP para rotas de search
+
+# Jaeger Tracing
+JAEGER_AGENT_HOST=jaeger
+JAEGER_AGENT_PORT=6831
+JAEGER_SAMPLER_TYPE=const
+JAEGER_SAMPLER_PARAM=1  # 1 = sample all traces
 ```
 
 ## 📊 Monitoramento
@@ -214,6 +223,7 @@ CACHE_SEARCH_TTL_SECONDS=300  # 5 minutos (padrão) - TTL do cache HTTP para rot
 - **Swagger UI**: http://localhost/api/v1/swagger-ui.html
 - **Grafana**: http://localhost/grafana (admin/admin)
 - **OpenSearch Dashboards**: http://localhost/opensearch-dashboards
+- **Jaeger UI**: http://localhost/jaeger
 - **Traefik Dashboard**: http://localhost:8080 (apenas interno)
 
 **Serviços Privados (sem acesso público):**
@@ -230,6 +240,65 @@ CACHE_SEARCH_TTL_SECONDS=300  # 5 minutos (padrão) - TTL do cache HTTP para rot
 - **Indexação** - Volume de produtos indexados
 - **Consumer Lag** - Lag do Kafka consumer (deve ser ~0)
 - **Saúde dos Serviços** - Status dos componentes
+
+### Dashboards do Grafana
+
+Os seguintes dashboards estão disponíveis no Grafana:
+
+1. **Marketplace Search System - Overview**
+   - Visão geral do sistema
+   - Taxa de requisições (RPS)
+   - Taxa de erros
+   - Tempo de resposta (P95, P99)
+   - Saúde dos serviços
+
+2. **Marketplace Search - Search Performance**
+   - Performance de buscas
+   - Taxa de requisições de busca
+   - Latência de busca (P50, P95, P99)
+   - Taxa de cache hit
+   - Contagem de resultados
+   - Tempo de query no OpenSearch
+   - Tempo de ML ranking
+
+3. **Marketplace Search - Indexing Performance**
+   - Performance de indexação
+   - Lag do consumidor Kafka
+   - Taxa de eventos processados
+   - Taxa de sucesso de indexação
+   - Duração de indexação
+   - Tempo de geração de embeddings
+   - Taxa de deduplicação
+
+4. **Marketplace Search - API Performance**
+   - Performance da API Gateway
+   - Taxa de requisições por método
+   - Tempo de resposta da API Gateway
+   - Status do Circuit Breaker
+   - Latência dos serviços downstream
+   - Tentativas de retry
+   - Taxa de cache hit do Traefik
+
+### Tracing com Jaeger
+
+O Jaeger está configurado para rastrear requisições distribuídas entre os serviços:
+
+- **Acesso**: http://localhost/jaeger
+- **Funcionalidades**:
+  - Visualização de traces completos
+  - Análise de latência por serviço
+  - Identificação de gargalos
+  - Rastreamento de requisições entre serviços
+
+### Alertas do Prometheus
+
+Alertas configurados para:
+- Alta taxa de erros nos serviços
+- Alta latência (P95 > threshold)
+- Baixa taxa de cache hit
+- Alto lag do consumidor Kafka
+- Serviços indisponíveis
+- Alto uso de memória/CPU
 
 ## 🔍 API de Busca
 
@@ -387,6 +456,27 @@ O sistema implementa uma busca em 2 fases para otimizar performance e relevânci
 - **Indexação**: > 10k produtos/min
 - **Throughput**: > 1000 RPS
 - **Cache Hit Rate**: > 80%
+
+### Observabilidade
+
+O sistema possui observabilidade completa com métricas, traces e logs:
+
+**Métricas (Prometheus + Grafana)**
+- Métricas de aplicação (Micrometer)
+- Métricas de infraestrutura (CPU, memória, rede)
+- Dashboards pré-configurados para casos de uso
+- Alertas configurados para eventos críticos
+
+**Tracing (Jaeger)**
+- Rastreamento distribuído de requisições
+- Visualização de spans entre serviços
+- Análise de latência por componente
+- Identificação de gargalos
+
+**Logs**
+- Logs estruturados (JSON)
+- Agregação centralizada (via Docker logs)
+- Níveis de log configuráveis por serviço
 
 ### Otimizações
 

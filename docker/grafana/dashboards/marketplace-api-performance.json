@@ -1,0 +1,124 @@
+{
+  "dashboard": {
+    "title": "Marketplace Search - API Performance",
+    "tags": ["marketplace", "api", "performance"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Gateway Request Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{job=\"api-gateway\"}[1m])) by (method)",
+            "legendFormat": "{{method}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "API Gateway Response Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"api-gateway\"}[5m])) by (le, route))",
+            "legendFormat": "P50 - {{route}}"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"api-gateway\"}[5m])) by (le, route))",
+            "legendFormat": "P95 - {{route}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Circuit Breaker Status",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "circuit_breaker_state{job=\"api-gateway\",state=\"open\"}",
+            "legendFormat": "{{service}} - Open"
+          },
+          {
+            "expr": "circuit_breaker_state{job=\"api-gateway\",state=\"half_open\"}",
+            "legendFormat": "{{service}} - Half-Open"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": 0, "color": "green"},
+              {"value": 1, "color": "red"}
+            ]
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Downstream Service Latency",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(downstream_request_duration_seconds_bucket{job=\"api-gateway\"}[5m])) by (le, service))",
+            "legendFormat": "P95 - {{service}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Retry Attempts",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(retry_attempts_total{job=\"api-gateway\"}[5m])) by (service)",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Retries/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Cache Hit Rate (Traefik)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(traefik_entrypoint_request_duration_seconds_count{entrypoint=\"web\",code=~\"2..\"}[5m])) / sum(rate(traefik_entrypoint_request_duration_seconds_count{entrypoint=\"web\"}[5m]))",
+            "legendFormat": "Cache Hit Rate (estimated)"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Hit Rate", "max": 1, "min": 0},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}
+

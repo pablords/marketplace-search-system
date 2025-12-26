@@ -1,0 +1,121 @@
+{
+  "dashboard": {
+    "title": "Marketplace Search - Search Performance",
+    "tags": ["marketplace", "search"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Search Requests Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_seconds_count{application=\"search-service\",uri=~\"/api/v1/search.*\"}[1m]))",
+            "legendFormat": "Search Requests/sec"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Search Latency (P50, P95, P99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{application=\"search-service\"}[5m])) by (le))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"search-service\"}[5m])) by (le))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{application=\"search-service\"}[5m])) by (le))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Cache Hit Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(cache_hits_total{application=\"search-service\"}[5m]) / rate(cache_requests_total{application=\"search-service\"}[5m])",
+            "legendFormat": "Cache Hit Rate"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Hit Rate", "max": 1, "min": 0},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Search Results Count",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "avg(search_results_count{application=\"search-service\"})",
+            "legendFormat": "Avg Results per Query"
+          },
+          {
+            "expr": "max(search_results_count{application=\"search-service\"})",
+            "legendFormat": "Max Results"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Results"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "OpenSearch Query Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(opensearch_query_duration_seconds_bucket{application=\"search-service\"}[5m])) by (le))",
+            "legendFormat": "P95 OpenSearch Query Time"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Query Time"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "ML Ranking Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(ml_ranking_duration_seconds_bucket{application=\"search-service\"}[5m])) by (le))",
+            "legendFormat": "P95 ML Ranking Time"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Ranking Time"},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}
+

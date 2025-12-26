@@ -432,31 +432,31 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    subgraph "Client Layer"
-        CLIENT[Cliente/App]
+    subgraph ClientLayer["Client Layer"]
+        CLIENT["Cliente/App"]
     end
 
-    subgraph "API Gateway"
-        GATEWAY[API Gateway (Go)<br/>Porta 8080]
+    subgraph APIGateway["API Gateway"]
+        GATEWAY["API Gateway Go<br/>Porta 8080"]
     end
 
-    subgraph "Microserviços Java"
-        CATALOG[Catalog Service<br/>Porta 8081]
-        INDEXING[Indexing Service<br/>Porta 8082]
-        SEARCH[Search Service<br/>Porta 8083]
+    subgraph MicroservicosJava["Microservicos Java"]
+        CATALOG["Catalog Service<br/>Porta 8081"]
+        INDEXING["Indexing Service<br/>Porta 8082"]
+        SEARCH["Search Service<br/>Porta 8083"]
     end
 
-    subgraph "Serviços ML"
-        ML_RANKING[ML Ranking Service<br/>Porta 8084]
-        ML_EMBEDDING[ML Embedding Service<br/>Porta 8085]
+    subgraph ServicosML["Servicos ML"]
+        ML_RANKING["ML Ranking Service<br/>Porta 8084"]
+        ML_EMBEDDING["ML Embedding Service<br/>Porta 8085"]
     end
 
-    subgraph "Infraestrutura"
-        POSTGRES[(PostgreSQL<br/>Banco de Dados)]
-        REDIS[(Redis<br/>Cache + Features)]
-        OPENSEARCH[(OpenSearch<br/>Motor de Busca)]
-        KAFKA[Kafka<br/>Eventos CDC]
-        DEBEZIUM[Debezium<br/>CDC Connector]
+    subgraph Infraestrutura["Infraestrutura"]
+        POSTGRES[("PostgreSQL<br/>Banco de Dados")]
+        REDIS[("Redis<br/>Cache + Features")]
+        OPENSEARCH[("OpenSearch<br/>Motor de Busca")]
+        KAFKA["Kafka<br/>Eventos CDC"]
+        DEBEZIUM["Debezium<br/>CDC Connector"]
     end
 
     CLIENT --> GATEWAY

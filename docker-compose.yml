@@ -38,6 +38,11 @@ services:
     networks:
       - marketplace-network
     command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # OpenSearch e OpenSearch Dashboards
   open-search:
@@ -247,7 +252,7 @@ services:
   # Embedding Service
   embedding-service:
     build:
-      context: ./embedding-service
+      context: ./ml-embedding-service
       dockerfile: Dockerfile
     container_name: marketplace-embedding
     ports:
@@ -255,13 +260,23 @@ services:
     environment:
       - PORT=8085
       - LOG_LEVEL=INFO
+      - LOG_FORMAT=text
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - REDIS_TTL_SECONDS=3600
+      - REDIS_TIMEOUT=5
+      - REDIS_MAX_CONNECTIONS=10
     depends_on:
+      redis:
+        condition: service_healthy
       open-search:
         condition: service_healthy
     networks:
       - marketplace-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8085/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8085/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5

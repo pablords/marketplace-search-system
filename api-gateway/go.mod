@@ -1,6 +1,6 @@
 module api-gateway-go
 
-go 1.24.0
+go 1.23
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0

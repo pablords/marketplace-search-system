@@ -30,7 +30,7 @@ marketplace-search-system/
 ## 🚀 Tecnologias
 
 ### Backend
-- **Go 1.24+** - API Gateway (Gin Framework)
+- **Go 1.23+** - API Gateway (Gin Framework)
 - **Java 17** + **Spring Boot 3.2.0** - Microserviços Java
 - **Maven** - Gerenciamento de dependências Java
 - **Arquitetura Hexagonal** - Separação de responsabilidades
@@ -82,7 +82,7 @@ marketplace-search-system/
 ## 🛠️ Setup do Ambiente
 
 ### Pré-requisitos
-- Go 1.24+ (para API Gateway)
+- Go 1.23+ (para API Gateway)
 - Java 17+ (para microserviços Java)
 - Maven 3.8+
 - Docker & Docker Compose

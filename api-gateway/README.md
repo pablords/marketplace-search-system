@@ -94,7 +94,7 @@ Este serviço foi migrado de Java (Spring Boot) para Go, mantendo **exatamente**
 
 ### Versão do Go
 
-- Go 1.24.0 ou superior
+- Go 1.23 ou superior
 
 ## 📁 Estrutura do Projeto
 
@@ -223,7 +223,7 @@ Ao executar via Docker Compose, as variáveis de ambiente são configuradas auto
 
 ### Pré-requisitos
 
-- Go 1.24.0 ou superior
+- Go 1.23 ou superior
 - Serviços downstream em execução (catalog-service na porta 8081, search-service na porta 8083)
 
 ### Execução Local

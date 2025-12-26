@@ -44,7 +44,6 @@
   </properties>
 
   <modules>
-    <module>api-gateway</module>
     <module>catalog-service</module>
     <module>indexing-service</module>
     <module>search-service</module>
@@ -62,12 +61,6 @@
       </dependency>
 
       <!-- Internal Modules -->
-      <dependency>
-        <groupId>com.marketplace.search.gateway</groupId>
-        <artifactId>api-gateway</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
       <dependency>
         <groupId>com.marketplace.search.catalog</groupId>
         <artifactId>catalog-service</artifactId>

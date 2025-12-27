@@ -15,6 +15,6 @@ COPY . .
 # Expor porta
 EXPOSE 8084
 
-# Comando para executar a aplicação
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8084"]
+# Comando para executar a aplicação com auto-instrumentação OpenTelemetry
+CMD ["opentelemetry-instrument", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8084"]
 

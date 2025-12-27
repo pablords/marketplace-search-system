@@ -133,6 +133,11 @@ management:
       application: marketplace-search-system
       service: search-service
       environment: ${ENVIRONMENT:development}
+  tracing:
+    sampling:
+      probability: 1.0
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
 
 # Server
 server:

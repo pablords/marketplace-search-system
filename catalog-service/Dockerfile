@@ -20,15 +20,31 @@ COPY catalog-service/ catalog-service/
 RUN mvn clean package -f catalog-service/pom.xml -DskipTests
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+# Usar imagem sem -alpine para melhor suporte multi-arch (ARM64/AMD64)
+FROM eclipse-temurin:17-jre
 
-RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && if ! getent group appuser >/dev/null 2>&1; then \
+        if getent group 1000 >/dev/null 2>&1; then \
+            groupadd -r appuser || true; \
+        else \
+            groupadd -r -g 1000 appuser || true; \
+        fi; \
+    fi \
+    && if ! getent passwd appuser >/dev/null 2>&1; then \
+        if getent passwd 1000 >/dev/null 2>&1; then \
+            useradd -r -g appuser appuser || true; \
+        else \
+            useradd -r -u 1000 -g appuser appuser || true; \
+        fi; \
+    fi
 
 WORKDIR /app
 
-# Copiar JAR do stage de build
-COPY --from=builder /build/catalog-service/bootstrap/target/*.jar app.jar
+# Copiar JAR executável do stage de build (excluir *-original.jar)
+COPY --from=builder /build/catalog-service/bootstrap/target/bootstrap-*.jar app.jar
 
 RUN chown -R appuser:appuser /app
 

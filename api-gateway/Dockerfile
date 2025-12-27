@@ -1,7 +1,7 @@
 # Multi-stage build para API Gateway em Go
 
 # Stage 1: Build
-# Usar versão estável do Go (ajustar conforme necessário)
+# Usar Go 1.23 - GOTOOLCHAIN=auto permite download automático de versões mais novas se necessário
 FROM golang:1.23-alpine AS builder
 
 # Instalar dependências de build
@@ -17,15 +17,20 @@ WORKDIR /build
 COPY go.mod go.sum ./
 
 # Baixar dependências (cache layer)
-RUN go mod download
+# GOTOOLCHAIN=auto permite download automático do Go 1.24 se necessário
+RUN GOTOOLCHAIN=auto go mod download
 
 # Copiar código fonte
 COPY . .
 
+# Atualizar go.mod e go.sum se necessário
+RUN GOTOOLCHAIN=auto go mod tidy
+
 # Build da aplicação
 # CGO_ENABLED=0 para criar binário estático
 # -ldflags para reduzir tamanho do binário
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+# GOTOOLCHAIN=auto garante que Go 1.24 seja usado se necessário
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOTOOLCHAIN=auto go build \
     -ldflags='-w -s -extldflags "-static"' \
     -a -installsuffix cgo \
     -o gateway \

@@ -1,12 +1,11 @@
 {
-  "dashboard": {
-    "title": "Marketplace Search - Search Performance",
-    "tags": ["marketplace", "search"],
-    "timezone": "browser",
-    "schemaVersion": 27,
-    "version": 1,
-    "refresh": "10s",
-    "panels": [
+  "title": "Marketplace Search - Search Performance",
+  "tags": ["marketplace", "search"],
+  "timezone": "browser",
+  "schemaVersion": 27,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
       {
         "id": 1,
         "title": "Search Requests Rate",
@@ -116,6 +115,5 @@
         ]
       }
     ]
-  }
 }
 

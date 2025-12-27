@@ -1,12 +1,11 @@
 {
-  "dashboard": {
-    "title": "Marketplace Search System - Overview",
-    "tags": ["marketplace", "overview"],
-    "timezone": "browser",
-    "schemaVersion": 27,
-    "version": 1,
-    "refresh": "10s",
-    "panels": [
+  "title": "Marketplace Search System - Overview",
+  "tags": ["marketplace", "overview"],
+  "timezone": "browser",
+  "schemaVersion": 27,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
       {
         "id": 1,
         "title": "Request Rate (RPS)",
@@ -107,6 +106,5 @@
         }
       }
     ]
-  }
 }
 

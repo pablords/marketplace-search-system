@@ -1,12 +1,11 @@
 {
-  "dashboard": {
-    "title": "Marketplace Search - API Performance",
-    "tags": ["marketplace", "api", "performance"],
-    "timezone": "browser",
-    "schemaVersion": 27,
-    "version": 1,
-    "refresh": "10s",
-    "panels": [
+  "title": "Marketplace Search - API Performance",
+  "tags": ["marketplace", "api", "performance"],
+  "timezone": "browser",
+  "schemaVersion": 27,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
       {
         "id": 1,
         "title": "API Gateway Request Rate",
@@ -119,6 +118,5 @@
         ]
       }
     ]
-  }
 }
 

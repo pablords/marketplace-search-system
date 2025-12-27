@@ -1,12 +1,11 @@
 {
-  "dashboard": {
-    "title": "Marketplace Search - Indexing Performance",
-    "tags": ["marketplace", "indexing"],
-    "timezone": "browser",
-    "schemaVersion": 27,
-    "version": 1,
-    "refresh": "10s",
-    "panels": [
+  "title": "Marketplace Search - Indexing Performance",
+  "tags": ["marketplace", "indexing"],
+  "timezone": "browser",
+  "schemaVersion": 27,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
       {
         "id": 1,
         "title": "Kafka Consumer Lag",
@@ -119,6 +118,5 @@
         ]
       }
     ]
-  }
 }
 

@@ -1,16 +1,5 @@
 spring:
 
-
-# Kafka para produção
-kafka:
-  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
-  producer:
-    batch-size: 32768
-    linger-ms: 20
-    buffer-memory: 67108864
-  consumer:
-    max-poll-records: 1000
-
 # Logging para produção
 logging:
   level:

@@ -15,6 +15,7 @@ import org.opensearch.client.opensearch.indices.DeleteIndexRequest;
 import org.opensearch.client.opensearch.indices.ExistsRequest;
 import org.opensearch.client.opensearch.indices.GetMappingRequest;
 import org.opensearch.client.opensearch.indices.GetMappingResponse;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import com.marketplace.search.indexing.domain.entities.Product;
@@ -36,7 +37,7 @@ public class OpensearchRepository implements ProductIndexRepository {
 	private static final String VECTOR_FIELD = "product_vector";
 
 	public OpensearchRepository(
-			OpenSearchClient client,
+			@Qualifier("indexingOpensearchClient") OpenSearchClient client,
 			EmbeddingClient embeddingClient,
 			ProductDocumentMapper mapper) {
 		this.client = client;

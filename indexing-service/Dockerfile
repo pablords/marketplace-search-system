@@ -10,26 +10,50 @@ COPY pom.xml .
 COPY indexing-service/pom.xml indexing-service/
 COPY indexing-service/*/pom.xml indexing-service/
 
-# Download dependencies (cache layer)
-RUN mvn dependency:go-offline -f indexing-service/pom.xml -N || true
+# Verificar conectividade antes de baixar dependências
+RUN nslookup repo.maven.apache.org || echo "DNS check failed, will retry"
+
+# Download dependencies (cache layer) com retry e timeout aumentado
+RUN mvn dependency:go-offline -f indexing-service/pom.xml -N || \
+    (echo "Retry 1..." && sleep 10 && mvn dependency:go-offline -f indexing-service/pom.xml -N) || \
+    (echo "Retry 2..." && sleep 20 && mvn dependency:go-offline -f indexing-service/pom.xml -N) || \
+    (echo "Retry 3..." && sleep 30 && mvn dependency:go-offline -f indexing-service/pom.xml -N) || true
 
 # Copiar código fonte
 COPY indexing-service/ indexing-service/
 
-# Build da aplicação
-RUN mvn clean package -f indexing-service/pom.xml -DskipTests
+# Build da aplicação com retry e timeout aumentado
+RUN mvn clean package -f indexing-service/pom.xml -DskipTests || \
+    (echo "Build retry 1..." && sleep 10 && mvn clean package -f indexing-service/pom.xml -DskipTests) || \
+    (echo "Build retry 2..." && sleep 20 && mvn clean package -f indexing-service/pom.xml -DskipTests) || \
+    (echo "Build retry 3..." && sleep 30 && mvn clean package -f indexing-service/pom.xml -DskipTests)
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+# Usar imagem sem -alpine para melhor suporte multi-arch (ARM64/AMD64)
+FROM eclipse-temurin:17-jre
 
-RUN apk --no-cache add wget && \
-    addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && if ! getent group appuser >/dev/null 2>&1; then \
+        if getent group 1000 >/dev/null 2>&1; then \
+            groupadd -r appuser || true; \
+        else \
+            groupadd -r -g 1000 appuser || true; \
+        fi; \
+    fi \
+    && if ! getent passwd appuser >/dev/null 2>&1; then \
+        if getent passwd 1000 >/dev/null 2>&1; then \
+            useradd -r -g appuser appuser || true; \
+        else \
+            useradd -r -u 1000 -g appuser appuser || true; \
+        fi; \
+    fi
 
 WORKDIR /app
 
-# Copiar JAR do stage de build
-COPY --from=builder /build/indexing-service/bootstrap/target/*.jar app.jar
+# Copiar JAR executável do stage de build (excluir *-original.jar)
+COPY --from=builder /build/indexing-service/bootstrap/target/bootstrap-*.jar app.jar
 
 RUN chown -R appuser:appuser /app
 

@@ -27,24 +27,7 @@ spring:
       chain:
         cache: false
   
-  # Kafka configuration
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
-    consumer:
-      group-id: marketplace-search-indexer-service
-      auto-offset-reset: earliest
-      enable-auto-commit: false
-      max-poll-records: 100
-      properties:
-        session.timeout.ms: 30000
-        max.poll.interval.ms: 300000
-    producer:
-      client-id: marketplace-search-producer
-      acks: all
-      retries: 3
-      properties:
-        enable.idempotence: true
-        max.in.flight.requests.per.connection: 5
+
 
 
 # Logging mais verboso para desenvolvimento

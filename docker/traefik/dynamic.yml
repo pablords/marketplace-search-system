@@ -14,21 +14,26 @@ http:
           Cache-Control: "public, max-age=${CACHE_SEARCH_TTL_SECONDS:-300}"
           Vary: "Accept-Encoding, Query-String"
     
-    # Middleware para remover prefixo do Grafana
-    grafana-stripprefix:
-      stripprefix:
-        prefixes:
-          - "/grafana"
-    
     # Middleware para remover prefixo do OpenSearch Dashboards
     opensearch-stripprefix:
       stripprefix:
         prefixes:
           - "/opensearch-dashboards"
     
-    # Middleware para remover prefixo do Jaeger
-    jaeger-stripprefix:
-      stripprefix:
-        prefixes:
-          - "/jaeger"
+  routers:
+    # Router para Jaeger
+    # Quando QUERY_BASE_PATH=/jaeger está configurado, o Jaeger espera receber as requisições com o prefixo /jaeger
+    jaeger:
+      rule: "PathPrefix(`/jaeger`)"
+      entryPoints:
+        - web
+      service: jaeger-service
+      priority: 10
+  
+  services:
+    # Serviço para Jaeger
+    jaeger-service:
+      loadBalancer:
+        servers:
+          - url: "http://marketplace-jaeger:16686"
 

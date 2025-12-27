@@ -14,13 +14,13 @@ services:
       - "--providers.docker.network=marketplace-network"
       - "--providers.file.directory=/etc/traefik"
       - "--providers.file.watch=true"
-      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.address=:8888"
       - "--entrypoints.websecure.address=:443"
       - "--log.level=INFO"
       - "--log.format=json"
       - "--accesslog.format=json"
     ports:
-      - "80:80"
+      - "8888:8888"  # Porta HTTP principal (alterada de 80 devido a bloqueios de rede)
       - "443:443"
       - "8080:8080"  # Dashboard (apenas interno)
     volumes:
@@ -47,12 +47,12 @@ services:
       - "wal_level=logical"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # - ./docker/postgres/00-init-db.sql:/docker-entrypoint-initdb.d/00-init-db.sql
       # - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-      # - ./docker/postgres/seed.sql:/docker-entrypoint-initdb.d/seed.sql
     networks:
       - marketplace-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U catalog"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-catalog}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -99,28 +99,27 @@ services:
       timeout: 10s
       retries: 5
 
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:3
-    container_name: marketplace-opensearch-dashboards
-    depends_on:
-      - open-search
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.opensearch.rule=PathPrefix(`/opensearch-dashboards`)"
-      - "traefik.http.routers.opensearch.entrypoints=web"
-      - "traefik.http.services.opensearch.loadbalancer.server.port=5601"
-      - "traefik.http.routers.opensearch.middlewares=opensearch-stripprefix"
-    environment:
-      - 'OPENSEARCH_HOSTS=["http://open-search:9200"]'
-      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true" # disables security dashboards plugin in OpenSearch Dashboards
-
-    networks:
-      - marketplace-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+  # opensearch-dashboards:
+  #   image: opensearchproject/opensearch-dashboards:3
+  #   container_name: marketplace-opensearch-dashboards
+  #   depends_on:
+  #     - open-search
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.opensearch.rule=PathPrefix(`/opensearch-dashboards`)"
+  #     - "traefik.http.routers.opensearch.entrypoints=web"
+  #     - "traefik.http.services.opensearch.loadbalancer.server.port=5601"
+  #     - "traefik.http.routers.opensearch.middlewares=opensearch-stripprefix"
+  #   environment:
+  #     - 'OPENSEARCH_HOSTS=["http://open-search:9200"]'
+  #     - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true" # disables security dashboards plugin in OpenSearch Dashboards
+  #   networks:
+  #     - marketplace-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
 
   # Zookeeper (para Kafka)
   zookeeper:
@@ -129,6 +128,10 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_DATA_DIR: /var/lib/zookeeper/data
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
     networks:
       - marketplace-network
 
@@ -147,25 +150,28 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     networks:
       - marketplace-network
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:29092"]
       interval: 30s
       timeout: 10s
       retries: 5
 
   # Kafka UI (opcional, para gerenciamento)
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: marketplace-kafka-ui
-    depends_on:
-      - kafka
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-    networks:
-      - marketplace-network
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:latest
+  #   container_name: marketplace-kafka-ui
+  #   depends_on:
+  #     - kafka
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: local
+  #     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+  #   networks:
+  #     - marketplace-network
 
   # Kafka Connect com Debezium
   kafka-connect:
@@ -203,19 +209,38 @@ services:
       retries: 10
       start_period: 120s
 
-  # Jaeger (para tracing distribuído)
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: marketplace-otel-collector
+    command: ["--config=/etc/otelcol-config.yaml"]
+    volumes:
+      - ./docker/otel-collector/otelcol-config.yaml:/etc/otelcol-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    networks:
+      - marketplace-network
+    depends_on:
+      - jaeger
+    restart: unless-stopped
+
+  # Jaeger (all-in-one com storage em memória)
+  # Usa all-in-one para compartilhar storage entre collector e query
+  # O OTEL Collector envia traces para o Jaeger Collector via gRPC
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: marketplace-jaeger
     environment:
+      - SPAN_STORAGE_TYPE=memory
+      - MEMORY_MAX_TRACES=50000
+      - COLLECTOR_OTLP_ENABLED=true
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jaeger.rule=PathPrefix(`/jaeger`)"
-      - "traefik.http.routers.jaeger.entrypoints=web"
-      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
-      - "traefik.http.middlewares.jaeger-stripprefix.stripprefix.prefixes=/jaeger"
-      - "traefik.http.routers.jaeger.middlewares=jaeger-stripprefix"
+      - QUERY_BASE_PATH=/jaeger
+    ports:
+      - "16686:16686"  # Query UI (acessível via Traefik em /jaeger)
+      # Portas 4317 e 4318 não precisam ser expostas - comunicação interna via rede Docker
+    # Rota configurada no arquivo dynamic.yml do Traefik
     networks:
       - marketplace-network
     healthcheck:
@@ -241,6 +266,12 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=30d'
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   # Grafana (para visualização de métricas)
   grafana:
@@ -250,28 +281,34 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
       - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.routers.grafana.priority=20"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-      - "traefik.http.routers.grafana.middlewares=grafana-stripprefix"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_SERVER_ROOT_URL=http://localhost:8888/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning
       - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - marketplace-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    restart: unless-stopped
 
   # Debezium UI
-  debezium-ui:
-    image: quay.io/debezium/debezium-ui:latest
-    container_name: marketplace-debezium-ui
-    depends_on:
-      - kafka-connect
-    environment:
-      KAFKA_CONNECT_URIS: http://kafka-connect:8083
-    networks:
-      - marketplace-network
+  # debezium-ui:
+  #   image: quay.io/debezium/debezium-ui:latest
+  #   container_name: marketplace-debezium-ui
+  #   depends_on:
+  #     - kafka-connect
+  #   environment:
+  #     KAFKA_CONNECT_URIS: http://kafka-connect:8083
+  #   networks:
+  #     - marketplace-network
 
   # ML Ranking Service
   ml-ranking-service:
@@ -279,18 +316,8 @@ services:
       context: ./ml-ranking-service
       dockerfile: Dockerfile
     container_name: marketplace-ml-ranking
-    environment:
-      - PORT=8084
-      - MODEL_VERSION=1.0
-      - LOG_LEVEL=INFO
-      - LOG_FORMAT=text
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
-      - REDIS_TTL_SECONDS=3600
-      - REDIS_TIMEOUT=5
-      - REDIS_MAX_CONNECTIONS=10
+    env_file:
+      - ./ml-ranking-service/.env
     depends_on:
       redis:
         condition: service_healthy
@@ -311,17 +338,8 @@ services:
       context: ./ml-embedding-service
       dockerfile: Dockerfile
     container_name: marketplace-embedding
-    environment:
-      - PORT=8085
-      - LOG_LEVEL=INFO
-      - LOG_FORMAT=text
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
-      - REDIS_TTL_SECONDS=3600
-      - REDIS_TIMEOUT=5
-      - REDIS_MAX_CONNECTIONS=10
+    env_file:
+      - ./ml-embedding-service/.env
     depends_on:
       redis:
         condition: service_healthy
@@ -342,15 +360,8 @@ services:
       context: .
       dockerfile: ./catalog-service/Dockerfile
     container_name: marketplace-catalog-service
-    environment:
-      - SERVER_PORT=8081
-      - ENVIRONMENT=production
-      - DB_HOSTNAME=catalog-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER:-catalog}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-catalog}
-      - POSTGRES_DB=${POSTGRES_DB:-catalog}
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    env_file:
+      - ./catalog-service/.env
     depends_on:
       catalog-db:
         condition: service_healthy
@@ -372,15 +383,8 @@ services:
       context: .
       dockerfile: ./search-service/Dockerfile
     container_name: marketplace-search-service
-    environment:
-      - SERVER_PORT=8083
-      - ENVIRONMENT=production
-      - OPENSEARCH_HOSTS=http://open-search:9200
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - EMBEDDING_SERVICE_URL=http://embedding-service:8085
-      - RANKING_SERVICE_URL=http://ml-ranking-service:8084
+    env_file:
+      - ./search-service/.env
     depends_on:
       open-search:
         condition: service_healthy
@@ -406,15 +410,8 @@ services:
       context: .
       dockerfile: ./indexing-service/Dockerfile
     container_name: marketplace-indexing-service
-    environment:
-      - SERVER_PORT=8082
-      - ENVIRONMENT=production
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - OPENSEARCH_HOSTS=http://open-search:9200
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - EMBEDDING_SERVICE_URL=http://embedding-service:8085
+    env_file:
+      - ./indexing-service/.env
     depends_on:
       kafka:
         condition: service_healthy
@@ -427,11 +424,13 @@ services:
     networks:
       - marketplace-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8082/api/v1/actuator/health || exit 1"]
+      # Usa o endpoint de liveness que é mais simples e não verifica dependências
+      # Isso evita que o serviço fique amarelo quando dependências têm problemas temporários
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8082/api/v1/actuator/health/liveness || wget --no-verbose --tries=1 --spider http://localhost:8082/api/v1/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 40s
+      retries: 3
+      start_period: 60s
     restart: unless-stopped
 
   # API Gateway (Go)
@@ -449,31 +448,14 @@ services:
       - "traefik.http.routers.api-search.entrypoints=web"
       - "traefik.http.routers.api-search.middlewares=cache-search"
       - "traefik.http.routers.api-search.service=api"
-    environment:
-      - ENVIRONMENT=production
-      - LOG_LEVEL=INFO
-      - LOG_FORMAT=json
-      - SERVER_PORT=8080
-      # Catalog Service Configuration
-      - CATALOG_SERVICE_BASE_URL=http://catalog-service:8081/api/v1
-      - CATALOG_SERVICE_TIMEOUT=5000
-      - CATALOG_SERVICE_RETRY_MAX_ATTEMPTS=3
-      - CATALOG_SERVICE_RETRY_MIN_BACKOFF=500
-      - CATALOG_SERVICE_CB_FAILURE_RATE_THRESHOLD=50
-      - CATALOG_SERVICE_CB_WAIT_DURATION=10000
-      - CATALOG_SERVICE_CB_SLIDING_WINDOW_SIZE=10
-      # Search Service Configuration
-      - SEARCH_SERVICE_BASE_URL=http://search-service:8083/api/v1
-      - SEARCH_SERVICE_TIMEOUT=3000
-      - SEARCH_SERVICE_RETRY_MAX_ATTEMPTS=3
-      - SEARCH_SERVICE_RETRY_MIN_BACKOFF=500
-      - SEARCH_SERVICE_CB_FAILURE_RATE_THRESHOLD=50
-      - SEARCH_SERVICE_CB_WAIT_DURATION=10000
-      - SEARCH_SERVICE_CB_SLIDING_WINDOW_SIZE=10
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      - otel-collector
     networks:
       - marketplace-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/api/v1/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/api/v1/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 30s
       timeout: 3s
       retries: 5
@@ -486,6 +468,9 @@ volumes:
   opensearch_data:
   prometheus_data:
   grafana_data:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_data:
 
 networks:
   marketplace-network:

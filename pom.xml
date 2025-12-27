@@ -127,6 +127,19 @@
         <version>${micrometer.version}</version>
       </dependency>
 
+      <!-- Micrometer Tracing -->
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        <version>1.2.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-exporter-otlp</artifactId>
+        <version>1.39.0</version>
+      </dependency>
+
       <!-- Logging -->
       <dependency>
         <groupId>net.logstash.logback</groupId>

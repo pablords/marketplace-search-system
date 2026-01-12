@@ -49,6 +49,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       # - ./docker/postgres/00-init-db.sql:/docker-entrypoint-initdb.d/00-init-db.sql
       # - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
     networks:
       - marketplace-network
     healthcheck:

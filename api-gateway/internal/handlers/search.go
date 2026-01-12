@@ -12,8 +12,8 @@ import (
 type SearchQuery struct {
 	Query         string  `form:"query" binding:"required"`
 	CategoryID    *string `form:"categoryId"`
-	Page          int     `form:"page" binding:"min=0"`
-	Size          int     `form:"size" binding:"min=1,max=100"`
+	Page          int     `form:"page" binding:"omitempty,min=0"`
+	Size          int     `form:"size" binding:"omitempty,min=1,max=100"`
 	Sort          string  `form:"sort"`
 	UserID        *string `form:"userId"`
 }
@@ -21,7 +21,7 @@ type SearchQuery struct {
 // SuggestionsQuery representa os parâmetros de query para sugestões
 type SuggestionsQuery struct {
 	Term  string `form:"term" binding:"required"`
-	Limit int    `form:"limit" binding:"min=1,max=20"`
+	Limit int    `form:"limit" binding:"omitempty,min=1,max=20"`
 }
 
 // SearchHandler lida com requisições de busca

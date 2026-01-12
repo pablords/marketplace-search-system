@@ -113,8 +113,6 @@ public class KafkaConfig {
         // Configurações básicas
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         
         // Configuração de deserialização com tratamento de erro
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
@@ -127,14 +125,25 @@ public class KafkaConfig {
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit);
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, maxPollRecords);
         props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 300000);
-        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000);
-        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10000);
+        // Aumentar session timeout para evitar rebalances frequentes
+        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 45000);
+        // Heartbeat deve ser 1/3 do session timeout
+        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 15000);
+        
+        // Configurações de conexão e metadata
+        props.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 300000);
+        props.put(ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, 540000);
+        props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);
         
         // Configurações de fetch
         props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1);
         props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
         props.put(ConsumerConfig.FETCH_MAX_BYTES_CONFIG, 52428800);
         props.put(ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, 1048576);
+        
+        // Configurações de retry para conexão
+        props.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, 50);
+        props.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, 100);
         
         return new DefaultKafkaConsumerFactory<>(props);
     }
@@ -148,7 +157,9 @@ public class KafkaConfig {
         factory.setConsumerFactory(consumerFactory());
         
         // Configurações de concorrência
-        factory.setConcurrency(3);
+        // Reduzido para 1 porque cada tópico tem apenas 1 partição
+        // Múltiplos consumers no mesmo grupo causam rebalances desnecessários
+        factory.setConcurrency(1);
         
         // Configurações de commit
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);

@@ -37,6 +37,13 @@ func (e *CatalogServiceException) Unwrap() error {
 	return e.Err
 }
 
+// circuitBreakerSuccessWithError é usado para retornar sucesso ao circuit breaker
+// mas manter o erro para o cliente (para erros 4xx que não devem contar como falhas)
+type circuitBreakerSuccessWithError struct {
+	result interface{}
+	err    error
+}
+
 // CatalogClient é o cliente HTTP para comunicação com o catalog-service
 type CatalogClient struct {
 	baseURL           string
@@ -153,8 +160,37 @@ func (c *CatalogClient) CreateProduct(ctx context.Context, product *models.Produ
 		return c.retryMgr.ExecuteWithRetryAndHTTPStatus(ctx, resilience.ServiceCatalog, httpRequestFn)
 	}
 
+	// Wrapper para o circuit breaker que não conta erros 4xx como falhas
+	// Erros 4xx (como 409 para produto duplicado) são erros do cliente, não do servidor
+	circuitBreakerFn := func() (interface{}, error) {
+		result, err := retryFn()
+
+		// Se for CatalogServiceException com status 4xx, não contar como falha
+		// Retornar sucesso para o circuit breaker, mas manter o erro para o cliente
+		if catalogErr, ok := err.(*CatalogServiceException); ok {
+			if catalogErr.Status >= 400 && catalogErr.Status < 500 {
+				// Erro 4xx: retornar sucesso para o circuit breaker
+				// mas manter o erro em uma estrutura especial
+				return &circuitBreakerSuccessWithError{result: result, err: err}, nil
+			}
+		}
+
+		return result, err
+	}
+
 	// Executar através do circuit breaker (circuit breaker envolve o retry)
-	result, err := c.circuitBreakerMgr.Execute(resilience.ServiceCatalog, retryFn)
+	result, err := c.circuitBreakerMgr.Execute(resilience.ServiceCatalog, circuitBreakerFn)
+
+	// Verificar se o resultado contém um erro 4xx que foi mascarado
+	if successWithErr, ok := result.(*circuitBreakerSuccessWithError); ok {
+		// Extrair resposta e erro da estrutura
+		var resp *http.Response
+		if successWithErr.result != nil {
+			resp = successWithErr.result.(*http.Response)
+		}
+		return resp, successWithErr.err
+	}
+
 	if err != nil {
 		// Verificar se é erro do circuit breaker (circuit breaker aberto)
 		if err == gobreaker.ErrOpenState {
@@ -212,4 +248,3 @@ func extractErrorMessage(bodyBytes []byte, statusCode int) string {
 	}
 	return bodyStr
 }
-

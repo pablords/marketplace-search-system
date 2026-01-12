@@ -228,13 +228,21 @@ func (rm *RetryManager) ExecuteWithRetryAndHTTPStatus(
 	// Executar operação com backoff
 	err = backoff.Retry(operation, backoff.WithContext(backoffConfig, ctx))
 
-	// Se o erro for permanente, retorná-lo
+	// Se o erro for permanente, retorná-lo diretamente (preserva o tipo original)
 	if permanentErr, ok := err.(*backoff.PermanentError); ok {
 		return lastResponse, permanentErr.Err
 	}
 
 	// Se ainda houver erro após todas as tentativas
+	// Mas se lastErr for um erro de serviço (CatalogServiceException ou SearchServiceException),
+	// retorná-lo diretamente para preservar o status code
 	if err != nil {
+		// Verificar se lastErr é um erro de serviço que deve ser preservado
+		if lastErr != nil {
+			// Usar lastErr diretamente se for um erro de serviço conhecido
+			// Isso preserva o status code original (409, etc.)
+			return lastResponse, lastErr
+		}
 		return lastResponse, fmt.Errorf("falha após %d tentativas: %w", attempt, err)
 	}
 

@@ -9,6 +9,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -37,11 +38,38 @@ public class DebeziumConnectorRegistry {
 
   @PostConstruct
   public void registerConnector() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    Map<String, Object> requestBody = new HashMap<>();
+    requestBody.put("name", connectorName);
+    requestBody.put("config", properties.getConfig());
+
+    HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
     try {
+      // Verificar se o connector já existe
       ResponseEntity<String> getResponse = restTemplate.getForEntity(connectUrl + "/" + connectorName, String.class);
       if (getResponse.getStatusCode().is2xxSuccessful()) {
-        log.info("Conector '{}' já registrado no Kafka Connect.", connectorName);
+        log.info("Conector '{}' já existe. Atualizando configuração...", connectorName);
+        
+        // Atualizar configuração existente usando PUT
+        // Para PUT, apenas enviar a configuração (sem "name")
+        Map<String, Object> configBody = new HashMap<>();
+        configBody.putAll(properties.getConfig());
+        HttpEntity<Map<String, Object>> configRequest = new HttpEntity<>(configBody, headers);
+        
+        try {
+          ResponseEntity<String> putResponse = restTemplate.exchange(
+              connectUrl + "/" + connectorName + "/config",
+              HttpMethod.PUT,
+              configRequest,
+              String.class
+          );
+          log.info("Debezium Connector atualizado com sucesso: {}", putResponse.getBody());
+        } catch (Exception e) {
+          log.error("Erro ao atualizar o Debezium Connector: {}", e.getMessage(), e);
+        }
         return;
       }
     } catch (Exception e) {
@@ -50,15 +78,7 @@ public class DebeziumConnectorRegistry {
 
     log.info("Configuração enviada ao Kafka Connect: {}", properties.getConfig());
 
-    Map<String, Object> requestBody = new HashMap<>();
-    requestBody.put("name", connectorName);
-    requestBody.put("config", properties.getConfig());
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-
-    HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-
+    // Criar novo connector usando POST
     try {
       ResponseEntity<String> response = restTemplate.postForEntity(connectUrl, request, String.class);
       log.info("Debezium Connector registrado com sucesso: {}", response.getBody());

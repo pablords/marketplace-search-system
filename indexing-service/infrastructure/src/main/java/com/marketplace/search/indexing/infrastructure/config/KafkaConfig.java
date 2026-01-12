@@ -131,8 +131,9 @@ public class KafkaConfig {
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 15000);
         
         // Configurações de conexão e metadata
-        props.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 300000);
-        props.put(ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, 540000);
+        // METADATA_MAX_AGE: tempo máximo antes de atualizar metadata (reduz avisos de Node -1)
+        props.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 300000); // 5 minutos
+        props.put(ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, 540000); // 9 minutos
         props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);
         
         // Configurações de fetch
@@ -144,6 +145,10 @@ public class KafkaConfig {
         // Configurações de retry para conexão
         props.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, 50);
         props.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, 100);
+        
+        // Configuração de descoberta de brokers
+        // "Node -1 disconnected" é um aviso normal durante descoberta inicial de brokers
+        props.put("client.dns.lookup", "use_all_dns_ips");
         
         return new DefaultKafkaConsumerFactory<>(props);
     }

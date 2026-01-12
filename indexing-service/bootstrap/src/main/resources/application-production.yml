@@ -5,6 +5,7 @@ logging:
   level:
     com.marketplace.search: INFO
     org.springframework.kafka: WARN
+    org.apache.kafka: WARN  # Reduz avisos de "Node -1 disconnected" que são normais
     org.elasticsearch: WARN
     org.springframework.data.elasticsearch: WARN
   file:

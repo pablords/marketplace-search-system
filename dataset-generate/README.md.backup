@@ -1,0 +1,693 @@
+# Script de População de Produtos via API
+
+Este script cria produtos de teste no sistema via API REST. Os produtos são salvos no PostgreSQL e automaticamente indexados no Elasticsearch via CDC (Debezium).
+
+O script suporta múltiplos modos de operação:
+1. **Dataset Real do Kaggle**: Baixa e usa datasets reais de produtos do Kaggle (com categorias do dataset Amazon)
+2. **Arquivo Local**: Usa um arquivo CSV/JSON local com produtos
+3. **Geração Fake**: Gera produtos fictícios usando Faker (fallback automático)
+4. **Modo JSON**: Gera arquivo JSON para validação sem chamar a API
+5. **Modo API**: Chama a API para criar produtos no banco de dados
+
+## ⚡ Quick Start
+
+### 1. Instalar Dependências
+
+```bash
+cd dataset-generate
+pip install -r requirements.txt
+```
+
+### 2. Gerar JSON para Validação (Recomendado primeiro)
+
+Gera um arquivo JSON com produtos reais do dataset Amazon sem precisar da API:
+
+```bash
+python data_gen.py --output-json data/products_sample.json --total 50 --validate-dataset
+```
+
+**Resultado**: Arquivo `data/products_sample.json` com 50 produtos usando categorias reais do dataset Amazon.
+
+### 3. Criar Produtos via API
+
+Depois de validar o JSON, crie os produtos no banco:
+
+```bash
+python data_gen.py --api-url http://localhost:8080/api/v1 --total 100
+```
+
+**Requisitos**:
+- API rodando em `http://localhost:8080`
+- PostgreSQL e Elasticsearch configurados
+- Dataset baixado no cache (ou Kaggle configurado)
+
+## 🔄 Fluxo
+
+```
+Script Python → API REST → PostgreSQL → Debezium (CDC) → Kafka → Consumer → Elasticsearch
+```
+
+## 📋 Pré-requisitos
+
+### 1. Infraestrutura rodando
+
+```bash
+docker compose up -d
+```
+
+### 2. Debezium configurado
+
+```bash
+chmod +x docker/debezium/register-postgres-connector.sh
+./docker/debezium/register-postgres-connector.sh
+```
+
+### 3. API rodando
+
+```bash
+# No diretório do catalog-service
+mvn spring-boot:run
+# ou
+java -jar bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar
+```
+
+### 4. Dependências Python
+
+Instale as dependências necessárias:
+
+```bash
+cd scripts
+pip install -r requirements.txt
+```
+
+As dependências incluem:
+- `pandas>=2.0.0` - Manipulação de dados
+- `requests>=2.31.0` - Requisições HTTP
+- `faker==19.12.0` - Geração de dados fake
+- `kaggle>=1.5.0` - Download de datasets do Kaggle (opcional)
+- `pyyaml>=6.0` - Leitura de arquivos de configuração
+
+### 5. Configuração do Kaggle (Opcional - apenas para usar datasets reais)
+
+Se você quiser usar datasets reais do Kaggle, é necessário configurar as credenciais:
+
+1. **Criar conta no Kaggle**: https://www.kaggle.com/
+2. **Obter credenciais da API**:
+   - Acesse: https://www.kaggle.com/settings
+   - Na seção "API", copie seu **username** e **key** (token)
+3. **Configurar credenciais**:
+   
+   **Opção A: Arquivo kaggle.json**
+   ```bash
+   mkdir -p ~/.kaggle
+   cat > ~/.kaggle/kaggle.json << EOF
+   {
+     "username": "SEU_USERNAME_KAGGLE",
+     "key": "KGAT_SEU_TOKEN_AQUI"
+   }
+   EOF
+   chmod 600 ~/.kaggle/kaggle.json
+   ```
+   
+   **Opção B: Variáveis de ambiente**
+   ```bash
+   export KAGGLE_USERNAME="seu_username_kaggle"
+   export KAGGLE_KEY="KGAT_seu_token_aqui"
+   ```
+
+4. **Aceitar termos do dataset**:
+   - Acesse o dataset no Kaggle (ex: https://www.kaggle.com/datasets/asaniczka/amazon-products-dataset-2023-1-4m-products)
+   - Clique em "I Understand and Accept" para aceitar os termos de uso
+
+Mais informações: https://github.com/Kaggle/kaggle-api#api-credentials
+
+## 🚀 Executar o Script
+
+### Modo 1: Gerar JSON para Validação (Recomendado para testes)
+
+Gera um arquivo JSON com produtos sem chamar a API. Útil para validar os dados antes de inserir no banco:
+
+```bash
+cd dataset-generate
+python data_gen.py --output-json data/products_sample.json --total 50
+```
+
+**Vantagens:**
+- ✅ Não precisa da API rodando
+- ✅ Validação rápida dos dados
+- ✅ Pode inspecionar o JSON antes de usar
+- ✅ Usa categorias reais do dataset Amazon
+
+### Modo 2: Criar Produtos via API
+
+Cria produtos diretamente no banco de dados via API:
+
+```bash
+cd dataset-generate
+python data_gen.py --api-url http://localhost:8080/api/v1 --total 100
+```
+
+O script irá:
+1. Carregar categorias do `amazon_categories.csv` (248 categorias reais)
+2. Ler a configuração de `dataset_config.yaml`
+3. Carregar dataset do cache ou baixar do Kaggle
+4. Mapear os dados para o formato da API usando categorias reais
+5. Enriquecer com métricas geradas
+6. Criar produtos via API
+
+### Modo 3: Usando Dataset Real do Kaggle
+
+O script tenta automaticamente usar um dataset real do Kaggle. Configure o dataset no arquivo `dataset_config.yaml`:
+
+```bash
+python data_gen.py --total 2000
+```
+
+**Características:**
+- ✅ Usa **248 categorias reais** do dataset Amazon (`amazon_categories.csv`)
+- ✅ Carrega produtos do dataset (`amazon_products.csv`)
+- ✅ Mapeia `category_id` do produto para a categoria correta
+- ✅ Gera paths automaticamente baseados no nome da categoria
+
+### Modo 4: Usando Arquivo Local
+
+Se você tem um arquivo CSV ou JSON local com produtos:
+
+```bash
+python data_gen.py --dataset-file ./data/products.csv --total 1000
+```
+
+O arquivo deve conter pelo menos os campos:
+- `title` (obrigatório)
+- `price` (obrigatório)
+- `category_id` (opcional - será mapeado para categorias do dataset)
+- `description` (opcional)
+- `brand` (opcional)
+- `images` ou `imgUrl` (opcional)
+- `attributes` (opcional)
+- `tags` (opcional)
+
+### Modo 5: Forçar Geração Fake
+
+Para usar apenas geração fake (sem dataset real):
+
+```bash
+python data_gen.py --force-fake --total 100
+```
+
+### Opções de Linha de Comando
+
+```bash
+python data_gen.py [OPÇÕES]
+
+Opções:
+  --api-url URL          URL base da API (padrão: http://localhost:8080/api/v1)
+                         Usado apenas no modo API
+  --total N              Número total de produtos a criar (padrão: 100)
+  --use-real-dataset     Tentar usar dataset real do Kaggle (padrão: True)
+  --force-fake           Forçar uso de geração fake mesmo se dataset estiver disponível
+  --config CAMINHO       Caminho para arquivo de configuração YAML (padrão: dataset_config.yaml)
+  --dataset-file CAMINHO Caminho para arquivo CSV/JSON local (alternativa ao Kaggle)
+  --output-json CAMINHO  Gera arquivo JSON sem chamar a API (modo validação)
+  --validate-dataset     Forçar validação detalhada do dataset
+```
+
+### Exemplos de Uso
+
+```bash
+# Gerar JSON para validação (sem chamar API)
+python data_gen.py --output-json data/products_sample.json --total 50
+
+# Gerar JSON com validação detalhada do dataset
+python data_gen.py --output-json data/products_sample.json --total 50 --validate-dataset
+
+# Criar produtos via API usando dataset real
+python data_gen.py --api-url http://localhost:8080/api/v1 --total 500
+
+# Criar produtos usando arquivo local
+python data_gen.py --dataset-file ./data/products.csv --output-json data/sample.json --total 100
+
+# Criar produtos fake (sem dataset)
+python data_gen.py --force-fake --total 50
+
+# Usar API em outro endereço
+python data_gen.py --api-url http://localhost:8081/api/v1 --total 200
+
+# Usar arquivo de configuração customizado
+python data_gen.py --config ./my_config.yaml --total 1000
+```
+
+## 📊 O que o script faz
+
+1. ✅ **Carregamento de Categorias**: Carrega 248 categorias reais do `amazon_categories.csv`
+2. 📦 **Carregamento de Dados**: 
+   - Tenta carregar dataset real do cache ou Kaggle
+   - Se falhar, usa geração fake como fallback
+3. 🔄 **Mapeamento**: 
+   - Transforma dados do dataset para formato da API
+   - Mapeia `category_id` do produto para categoria real do dataset
+   - Extrai marca do título se não estiver no dataset
+4. 📈 **Enriquecimento**: Adiciona métricas geradas (views, sales, ratings, etc)
+5. 🚀 **Criação/Validação**: 
+   - **Modo JSON**: Salva produtos em arquivo JSON para validação
+   - **Modo API**: Envia cada produto via `POST /api/v1/products`
+6. 📊 **Estatísticas**: Mostra resumo de sucesso/falha e origem dos dados (real/fake)
+
+## 📝 Exemplo de Produto Gerado
+
+```json
+{
+  "id": "MLB456789",
+  "title": "Sion Softside Expandable Roller Luggage, Black, Checked-Large 29-Inch",
+  "description": "Produto Sion Softside Expandable Roller Luggage, Black, Checked-Large 29-Inch. Qualidade garantida.",
+  "price": 139.99,
+  "currency": "BRL",
+  "category": {
+    "id": "104",
+    "name": "Suitcases",
+    "path": "/suitcases",
+    "parent_id": null
+  },
+  "brand": {
+    "id": "BRAND002",
+    "name": "Samsung",
+    "description": "Líder em Android"
+  },
+  "seller": {
+    "id": "SELLER001",
+    "name": "TechStore Brasil",
+    "type": "PROFESSIONAL",
+    "status": "ACTIVE",
+    "reputation": {
+      "score": 4.8,
+      "total_reviews": 1500,
+      "cancellation_rate": 0.02,
+      "delivery_performance": 0.98
+    }
+  },
+  "images": [
+    "https://marketplace.com/img/CAT001_1.jpg",
+    "https://marketplace.com/img/CAT001_2.jpg"
+  ],
+  "attributes": ["Memória: 128GB", "Cor: Preto", "Conectividade: 5G"],
+  "tags": ["smartphone", "samsung", "galaxy", "android"],
+  "available_quantity": 45,
+  "condition": "NEW",
+  "is_active": true,
+  "metrics": {
+    "stockQuantity": 45,
+    "totalViews": 2340,
+    "totalSales": 87,
+    "averageRating": 4.6,
+    "totalReviews": 34,
+    "conversionRate": 0.037
+  }
+}
+```
+
+## ⚙️ Configuração
+
+### Arquivo de Configuração (`dataset_config.yaml`)
+
+O arquivo `dataset_config.yaml` permite configurar:
+
+- **Dataset do Kaggle**: Nome do dataset, arquivo, cache
+- **Mapeamento de Categorias**: Mapeia categorias do dataset para IDs do sistema (opcional)
+- **Mapeamento de Marcas**: Mapeia marcas do dataset para IDs do sistema
+- **Configurações de Enriquecimento**: Como produtos reais serão enriquecidos
+- **Configurações de API**: URL, timeout, retries
+
+**Importante**: As categorias são carregadas automaticamente do arquivo `amazon_categories.csv` no cache. O mapeamento de categorias no YAML é opcional e usado apenas para casos especiais.
+
+Exemplo:
+
+```yaml
+dataset:
+  source: "kaggle"
+  name: "asaniczka/amazon-products-dataset-2023-1-4m-products"
+  file: "amazon_products.csv"
+  cache_dir: "./data/cache"
+  max_products: 2000
+
+mapping:
+  # Mapeamento opcional - categorias são carregadas automaticamente do CSV
+  category_mapping:
+    "Electronics": "75"  # ID do dataset Amazon
+    "Computers": "57"
+  
+  brand_mapping:
+    "Apple": "Apple"
+    "Samsung": "Samsung"
+
+api:
+  base_url: "http://localhost:8080/api/v1"
+  timeout: 30
+  max_retries: 3
+  request_delay: 0.1
+```
+
+### Categorias do Dataset
+
+O script carrega automaticamente **248 categorias reais** do arquivo `amazon_categories.csv`:
+
+- **Localização**: `./data/cache/amazon_categories.csv`
+- **Formato**: CSV com colunas `id` e `category_name`
+- **Uso**: O `category_id` do produto é mapeado diretamente para a categoria correspondente
+- **Paths**: Gerados automaticamente como slug do nome da categoria
+
+Exemplos de categorias disponíveis:
+- `75` = "Cell Phones & Accessories"
+- `57` = "Computers & Tablets"
+- `69` = "Televisions & Video Products"
+- `104` = "Suitcases"
+- E mais 244 categorias...
+
+## 🔍 Verificar Resultados
+
+### Via PostgreSQL
+
+```bash
+docker compose exec postgres psql -U marketplace -d marketplace
+
+# Ver produtos
+SELECT id, title, price, status FROM products LIMIT 10;
+
+# Contar produtos
+SELECT COUNT(*) FROM products;
+```
+
+### Via Elasticsearch/OpenSearch
+
+```bash
+# Contar produtos indexados
+curl "http://localhost:9200/products/_count?pretty"
+
+# Ver produtos
+curl "http://localhost:9200/products/_search?size=10&pretty"
+```
+
+### Via Kibana/OpenSearch Dashboards
+
+1. Acesse: http://localhost:5601
+2. Discover → Selecione data view `products*`
+3. Visualize os produtos em tempo real
+
+### Via Kafka UI
+
+1. Acesse: http://localhost:8081
+2. Topics → `product-events`
+3. Ver mensagens sendo processadas
+
+## 🐛 Troubleshooting
+
+### API não responde
+
+```bash
+# Verificar se a API está rodando
+curl http://localhost:8080/api/v1/health
+
+# Ver logs
+tail -f catalog-service/bootstrap/logs/catalog.log
+```
+
+### Erro ao baixar dataset do Kaggle
+
+```bash
+# Verificar credenciais
+cat ~/.kaggle/kaggle.json
+
+# Testar API do Kaggle
+kaggle datasets list
+
+# Verificar se o dataset existe e aceitar termos
+# Acesse: https://www.kaggle.com/datasets/asaniczka/amazon-products-dataset-2023-1-4m-products
+# Clique em "I Understand and Accept"
+
+# Se não funcionar, use arquivo local ou --force-fake
+python data_gen.py --force-fake --total 100
+
+# OU use o dataset já baixado no cache
+python data_gen.py --output-json data/products_sample.json --total 50
+```
+
+### Produtos não aparecem no Elasticsearch
+
+```bash
+# Verificar status do Debezium
+curl http://localhost:8083/connectors/marketplace-products-connector/status | jq
+
+# Ver logs do Kafka Connect
+docker compose logs -f kafka-connect
+
+# Ver logs do consumer
+docker compose logs -f indexing-service
+```
+
+### Muitas falhas ao criar produtos
+
+1. Reduza o número de produtos: `--total 50`
+2. Verifique logs da API para erros de validação
+3. Verifique se o dataset tem campos obrigatórios (title, price)
+4. Use `--force-fake` para testar se o problema é com o dataset
+
+### Dataset não tem campos esperados
+
+O script tenta mapear automaticamente campos comuns:
+- `price`, `preco`, `cost`, `amount`, `value`, `listPrice` → `price`
+- `category_id` → mapeado para categorias do `amazon_categories.csv`
+- `category`, `categoria` → usado como fallback
+- `imgUrl`, `images` → `images`
+- `brand`, `marca` → extraído do título se não existir
+
+**Campos mínimos obrigatórios**: `title` e `price`
+
+Se o dataset usar nomes diferentes, edite `data_mapper.py` ou use um arquivo de configuração customizado.
+
+### Categorias não encontradas
+
+Se houver erro com categorias:
+1. Verifique se o arquivo `amazon_categories.csv` existe em `./data/cache/`
+2. O script carrega automaticamente as categorias do dataset
+3. Se o arquivo não existir, o script usa categorias padrão como fallback
+
+## 📈 Performance
+
+- **100 produtos**: ~15-20 segundos
+- **1000 produtos**: ~2-3 minutos
+- **Rate**: ~5-6 produtos/segundo
+- **Delay CDC**: 2-5 segundos adicionais para indexação
+
+## 🔄 Limpar Dados
+
+```bash
+# PostgreSQL
+docker compose exec postgres psql -U marketplace -d marketplace -c "DELETE FROM products;"
+
+# Elasticsearch/OpenSearch
+curl -X POST "http://localhost:9200/products/_delete_by_query?pretty" \
+  -H 'Content-Type: application/json' \
+  -d '{"query": {"match_all": {}}}'
+```
+
+## 🎯 Vantagens da Abordagem via API
+
+✅ **Validação**: Usa as mesmas validações da aplicação real  
+✅ **CDC Automático**: Debezium captura e indexa automaticamente  
+✅ **Realista**: Simula fluxo real de criação de produtos  
+✅ **Transacional**: Garante consistência entre PostgreSQL e Elasticsearch  
+✅ **Auditável**: Logs completos do processo  
+✅ **Testável**: Valida todo o pipeline end-to-end  
+✅ **Flexível**: Suporta datasets reais, arquivos locais ou geração fake
+
+## 📚 Estrutura de Arquivos
+
+```
+dataset-generate/
+├── data_gen.py              # Script principal
+├── dataset_loader.py        # Módulo para download/carregamento de datasets
+├── data_mapper.py           # Módulo para mapeamento de dados (usa categorias do dataset)
+├── dataset_config.yaml      # Arquivo de configuração
+├── requirements.txt         # Dependências Python
+├── README.md                # Este arquivo
+└── data/
+    ├── cache/               # Cache de datasets baixados
+    │   ├── amazon_products.csv      # Dataset de produtos (1.4M+ produtos)
+    │   └── amazon_categories.csv     # Dataset de categorias (248 categorias)
+    └── products_sample.json # Exemplo de arquivo JSON gerado
+```
+
+## 🎯 Funcionalidades Principais
+
+### ✅ Categorias Dinâmicas
+- Carrega **248 categorias reais** do dataset Amazon
+- Não usa mais categorias estáticas hardcoded
+- Mapeia `category_id` do produto para categoria correta automaticamente
+- Gera paths (slugs) automaticamente baseados no nome da categoria
+
+### ✅ Modo JSON para Validação
+- Gera arquivo JSON sem chamar a API
+- Útil para validar dados antes de inserir no banco
+- Mostra estatísticas de origem dos dados (real/fake)
+- Inclui validação detalhada do dataset
+
+### ✅ Modo API
+- Cria produtos diretamente no banco via API REST
+- Integração completa com PostgreSQL e Elasticsearch via CDC
+- Logs detalhados de cada produto criado
+
+## 📖 Guia Rápido de Uso
+
+### Cenário 1: Validar dados antes de inserir
+
+```bash
+# 1. Gerar JSON com 50 produtos do dataset real
+python data_gen.py --output-json data/products_sample.json --total 50 --validate-dataset
+
+# 2. Inspecionar o arquivo gerado
+cat data/products_sample.json | jq '.[0]'
+
+# 3. Se estiver OK, criar produtos via API
+python data_gen.py --api-url http://localhost:8080/api/v1 --total 50
+```
+
+### Cenário 2: Usar dataset já baixado (sem Kaggle)
+
+Se o dataset já está no cache (`./data/cache/amazon_products.csv`):
+
+```bash
+# Gerar JSON usando dataset do cache
+python data_gen.py --output-json data/products_sample.json --total 100
+
+# O script detecta automaticamente o arquivo no cache
+```
+
+### Cenário 3: Testar com dados fake
+
+```bash
+# Gerar JSON com dados fake (rápido para testes)
+python data_gen.py --force-fake --output-json data/products_fake.json --total 20
+```
+
+### Cenário 4: Usar arquivo local customizado
+
+```bash
+# Se você tem seu próprio arquivo CSV
+python data_gen.py --dataset-file ./meus_produtos.csv --output-json data/meus_produtos.json --total 100
+```
+
+## 🔍 Validação e Diagnóstico
+
+O script fornece logs detalhados para diagnóstico:
+
+```
+============================================================
+🔍 DIAGNÓSTICO DE CARREGAMENTO DE DATASET
+============================================================
+📋 force_fake: False
+📋 use_real_dataset: True
+📋 dataset_df fornecido: False
+📋 DATASET_MODULES_AVAILABLE: True
+============================================================
+
+✅ Carregadas 248 categorias do dataset
+✅ Dataset carregado: 1426337 registros
+✅ Usando dataset real: True
+
+📊 ORIGEM DOS DADOS:
+✅ Dataset real (Amazon): 50 (100.0%)
+```
+
+## 🔍 Validação da Busca Híbrida
+
+O script `validate_hybrid_search.py` valida se a busca híbrida (BM25 + k-NN) com LTR está funcionando corretamente.
+
+### Modo Local (Padrão)
+
+Quando os serviços estão rodando localmente (não em containers):
+
+```bash
+python validate_hybrid_search.py
+```
+
+O script acessa os serviços diretamente nas portas padrão:
+- Search Service: `http://localhost:8083`
+- Embedding Service: `http://localhost:8085`
+- ML Ranking Service: `http://localhost:8084`
+- OpenSearch: `http://localhost:9200`
+
+### Modo Container (com Traefik)
+
+Quando os serviços estão rodando como containers Docker com Traefik:
+
+```bash
+python validate_hybrid_search.py --container-mode
+```
+
+O script acessa:
+- Search Service via Traefik: `http://localhost:8888/api/v1`
+- Embedding Service diretamente: `http://localhost:8085` (porta exposta)
+- ML Ranking Service diretamente: `http://localhost:8084` (porta exposta)
+- OpenSearch diretamente: `http://localhost:9200` (porta exposta)
+
+### Opções de Linha de Comando
+
+```bash
+python validate_hybrid_search.py [OPÇÕES]
+
+Opções:
+  --container-mode          Usar modo container (acessa serviços via Traefik)
+  --traefik-url URL         URL do Traefik (padrão: http://localhost:8888)
+  --embedding-url URL       URL do Embedding Service (padrão: http://localhost:8085)
+  --ml-ranking-url URL      URL do ML Ranking Service (padrão: http://localhost:8084)
+  --opensearch-url URL      URL do OpenSearch (padrão: http://localhost:9200)
+  --search-url URL          URL do Search Service (apenas modo local)
+```
+
+### Exemplos de Uso
+
+```bash
+# Modo local
+python validate_hybrid_search.py
+
+# Modo container
+python validate_hybrid_search.py --container-mode
+
+# Modo container com URLs customizadas
+python validate_hybrid_search.py --container-mode \
+  --traefik-url http://localhost:8888 \
+  --embedding-url http://localhost:8085 \
+  --ml-ranking-url http://localhost:8084 \
+  --opensearch-url http://localhost:9200
+
+# Usando variáveis de ambiente
+USE_CONTAINER_MODE=true TRAEFIK_URL=http://localhost:8888 python validate_hybrid_search.py
+```
+
+### O que o Script Valida
+
+1. ✅ Verifica se o Embedding Service está disponível
+2. ✅ Testa geração de embeddings para queries
+3. ✅ Verifica se produtos têm embeddings no OpenSearch
+4. ✅ Verifica se o ML Ranking Service (LTR) está disponível
+5. ✅ Testa o endpoint de ranking ML diretamente
+6. ✅ Valida que os resultados da busca estão sendo re-ranqueados pelo LTR
+7. ✅ Compara resultados de busca com e sem busca híbrida
+8. ✅ Valida scores BM25, k-NN e ML
+9. ✅ Testa diferentes tipos de queries
+
+### Requisitos para Modo Container
+
+Para o script funcionar em modo container, os seguintes serviços precisam ter portas expostas no `docker-compose.yml`:
+
+- **Embedding Service**: Porta `8085`
+- **ML Ranking Service**: Porta `8084`
+- **OpenSearch**: Porta `9200`
+- **Traefik**: Porta `8888` (já configurada)
+
+O Search Service é acessado via Traefik na rota `/api/v1`.
+
+## 🔗 Referências
+
+- [Kaggle API Documentation](https://github.com/Kaggle/kaggle-api)
+- [Faker Documentation](https://faker.readthedocs.io/)
+- [Pandas Documentation](https://pandas.pydata.org/docs/)

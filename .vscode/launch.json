@@ -14,12 +14,12 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/catalog-service/.env",
+            "envFile": "${workspaceFolder}/catalog-service/.env.dev",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/catalog-service/bootstrap",
-            "preLaunchTask": "maven: compile catalog",
-            "noDebug": true
+            "preLaunchTask": "RUN_CATALOG_SERVICE",
+            "noDebug": false
         },
         {
             "type": "java",

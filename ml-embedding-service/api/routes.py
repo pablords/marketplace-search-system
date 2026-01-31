@@ -53,7 +53,7 @@ async def health_check():
             
             response = {
                 "status": status,
-                "service": "embedding-service",
+                "service": "ml-embedding-service",
                 "version": "1.0.0",
                 "model_loaded": False,
                 "message": message
@@ -64,7 +64,7 @@ async def health_check():
             
             response = {
                 "status": status,
-                "service": "embedding-service",
+                "service": "ml-embedding-service",
                 "version": "1.0.0",
                 "model_loaded": model_loaded,
                 "dimension": embedding_service.get_dimension() if model_loaded else None,
@@ -101,7 +101,7 @@ async def health_check():
         )
         return {
             "status": "error",
-            "service": "embedding-service",
+            "service": "ml-embedding-service",
             "version": "1.0.0",
             "error": str(e)
         }

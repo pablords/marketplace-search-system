@@ -67,7 +67,7 @@ debezium:
     config:
       connector.class: io.debezium.connector.postgresql.PostgresConnector
       tasks.max: 1
-      database.hostname: ${DB_HOSTNAME}
+      database.hostname: ${DB_HOSTNAME_CONTAINER}
       database.port: ${POSTGRES_PORT}
       database.user: ${POSTGRES_USER}
       database.password: ${POSTGRES_PASSWORD}

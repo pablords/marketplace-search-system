@@ -28,7 +28,7 @@ Este serviço gera embeddings vetoriais (representações numéricas) de textos 
 ## Estrutura
 
 ```
-embedding-service/
+ml-embedding-service/
 ├── main.py                    # Aplicação FastAPI principal
 ├── models/
 │   └── embedding_model.py     # Modelo de embedding
@@ -105,7 +105,7 @@ Health check endpoint com verificação de Redis.
 ```json
 {
   "status": "healthy",
-  "service": "embedding-service",
+  "service": "ml-embedding-service",
   "version": "1.0.0",
   "model_loaded": true,
   "redis_connected": true
@@ -130,10 +130,10 @@ O serviço estará disponível em `http://localhost:8085`
 
 ```bash
 # Build da imagem
-docker build -t embedding-service .
+docker build -t ml-embedding-service .
 
 # Executar container
-docker run -p 8085:8085 embedding-service
+docker run -p 8085:8085 ml-embedding-service
 ```
 
 ## Integração
@@ -143,7 +143,7 @@ docker run -p 8085:8085 embedding-service
 O indexing-service chama este serviço para gerar embeddings de produtos durante a indexação:
 
 ```java
-POST http://embedding-service:8085/api/v1/embeddings/generate
+POST http://ml-embedding-service:8085/api/v1/embeddings/generate
 {
   "texts": ["Título do produto"],
   "type": "product"
@@ -155,7 +155,7 @@ POST http://embedding-service:8085/api/v1/embeddings/generate
 O search-service chama este serviço para gerar embeddings de queries durante a busca:
 
 ```java
-POST http://embedding-service:8085/api/v1/embeddings/query
+POST http://ml-embedding-service:8085/api/v1/embeddings/query
 {
   "texts": ["query do usuário"],
   "type": "query"

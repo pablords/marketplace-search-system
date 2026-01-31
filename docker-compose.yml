@@ -210,6 +210,9 @@ services:
       timeout: 10s
       retries: 10
       start_period: 120s
+    ports:
+      - "8083:8083"
+    
 
   # OpenTelemetry Collector
   otel-collector:
@@ -335,7 +338,7 @@ services:
       start_period: 30s
 
   # Embedding Service
-  embedding-service:
+  ml-embedding-service:
     build:
       context: ./ml-embedding-service
       dockerfile: Dockerfile
@@ -392,7 +395,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      embedding-service:
+      ml-embedding-service:
         condition: service_healthy
       ml-ranking-service:
         condition: service_healthy
@@ -421,7 +424,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      embedding-service:
+      ml-embedding-service:
         condition: service_healthy
     networks:
       - marketplace-network

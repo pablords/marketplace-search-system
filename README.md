@@ -513,7 +513,7 @@ docker-compose up -d
 
 ## 🔄 Fluxo de Dados
 
-### Fluxo Completo: Criação de Produto → Busca
+### Fluxo Completo: Criação de Produto
 
 ```mermaid
 sequenceDiagram
@@ -526,9 +526,8 @@ sequenceDiagram
     participant IndexingService
     participant EmbeddingService
     participant OpenSearch
-    participant Redis
-    participant SearchService
     participant MLRankingService
+    participant Redis
 
     Client->>APIGateway: POST /api/v1/products
     APIGateway->>CatalogService: POST /api/v1/products (HTTP)
@@ -567,6 +566,19 @@ sequenceDiagram
         IndexingService->>Redis: Cacheia features ML
         IndexingService->>Redis: Marca evento como processado
     end
+```
+
+
+### Fluxo Completo: Busca
+``` mermaid
+sequenceDiagram
+    participant Client
+    participant APIGateway
+    participant SearchService
+    participant EmbeddingService
+    participant OpenSearch
+    participant MLRankingService
+    participant Redis
 
     Client->>APIGateway: GET /api/v1/search/products?q=smartphone
     APIGateway->>SearchService: GET /api/v1/search/products?q=smartphone
@@ -602,7 +614,8 @@ sequenceDiagram
     end
     SearchService-->>APIGateway: Retorna resultados
     APIGateway-->>Client: Retorna resultados
-```
+``` 
+
 
 ### Arquitetura Geral
 

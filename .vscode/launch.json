@@ -36,12 +36,12 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/indexing-service/.env",
+            "envFile": "${workspaceFolder}/indexing-service/.env.dev",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/indexing-service/bootstrap",
-            "preLaunchTask": "maven: compile indexing",
-            "noDebug": true
+            "preLaunchTask": "RUN_INDEXING_SERVICE",
+            "noDebug": false
         },
         {
             "type": "java",

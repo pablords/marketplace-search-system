@@ -50,12 +50,41 @@
             "problemMatcher": []
         },
         {
-            "label": "maven: compile indexing",
+            "label": "DOCKER_OPENSEARCH_DB_LOAD",
+            "type": "shell",
+            "command": "docker",
+                "args": [
+                    "compose",
+                    "up",
+                    "-d",
+                    "open-search"
+            ]
+        },
+        {
+            "label": "MAVEN_COMPILE_INDEXING",
             "type": "shell",
             "command": "mvn -pl indexing-service -DskipTests=true compile",
             "group": "build",
             "presentation": { "reveal": "silent" },
             "problemMatcher": []
+        },
+    {
+            "label": "WAIT_FOR_OPENSEARCH_DB",
+            "type": "shell",
+            "command": "${workspaceFolder}/docker/wait-for-it.sh",
+            "args": ["localhost", "9200"],
+            "problemMatcher": []
+        },
+        {
+            "label": "RUN_INDEXING_SERVICE",
+            "dependsOn": [
+                "DOCKER_OPENSEARCH_DB_LOAD",
+                "DOCKER_KAFKA_CONNECT_LOAD",
+                "WAIT_FOR_OPENSEARCH_DB",
+                "MAVEN_COMPILE_INDEXING"
+            ],
+            "dependsOrder": "sequence", // ou "parallel"
+            "type": "shell"
         },
         {
             "label": "maven: compile search",

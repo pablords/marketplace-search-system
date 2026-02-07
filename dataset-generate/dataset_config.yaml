@@ -1,0 +1,91 @@
+# Configuração do Dataset do Kaggle
+# Este arquivo define as configurações para download, processamento e mapeamento
+# de datasets reais do Kaggle para o formato da API do marketplace.
+
+dataset:
+  # Fonte do dataset
+  source: "kaggle"
+  
+  # Nome do dataset no Kaggle (formato: usuario/dataset-name)
+  # Exemplos populares:
+  # - "amazon-products-dataset"
+  # - "ecommerce-product-dataset"
+  # - "products-dataset"
+  name: "asaniczka/amazon-products-dataset-2023-1-4m-products"
+  
+  # Nome do arquivo dentro do dataset (geralmente products.csv, products.json, etc)
+  file: "products.csv"
+  
+  # Diretório para cache do dataset baixado
+  cache_dir: "./data/cache"
+  
+  # Número máximo de produtos a processar do dataset
+  max_products: 2000
+  
+  # Campos esperados no dataset (para validação)
+  required_fields:
+    - "title"
+    - "price"
+  
+  # Campos opcionais no dataset
+  optional_fields:
+    - "description"
+    - "category"
+    - "brand"
+    - "images"
+    - "attributes"
+    - "tags"
+    - "condition"
+    - "stock"
+    - "quantity"
+
+
+# Configurações de Enriquecimento
+# Define como os produtos reais serão enriquecidos com métricas
+enrichment:
+  # Gerar métricas mesmo para produtos reais
+  generate_metrics: true
+  
+  # Atribuir vendedores aleatórios dos vendedores existentes
+  assign_random_seller: true
+  
+  # Gerar imagens placeholder se não houver no dataset
+  generate_placeholder_images: true
+  
+  # Gerar atributos baseados na descrição se não houver no dataset
+  extract_attributes_from_description: true
+  
+  # Gerar tags baseadas no título e categoria se não houver no dataset
+  generate_tags_from_title: true
+
+# Configurações de Validação
+validation:
+  # Validar campos obrigatórios antes de enviar para API
+  validate_required_fields: true
+  
+  # Validar formato de preço (deve ser positivo)
+  validate_price: true
+  
+  # Validar formato de quantidade (deve ser >= 0)
+  validate_quantity: true
+  
+  # Pular produtos com erros ou processar todos (com fallbacks)
+  skip_invalid_products: false
+
+# Configurações de API
+api:
+  # URL base da API Gateway
+  base_url: "http://localhost:8888/api/v1"
+  
+  # Endpoint para criação de produtos
+  products_endpoint: "/products"
+  
+  # Timeout para requisições (segundos)
+  timeout: 30
+  
+  # Número de tentativas em caso de erro
+  max_retries: 3
+  
+  # Delay entre requisições (segundos) - para evitar sobrecarga
+  request_delay: 0.1
+

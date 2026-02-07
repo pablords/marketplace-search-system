@@ -63,6 +63,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: marketplace-redis
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
       - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
@@ -79,6 +81,9 @@ services:
   open-search:
     image: opensearchproject/opensearch:3
     container_name: marketplace-opensearch
+    ports:
+      - "9200:9200"
+      - "9600:9600"
     depends_on:
       - redis
     environment:
@@ -141,6 +146,9 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     container_name: marketplace-kafka
+    ports:
+      - "29092:29092"  # Porta interna para comunicação entre containers
+      - "9092:9092"    # Porta exposta para host (desenvolvimento)
     depends_on:
       - zookeeper
     environment:

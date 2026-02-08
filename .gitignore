@@ -99,3 +99,13 @@ postgres-data/
 .venv
 
 products.json
+
+cache/
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.csv
+*.zip

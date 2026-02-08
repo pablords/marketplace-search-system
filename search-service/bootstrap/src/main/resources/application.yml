@@ -23,37 +23,6 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
-  # PostgreSQL configuration for Feature Store Offline
-  datasource:
-    feature-store:
-      url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:catalog}
-      username: ${POSTGRES_USER:catalog}
-      password: ${POSTGRES_PASSWORD:catalog}
-      driver-class-name: org.postgresql.Driver
-      hikari:
-        maximum-pool-size: 5
-        minimum-idle: 2
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-    # Desabilita inicialização automática de scripts SQL para evitar conflitos
-    initialization:
-      mode: never
-
-  jpa:
-    hibernate:
-      ddl-auto: none  # Schema gerenciado por migrations ou script SQL
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        use_sql_comments: true
-        jdbc:
-          batch_size: 20
-        order_inserts: true
-        order_updates: true
-    open-in-view: false
 
 # OpenSearch
 opensearch:

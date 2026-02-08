@@ -56,18 +56,19 @@
                 "-Xmx1G",
                 "-XX:+UseG1GC"
             ],
-            "envFile": "${workspaceFolder}/search-service/.env",
+            "envFile": "${workspaceFolder}/search-service/.env.dev",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/search-service/bootstrap",
-            "preLaunchTask": "maven: compile search",
-            "noDebug": true
+            "preLaunchTask": "RUN_SEARCH_SERVICE",
+            "noDebug": false
         },
         {
             "name": "🤖 ML Embedding Service",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "/bin/bash",
+            "envFile": "${workspaceFolder}/ml-embedding-service/.env.dev",
             "runtimeArgs": [
                 "-c",
                 "cd '${workspaceFolder}/ml-embedding-service' && bash run.sh"
@@ -81,6 +82,7 @@
             "name": "📊 ML Ranking Service",
             "request": "launch",
             "runtimeExecutable": "/bin/bash",
+            "envFile": "${workspaceFolder}/ml-ranking-service/.env.dev",
             "runtimeArgs": [
                 "-c",
                 "cd '${workspaceFolder}/ml-ranking-service' && bash run.sh"

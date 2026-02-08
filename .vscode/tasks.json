@@ -87,7 +87,17 @@
             "type": "shell"
         },
         {
-            "label": "maven: compile search",
+            "label": "RUN_SEARCH_SERVICE",
+            "dependsOn": [
+                "DOCKER_OPENSEARCH_DB_LOAD",
+                "WAIT_FOR_OPENSEARCH_DB",
+                "MAVEN_COMPILE_SEARCH"
+            ],
+            "dependsOrder": "sequence", // ou "parallel"
+            "type": "shell"
+        },
+        {
+            "label": "MAVEN_COMPILE_SEARCH",
             "type": "shell",
             "command": "mvn -pl search-service -DskipTests=true compile",
             "group": "build",
@@ -112,38 +122,6 @@
                 "clear": false
             },
             "problemMatcher": ["$maven-compiler-java"]
-        },
-        {
-            "label": "maven: compile api-gateway",
-            "type": "shell",
-            "command": "mvn -pl api-gateway -DskipTests=true compile",
-            "group": "build",
-            "presentation": { "reveal": "silent" },
-            "problemMatcher": []
-        },
-        {
-            "label": "prelaunch-envs",
-            "dependsOn": ["env: load variables"],
-            "dependsOrder": "sequence",
-            "problemMatcher": []
-        },
-        {
-            "label": "run: ML Embedding Service",
-            "type": "shell",
-            "command": "${workspaceFolder}/ml-embedding-service/run.sh",
-            "options": {
-                "cwd": "${workspaceFolder}/ml-embedding-service"
-            },
-            "isBackground": true,
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "dedicated",
-                "showReuseMessage": false,
-                "clear": false
-            },
-            "problemMatcher": []
         }
     ]
 }

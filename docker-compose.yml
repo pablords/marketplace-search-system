@@ -311,6 +311,20 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Blackbox Exporter - probe HTTP para serviços sem /metrics nativo (ML services)
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: marketplace-blackbox-exporter
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
+    volumes:
+      - ./docker/blackbox/config.yml:/etc/blackbox_exporter/config.yml:ro
+    ports:
+      - "9115:9115"
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
   # Prometheus (para métricas)
   prometheus:
     image: prom/prometheus:latest

@@ -88,12 +88,12 @@
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "up{job=\"ml-ranking-service\"}",
+          "expr": "probe_success{instance=~\".*ml-ranking.*\"}",
           "legendFormat": "ML Ranking"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "up{job=\"ml-embedding-service\"}",
+          "expr": "probe_success{instance=~\".*ml-embedding.*\"}",
           "legendFormat": "ML Embedding"
         }
       ],

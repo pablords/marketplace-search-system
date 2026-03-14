@@ -154,6 +154,37 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Fluent Bit - Coletor de logs centralizado
+  fluent-bit:
+    image: fluent/fluent-bit:3.2
+    container_name: marketplace-fluent-bit
+    volumes:
+      - ./docker/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./docker/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - fluent_bit_db:/var/lib/fluent-bit
+    networks:
+      - marketplace-network
+    depends_on:
+      open-search:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # One-shot: cria index template e ILM policy no OpenSearch
+  opensearch-init:
+    image: curlimages/curl:latest
+    container_name: marketplace-opensearch-init
+    volumes:
+      - ./docker/opensearch/init-log-index.sh:/init-log-index.sh:ro
+    entrypoint: ["/bin/sh", "/init-log-index.sh"]
+    networks:
+      - marketplace-network
+    depends_on:
+      open-search:
+        condition: service_healthy
+    restart: "no"
+
   # opensearch-dashboards:
   #   image: opensearchproject/opensearch-dashboards:3
   #   container_name: marketplace-opensearch-dashboards
@@ -360,7 +391,7 @@ services:
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-opensearch-datasource
       - GF_SERVER_ROOT_URL=http://localhost:8888/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
@@ -544,6 +575,7 @@ volumes:
   zookeeper_data:
   zookeeper_logs:
   kafka_data:
+  fluent_bit_db:
 
 networks:
   marketplace-network:

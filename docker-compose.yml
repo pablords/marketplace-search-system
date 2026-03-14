@@ -1,5 +1,9 @@
-
-
+x-logging: &default-logging
+  driver: fluentd
+  options:
+    fluentd-address: "127.0.0.1:24224"
+    tag: docker.{{.Name}}
+    fluentd-async: "true"
 
 services:
   # Traefik Gateway
@@ -158,12 +162,12 @@ services:
   fluent-bit:
     image: fluent/fluent-bit:3.2
     container_name: marketplace-fluent-bit
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
     volumes:
       - ./docker/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - ./docker/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - fluent_bit_db:/var/lib/fluent-bit
     networks:
       - marketplace-network
     depends_on:
@@ -431,6 +435,7 @@ services:
         condition: service_healthy
     networks:
       - marketplace-network
+    logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8084/health || exit 1"]
       interval: 30s
@@ -453,6 +458,7 @@ services:
         condition: service_healthy
     networks:
       - marketplace-network
+    logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8085/api/v1/health || exit 1"]
       interval: 30s
@@ -475,6 +481,7 @@ services:
         condition: service_healthy
     networks:
       - marketplace-network
+    logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/api/v1/actuator/health || exit 1"]
       interval: 30s
@@ -502,6 +509,7 @@ services:
         condition: service_healthy
     networks:
       - marketplace-network
+    logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8083/api/v1/actuator/health || exit 1"]
       interval: 30s
@@ -529,6 +537,7 @@ services:
         condition: service_healthy
     networks:
       - marketplace-network
+    logging: *default-logging
     healthcheck:
       # Usa o endpoint de liveness que é mais simples e não verifica dependências
       # Isso evita que o serviço fique amarelo quando dependências têm problemas temporários
@@ -555,9 +564,11 @@ services:
     env_file:
       - ./api-gateway/.env
     depends_on:
-      - otel-collector
+      otel-collector:
+        condition: service_started
     networks:
       - marketplace-network
+    logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/api/v1/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 30s

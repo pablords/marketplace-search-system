@@ -42,7 +42,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "container_name:marketplace-* AND NOT container_name:marketplace-prometheus AND NOT container_name:marketplace-fluent-bit",
+          "query": "container_name:$service AND NOT container_name:*prometheus* AND NOT container_name:*fluent-bit*",
           "metrics": [{ "type": "logs", "id": "1" }],
           "timeField": "@timestamp",
           "bucketAggs": []
@@ -65,7 +65,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "level:ERROR OR level:error",
+          "query": "level:(ERROR OR error OR WARN OR warn) AND container_name:$service",
           "metrics": [{ "type": "count", "id": "1" }],
           "timeField": "@timestamp",
           "bucketAggs": [
@@ -91,7 +91,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "container_name:marketplace-*",
+          "query": "container_name:$service",
           "metrics": [{ "type": "count", "id": "1" }],
           "timeField": "@timestamp",
           "bucketAggs": [
@@ -115,7 +115,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "level:(ERROR OR WARN OR error OR warn) AND container_name:marketplace-*",
+          "query": "level:(ERROR OR WARN OR error OR warn) AND container_name:$service",
           "metrics": [{ "type": "logs", "id": "1" }],
           "timeField": "@timestamp",
           "bucketAggs": []
@@ -137,7 +137,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "level:(ERROR OR error) AND container_name:marketplace-*",
+          "query": "level:(ERROR OR error) AND container_name:$service",
           "metrics": [{ "type": "count", "id": "1" }],
           "timeField": "@timestamp",
           "bucketAggs": [

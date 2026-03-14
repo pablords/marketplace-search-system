@@ -1,0 +1,61 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "title": "API Gateway Request Rate (Reps/s)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(api_gateway_http_requests_total[5m])) by (method, path)",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "title": "API Gateway Error Rate (5xx)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(api_gateway_http_errors_total{status_code=~\"5..\"}[5m])) by (path)",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "title": "API Gateway Tail Latency P99",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(api_gateway_http_request_duration_seconds_bucket[5m])) by (le, path))",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "tags": ["golden-signals", "search-api"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Search System Golden Signals (RED)",
+  "uid": "search-golden-signals",
+  "version": 1
+}

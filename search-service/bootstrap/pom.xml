@@ -58,6 +58,13 @@
             <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
 
+        <!-- Logstash Encoder for JSON Logging -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
+        </dependency>
+
         <!-- Spring Boot DevTools for development hot reload -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

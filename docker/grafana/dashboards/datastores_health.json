@@ -1,0 +1,61 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "title": "Postgres: Active Connections",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "pg_stat_activity_count",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Redis: Cache Hit Ratio",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "(rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))) * 100",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "title": "Elasticsearch: Cluster Health Status",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "elasticsearch_cluster_health_status",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "tags": ["datastores", "infra"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Datastores Health",
+  "uid": "datastores-health",
+  "version": 1
+}

@@ -69,17 +69,22 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  # OpenSearch metrics (if using opensearch_exporter)
+  # OpenSearch metrics (via elasticsearch_exporter)
   - job_name: 'opensearch'
     static_configs:
-      - targets: ['open-search:9200']
-    metrics_path: '/_prometheus/metrics'
+      - targets: ['opensearch-exporter:9114']
     scrape_interval: 30s
 
-  # Redis metrics (if using redis_exporter)
+  # Redis metrics (via redis_exporter)
   - job_name: 'redis'
     static_configs:
-      - targets: ['redis:6379']
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # PostgreSQL metrics (via postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
     scrape_interval: 30s
 
   # Kafka metrics (if using kafka_exporter)

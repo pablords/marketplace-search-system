@@ -20,7 +20,7 @@ services:
       - "--log.format=json"
       - "--accesslog.format=json"
     ports:
-      - "8888:8888"  # Porta HTTP principal (alterada de 80 devido a bloqueios de rede)
+      - "8888:8888"  # Porta HTTP principal
       - "443:443"
       - "8080:8080"  # Dashboard (apenas interno)
     volumes:
@@ -59,6 +59,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # PostgreSQL Exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: marketplace-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-catalog}:${POSTGRES_PASSWORD:-catalog}@catalog-db:5432/${POSTGRES_DB:-catalog}?sslmode=disable"
+    ports:
+      - "9187:9187"
+    networks:
+      - marketplace-network
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Redis Cache
   redis:
     image: redis:7-alpine
@@ -76,6 +91,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Redis Exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: marketplace-redis-exporter
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    ports:
+      - "9121:9121"
+    networks:
+      - marketplace-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   # OpenSearch e OpenSearch Dashboards
   open-search:
@@ -105,6 +135,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
+  # OpenSearch Exporter
+  opensearch-exporter:
+    image: prometheuscommunity/elasticsearch-exporter:latest
+    container_name: marketplace-opensearch-exporter
+    command:
+      - '--es.uri=http://open-search:9200'
+      - '--es.all'
+      - '--es.indices'
+      - '--es.cluster_settings'
+    ports:
+      - "9114:9114"
+    networks:
+      - marketplace-network
+    depends_on:
+      open-search:
+        condition: service_healthy
+    restart: unless-stopped
 
   # opensearch-dashboards:
   #   image: opensearchproject/opensearch-dashboards:3
@@ -456,11 +504,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.api.entrypoints=web"
+      - "traefik.http.routers.api.middlewares=cache-search@file"
+      - "traefik.http.routers.api.priority=10"
       - "traefik.http.services.api.loadbalancer.server.port=8080"
-      - "traefik.http.routers.api-search.rule=PathPrefix(`/api/v1/search`)"
-      - "traefik.http.routers.api-search.entrypoints=web"
-      - "traefik.http.routers.api-search.middlewares=cache-search"
-      - "traefik.http.routers.api-search.service=api"
     env_file:
       - ./api-gateway/.env
     depends_on:

@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -36,14 +39,24 @@ func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			zap.Int("size", c.Writer.Size()),
 		}
 
-		// Adicionar query string se existir
+		// Adicionar query string se existir mascarando possíveis PII
 		if raw != "" {
-			fields = append(fields, zap.String("query", raw))
+			maskedQuery := maskPIIFromQuery(raw)
+			fields = append(fields, zap.String("query", maskedQuery))
 		}
 
 		// Adicionar request ID se existir
 		if requestID := c.GetString("request_id"); requestID != "" {
 			fields = append(fields, zap.String("request_id", requestID))
+		}
+
+		// Adicionar trace IDs do OpenTelemetry
+		spanCtx := trace.SpanFromContext(c.Request.Context()).SpanContext()
+		if spanCtx.HasTraceID() {
+			fields = append(fields, zap.String("trace_id", spanCtx.TraceID().String()))
+		}
+		if spanCtx.HasSpanID() {
+			fields = append(fields, zap.String("span_id", spanCtx.SpanID().String()))
 		}
 
 		// Logar erros se houver
@@ -92,5 +105,31 @@ func generateRequestID() string {
 	counter := atomic.AddUint64(&requestIDCounter, 1)
 	timestamp := time.Now().UnixNano()
 	return fmt.Sprintf("%d-%d", timestamp, counter)
+}
+
+// maskPIIFromQuery mascara campos sensíveis na query string
+func maskPIIFromQuery(query string) string {
+	values, err := url.ParseQuery(query)
+	if err != nil {
+		return "***REDACTED_DUE_TO_PARSE_ERROR***"
+	}
+	
+	piiKeys := map[string]bool{
+		"email": true, "password": true, "cpf": true, "token": true, 
+		"credit_card": true, "user_id": true, "phone": true, "document": true,
+	}
+	
+	for k := range values {
+		lowerK := strings.ToLower(k)
+		if piiKeys[lowerK] {
+			values.Set(k, "***REDACTED***")
+		}
+	}
+	// un-escape para evitar que um encode subsequente faça logs dificeis de ler
+	result, err := url.QueryUnescape(values.Encode())
+	if err != nil {
+		return values.Encode()
+	}
+	return result
 }
 

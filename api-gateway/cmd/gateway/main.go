@@ -130,12 +130,12 @@ func initLogger(cfg *config.Config) (*zap.Logger, error) {
 	}
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	// Determinar formato (json ou text)
+	// Determinar formato (json ou text) - Padrão é json estruturado para observabilidade
 	var encoder zapcore.Encoder
-	if cfg.Logging.Format == "json" {
-		encoder = zapcore.NewJSONEncoder(encoderConfig)
-	} else {
+	if cfg.Logging.Format == "text" || cfg.Logging.Format == "console" {
 		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+	} else {
+		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	}
 
 	// Configurar outputs

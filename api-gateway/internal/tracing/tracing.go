@@ -79,7 +79,7 @@ func Init(logger *zap.Logger) error {
 			trace.WithMaxExportBatchSize(512),
 		),
 		trace.WithResource(res),
-		trace.WithSampler(trace.AlwaysSample()),
+		trace.WithSampler(trace.ParentBased(trace.TraceIDRatioBased(0.05))),
 	)
 
 	// Configurar propagação

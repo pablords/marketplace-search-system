@@ -32,7 +32,7 @@ class RankingService:
         self.redis_cache = redis_cache
         
         if self.redis_cache:
-            redis_connected = self.redis_cache.is_connected()
+            redis_connected = self.redis_cache.connect()
             if redis_connected:
                 logger.info(
                     "RankingService inicializado com cache Redis",

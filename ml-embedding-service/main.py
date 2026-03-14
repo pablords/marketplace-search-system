@@ -26,6 +26,10 @@ app = create_app()
 # Variáveis globais para serviços
 service_manager: ServiceManager = None
 
+# Carregar variáveis de ambiente do .env
+from dotenv import load_dotenv
+load_dotenv()
+
 # Inicializar service_manager antes de registrar rotas
 try:
     # Configurar Redis

@@ -109,6 +109,11 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - ML Ranking Service
 - ML Embedding Service
 
+**ML Ranking URL Configuration:**
+- Utiliza a variável de ambiente `ML_RANKING_SERVICE_URL`.
+- Fallback em ambiente Docker para `http://ml-ranking-service:8084`.
+- Resolve o erro de `Connection refused` que ocorria ao tentar acessar `localhost`.
+
 **Busca Híbrida:**
 - Fase 1: Executa BM25 e k-NN em paralelo no OpenSearch
 - Embedding da query gerado pelo ML Embedding Service
@@ -131,9 +136,10 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - Modelo baseado em pesos fixos (futuro: modelo treinado)
 
 **Cache:**
-- Cacheia embeddings e features calculadas
-- Health check verifica conectividade com Redis
-- TTL configurável para otimização de memória
+- Utiliza a biblioteca `python-dotenv` para carregamento de configurações.
+- **Boot Ativo**: Abre conexão com Redis no construtor (`connect()`) em vez de apenas checar estado.
+- Cacheia embeddings e features calculadas.
+- Health check verifica conectividade real com Redis.
 
 ### ML Embedding Service (Porta 8085)
 
@@ -433,11 +439,15 @@ Sincronização via eventos CDC, processamento assíncrono.
 
 ## Observabilidade
 
-### Logging
+### Logging (Centralizado)
 
-- Logs estruturados (JSON)
-- Níveis configuráveis por ambiente
-- Centralização (futuro: ELK Stack)
+O sistema utiliza uma stack moderna de agregação de logs:
+- **Fluent Bit**: Atua como agente coletor (DaemonSet style) que lê os logs do Docker em `/var/lib/docker/containers`.
+- **OpenSearch**: Backend de armazenamento e indexação textual massiva.
+- **Grafana**: Dashboard "Marketplace - Logs Centralizados" com suporte a queries Lucene.
+- **Retenção**: 7 dias garantidos por Index Lifecycle Management (ILM).
+- **Correlação**: Logs injetam automaticamente `trace_id` e `span_id` para navegação direta ao Jaeger.
+- **PII Sanitizer**: Mascaramento automático de campos sensíveis (password, credit_card) no API Gateway.
 
 ### Métricas
 
@@ -445,9 +455,12 @@ Sincronização via eventos CDC, processamento assíncrono.
 - Métricas customizadas por serviço
 - Dashboards no Grafana
 
-### Tracing
+### Tracing Distribuído
 
-- **TODO**: Distributed tracing (Jaeger/Zipkin)
+- **Jaeger**: Rastreamento completo das requisições entre serviços.
+- **OpenTelemetry**: SDKs em Go e Java para instrumentação nativa.
+- **Amostragem**: Configurada em 5% no API Gateway para balancear visibilidade e performance.
+- **Visualização**: Dashboards que permitem ver o fluxo desde o Traefik até os serviços de ML.
 
 ## Referências
 

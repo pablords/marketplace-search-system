@@ -21,7 +21,7 @@ marketplace-search-system/
 
 | Serviço | Porta Interna | Acesso Público | Descrição |
 |---------|---------------|----------------|-----------|
-| **Traefik Gateway** | 80/443 | ✅ `http://localhost` | Gateway único exposto, cache de borda para search |
+| **Traefik Gateway** | 8888/443 | ✅ `http://localhost` | Gateway único exposto, cache de borda para search |
 | **API Gateway** | 8080 | ❌ Via Traefik | Roteia requisições para os microserviços |
 | **Catalog Service** | 8081 | ❌ Via API Gateway | Gerencia produtos no PostgreSQL |
 | **Indexing Service** | 8082 | ❌ Privado | Indexa produtos no OpenSearch via Kafka CDC |
@@ -83,6 +83,7 @@ marketplace-search-system/
 - [x] **Métricas & Observabilidade** - Micrometer + Prometheus
 - [x] **Arquitetura Hexagonal** - Preparada para microserviços
 - [x] **API Gateway** - Roteamento centralizado com OpenAPI
+- [x] **Centralização de Logs** - Fluent Bit + OpenSearch + Grafana (Visualização unificada)
 
 ### 🔄 Em Desenvolvimento
 - [ ] **Dead Letter Queue** - Tratamento de erros persistentes
@@ -278,6 +279,11 @@ Os seguintes dashboards estão disponíveis no Grafana:
    - Latência dos serviços downstream
    - Tentativas de retry
    - Taxa de cache hit do Traefik
+5. **Marketplace Search - Centralized Logs**
+   - Stream de logs em tempo real de todos os containers
+   - Busca textual via Lucene
+   - Filtros por nível de log (INFO, WARN, ERROR)
+   - Correlação direta entre Logs, Traces (Trace ID) e Jaeger
 
 ### Tracing com Jaeger
 
@@ -473,10 +479,13 @@ O sistema possui observabilidade completa com métricas, traces e logs:
 - Análise de latência por componente
 - Identificação de gargalos
 
-**Logs**
-- Logs estruturados (JSON)
-- Agregação centralizada (via Docker logs)
-- Níveis de log configuráveis por serviço
+**Logs (Fluent Bit + OpenSearch)**
+- Logs estruturados (JSON) em todos os serviços
+- Agregação centralizada via Fluent Bit (agente de coleta)
+- Armazenamento e indexação no OpenSearch para alta performance de busca
+- Retenção automática de 7 dias via ILM Policy
+- Mascaramento de dados sensíveis (PII) no API Gateway
+- Injeção de Trace ID e Span ID para correlação logs-traces
 
 ### Otimizações
 

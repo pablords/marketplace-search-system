@@ -43,5 +43,8 @@
   },
   "jupyter.kernels.excludePythonEnvironments": [
     "./notebooks/venv/bin/python"
-  ]
+  ],
+  "go.delveConfig":{
+      "debugAdapter":"legacy"
+   }
 }

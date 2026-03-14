@@ -1,122 +1,101 @@
 {
   "title": "Marketplace Search - Indexing Performance",
+  "uid": "marketplace-indexing",
   "tags": ["marketplace", "indexing"],
   "timezone": "browser",
-  "schemaVersion": 27,
-  "version": 1,
+  "schemaVersion": 38,
+  "version": 2,
   "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
   "panels": [
-      {
-        "id": 1,
-        "title": "Kafka Consumer Lag",
-        "type": "graph",
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-        "targets": [
-          {
-            "expr": "kafka_consumer_lag_sum{application=\"indexing-service\"}",
-            "legendFormat": "Consumer Lag"
-          }
-        ],
-        "yaxes": [
-          {"format": "short", "label": "Messages"},
-          {"format": "short"}
-        ],
-        "alert": {
-          "conditions": [
-            {
-              "evaluator": {"params": [1000], "type": "gt"},
-              "operator": {"type": "and"},
-              "query": {"params": ["A", "5m", "now"]},
-              "reducer": {"params": [], "type": "last"},
-              "type": "query"
-            }
-          ]
+    {
+      "id": 1,
+      "title": "Catalog Service - Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"catalog-service\", uri!~\"/actuator.*\"}[1m])) by (uri, method)",
+          "legendFormat": "{{method}} {{uri}}"
         }
-      },
-      {
-        "id": 2,
-        "title": "Events Processed Rate",
-        "type": "graph",
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-        "targets": [
-          {
-            "expr": "sum(rate(kafka_consumer_messages_consumed_total{application=\"indexing-service\"}[1m]))",
-            "legendFormat": "Events Processed/sec"
-          }
-        ],
-        "yaxes": [
-          {"format": "reqps", "label": "Events/sec"},
-          {"format": "short"}
-        ]
-      },
-      {
-        "id": 3,
-        "title": "Indexing Success Rate",
-        "type": "graph",
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-        "targets": [
-          {
-            "expr": "sum(rate(indexing_operations_total{status=\"success\",application=\"indexing-service\"}[5m])) / sum(rate(indexing_operations_total{application=\"indexing-service\"}[5m]))",
-            "legendFormat": "Success Rate"
-          }
-        ],
-        "yaxes": [
-          {"format": "percentunit", "label": "Success Rate", "max": 1, "min": 0},
-          {"format": "short"}
-        ]
-      },
-      {
-        "id": 4,
-        "title": "Indexing Duration",
-        "type": "graph",
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(indexing_duration_seconds_bucket{application=\"indexing-service\"}[5m])) by (le))",
-            "legendFormat": "P95 Indexing Duration"
-          },
-          {
-            "expr": "histogram_quantile(0.99, sum(rate(indexing_duration_seconds_bucket{application=\"indexing-service\"}[5m])) by (le))",
-            "legendFormat": "P99 Indexing Duration"
-          }
-        ],
-        "yaxes": [
-          {"format": "s", "label": "Duration"},
-          {"format": "short"}
-        ]
-      },
-      {
-        "id": 5,
-        "title": "Embedding Generation Time",
-        "type": "graph",
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(embedding_generation_duration_seconds_bucket{application=\"indexing-service\"}[5m])) by (le))",
-            "legendFormat": "P95 Embedding Generation"
-          }
-        ],
-        "yaxes": [
-          {"format": "s", "label": "Duration"},
-          {"format": "short"}
-        ]
-      },
-      {
-        "id": 6,
-        "title": "Deduplication Rate",
-        "type": "graph",
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
-        "targets": [
-          {
-            "expr": "sum(rate(events_deduplicated_total{application=\"indexing-service\"}[5m])) / sum(rate(kafka_consumer_messages_consumed_total{application=\"indexing-service\"}[5m]))",
-            "legendFormat": "Deduplication Rate"
-          }
-        ],
-        "yaxes": [
-          {"format": "percentunit", "label": "Rate", "max": 1, "min": 0},
-          {"format": "short"}
-        ]
-      }
-    ]
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 2,
+      "title": "Kafka - Produtor (spring_kafka_template_seconds)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(spring_kafka_template_seconds_count[1m])) by (job)",
+          "legendFormat": "Mensagens Kafka produzidas/s ({{job}})"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 3,
+      "title": "Catalog Service - Latência por URI (P95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"catalog-service\", uri!~\"/actuator.*\"}[5m])) by (le, uri))",
+          "legendFormat": "P95 - {{uri}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 4,
+      "title": "Catalog Service - Erros (4xx e 5xx)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"catalog-service\", status=~\"5..\"}[1m]))",
+          "legendFormat": "5xx errors/s"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"catalog-service\", status=~\"4..\"}[1m]))",
+          "legendFormat": "4xx errors/s"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 5,
+      "title": "Postgres - Conexões Ativas",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "pg_stat_activity_count",
+          "legendFormat": "Conexões Ativas"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 6,
+      "title": "HTTP Client (Indexing → OpenSearch) - Latência",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(http_client_requests_seconds_bucket{job=\"indexing-service\"}[5m])) by (le, uri))",
+          "legendFormat": "P95 - {{uri}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    }
+  ]
 }
-

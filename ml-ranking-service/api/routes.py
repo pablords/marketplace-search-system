@@ -78,14 +78,7 @@ async def health_check():
         
         elapsed = (time.time() - start_time) * 1000
         
-        logger.info(
-            "Health check executado",
-            extra={
-                "status": response["status"],
-                "model_loaded": response.get("model_loaded", False),
-                "elapsed_ms": round(elapsed, 2)
-            }
-        )
+        # Removido log de "Health check executado" para evitar poluição
         
         return response
         

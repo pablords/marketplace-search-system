@@ -17,6 +17,7 @@ import (
 	"api-gateway-go/internal/metrics"
 	"api-gateway-go/internal/models"
 	"api-gateway-go/internal/resilience"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // CatalogServiceException representa um erro de comunicação com o catalog-service
@@ -75,7 +76,10 @@ func NewCatalogClientWithMetrics(
 	return &CatalogClient{
 		baseURL:           cfg.Services.Catalog.BaseURL,
 		timeout:           timeout,
-		httpClient:        &http.Client{Timeout: timeout},
+		httpClient: &http.Client{
+			Timeout:   timeout,
+			Transport: otelhttp.NewTransport(http.DefaultTransport),
+		},
 		circuitBreakerMgr: circuitBreakerMgr,
 		retryMgr:          retryMgr,
 		metrics:           metricsRecorder,

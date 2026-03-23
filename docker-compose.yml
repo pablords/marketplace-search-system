@@ -479,6 +479,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     networks:
       - marketplace-network
     logging: *default-logging
@@ -507,6 +509,8 @@ services:
         condition: service_healthy
       ml-ranking-service:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     networks:
       - marketplace-network
     logging: *default-logging
@@ -535,6 +539,8 @@ services:
         condition: service_healthy
       ml-embedding-service:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     networks:
       - marketplace-network
     logging: *default-logging

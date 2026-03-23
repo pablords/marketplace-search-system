@@ -63,6 +63,9 @@ func NewServerWithMetrics(
 	}
 
 	// Aplicar middlewares globais (ordem importa)
+	// 0. Tracing middleware (deve ser o primeiro para envolver toda a request)
+	router.Use(middleware.TracingMiddleware())
+
 	// 1. Recovery middleware (captura panics)
 	router.Use(gin.Recovery())
 

@@ -137,7 +137,7 @@
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-exporter-otlp</artifactId>
-        <version>1.39.0</version>
+        <version>1.28.0</version>
       </dependency>
 
       <!-- Logging -->

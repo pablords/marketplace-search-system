@@ -10,14 +10,6 @@
             
             <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSSZ</timestampPattern>
             
-            <!-- Mascarando PII basic via Regex (substitui senhas e cartões por REDACTED) nos values do JSON -->
-            <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
-                <valueMasker class="net.logstash.logback.mask.RegexValueMasker">
-                    <!-- Basic regex masks -->
-                    <regex>(?i)(password|senha|secret|token|credit_card)["=:]?\s*([^&amp;"'\s\]\}]+)</regex>
-                </valueMasker>
-            </jsonGeneratorDecorator>
-
             <fieldNames>
                 <timestamp>timestamp</timestamp>
                 <version>[ignore]</version>

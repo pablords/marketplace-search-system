@@ -18,6 +18,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -34,6 +35,7 @@ import (
 	"api-gateway-go/internal/metrics"
 	"api-gateway-go/internal/resilience"
 	"api-gateway-go/internal/server"
+	"api-gateway-go/internal/tracing"
 
 	// Importa a documentação Swagger gerada
 	_ "api-gateway-go/docs"
@@ -61,6 +63,12 @@ func main() {
 		zap.String("name", cfg.Application.Name),
 		zap.String("environment", cfg.Application.Environment),
 	)
+
+	// Inicializar tracing
+	if err := tracing.Init(logger); err != nil {
+		logger.Error("Erro ao inicializar tracing", zap.Error(err))
+	}
+	defer tracing.Shutdown(context.Background())
 
 	// Inicializar managers de resiliência
 	circuitBreakerMgr := resilience.NewCircuitBreakerManager(cfg)

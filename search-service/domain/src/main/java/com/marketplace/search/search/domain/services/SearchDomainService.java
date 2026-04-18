@@ -5,6 +5,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.marketplace.search.search.domain.entities.Product;
 import com.marketplace.search.search.domain.repositories.ProductSearchRepository;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
@@ -26,6 +28,7 @@ public class SearchDomainService {
   /**
    * Executa busca inteligente com ranking personalizado
    */
+  @Observed(name = "domain.search.smart", contextualName = "domain-smart-search")
   public SearchResult smartSearch(SearchQuery query, UserContext userContext) {
     SearchResult initialResult = searchRepository.search(query, userContext);
     logger.debug("Validar se todos os produtos no índice estão disponíveis para busca {}", initialResult.toString());
@@ -47,6 +50,7 @@ public class SearchDomainService {
   /**
    * Busca com fallback automático para termos similares
    */
+  @Observed(name = "domain.search.fallback", contextualName = "domain-search-with-fallback")
   public SearchResult searchWithFallback(SearchQuery originalQuery, UserContext userContext) {
     SearchResult result = searchRepository.search(originalQuery, userContext);
 
@@ -63,6 +67,7 @@ public class SearchDomainService {
   /**
    * Calcula boost de relevância baseado em métricas de negócio
    */
+  @Observed(name = "domain.calculate.boost", contextualName = "domain-calculate-business-boost")
   public double calculateBusinessBoost(Product product, UserContext userContext) {
     logger.debug("Calculando boost de relevância para produto {}", product.getId().getValue());
     double boost = 1.0;

@@ -15,6 +15,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.annotation.Observed;
+
 import com.marketplace.search.search.application.config.SearchCacheProperties;
 import com.marketplace.search.search.application.exceptions.SearchException;
 import com.marketplace.search.search.application.mappers.SearchMapper;
@@ -47,6 +51,7 @@ public class SearchProductsUseCase {
   private final RankWithMLUseCase rankWithMLUseCase;
   private final ProductSearchRepository productSearchRepository;
   private final EmbeddingService embeddingService;
+  private final ObservationRegistry observationRegistry;
 
   public SearchProductsUseCase(SearchDomainService searchDomainService,
       SearchMapper searchMapper,
@@ -54,7 +59,8 @@ public class SearchProductsUseCase {
       SearchCacheProperties cacheProperties,
       RankWithMLUseCase rankWithMLUseCase,
       ProductSearchRepository productSearchRepository,
-      EmbeddingService embeddingService) {
+      EmbeddingService embeddingService,
+      ObservationRegistry observationRegistry) {
     this.searchDomainService = searchDomainService;
     this.searchMapper = searchMapper;
     this.cacheRepository = cacheRepository;
@@ -62,6 +68,7 @@ public class SearchProductsUseCase {
     this.rankWithMLUseCase = rankWithMLUseCase;
     this.productSearchRepository = productSearchRepository;
     this.embeddingService = embeddingService;
+    this.observationRegistry = observationRegistry;
   }
 
   /**
@@ -69,6 +76,7 @@ public class SearchProductsUseCase {
    * Fase 1: Busca Top 200 candidatos no OpenSearch
    * Fase 2: Extração de features, ML ranking e retorno Top 20
    */
+  @Observed(name = "search.execute", contextualName = "search-products")
   public SearchResultQuery execute(SearchRequestQuery request) {
     logger.info("Executing search with 2-phase flow: query='{}', limit={}, offset={}",
         request.query(), request.limit(), request.offset());
@@ -81,7 +89,10 @@ public class SearchProductsUseCase {
       UserContext userContext = searchMapper.mapUserContext(request.userContext());
 
       String cacheKey = buildCacheKey(query, userContext, "standard");
-      SearchResultQuery cachedResult = getFromCache(cacheKey);
+      
+      SearchResultQuery cachedResult = Observation.createNotStarted("search.cache.lookup", observationRegistry)
+          .observe(() -> getFromCache(cacheKey));
+          
       if (cachedResult != null) {
         return cachedResult;
       }
@@ -217,6 +228,7 @@ public class SearchProductsUseCase {
   /**
    * Executa busca com fallback automático
    */
+  @Observed(name = "search.execute-with-fallback", contextualName = "search-products-fallback")
   public SearchResultQuery executeWithFallback(SearchRequestQuery request) {
     logger.info("Executing search with fallback: query='{}'", request.query());
 

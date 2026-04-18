@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.marketplace.search.indexing.application.commands.ProductCommand;
 import com.marketplace.search.indexing.application.exceptions.IndexingException;
 import com.marketplace.search.indexing.application.mappers.ProductMapper;
@@ -45,6 +47,7 @@ public class IndexProductUseCase {
      * A indexação acontece em background usando o threadpool configurado.
      */
     @Async("asyncIndexingExecutor")
+    @Observed(name = "indexing.execute.async", contextualName = "index-product-async")
     public CompletableFuture<Void> executeAsync(ProductCommand productCommand) {
         logger.info("Indexing product asynchronously: id={}, title='{}'",
         productCommand.id(), productCommand.title());
@@ -70,6 +73,7 @@ public class IndexProductUseCase {
     /**
      * Indexa múltiplos produtos em lote
      */
+    @Observed(name = "indexing.execute.batch", contextualName = "index-product-batch")
     public void executeBatch(List<ProductCommand> productCommand) {
         logger.info("Indexing batch of {} products", productCommand.size());
 

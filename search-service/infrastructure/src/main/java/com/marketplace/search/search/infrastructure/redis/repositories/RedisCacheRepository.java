@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marketplace.search.search.domain.repositories.CacheRepository;
@@ -33,6 +35,7 @@ public class RedisCacheRepository implements CacheRepository {
     }
 
     @Override
+    @Observed(name = "cache.put", contextualName = "redis-cache-put")
     public <T> void put(String key, T value, Duration ttl) {
         try {
             String serializedValue = objectMapper.writeValueAsString(value);
@@ -61,6 +64,7 @@ public class RedisCacheRepository implements CacheRepository {
     }
 
     @Override
+    @Observed(name = "cache.get", contextualName = "redis-cache-get")
     public <T> Optional<T> get(String key, Class<T> type) {
         try {
             String serializedValue = redisTemplate.opsForValue().get(key);

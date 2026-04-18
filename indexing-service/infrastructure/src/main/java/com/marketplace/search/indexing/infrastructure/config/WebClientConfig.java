@@ -2,6 +2,8 @@ package com.marketplace.search.indexing.infrastructure.config;
 
 import java.time.Duration;
 
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -20,7 +22,7 @@ import reactor.netty.http.client.HttpClient;
 public class WebClientConfig {
 
     @Bean
-    public WebClient.Builder webClientBuilder() {
+    public WebClient.Builder webClientBuilder(ObjectProvider<WebClientCustomizer> customizerProvider) {
         // Configurar HttpClient do Netty com timeouts
         HttpClient httpClient = HttpClient.create()
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
@@ -29,8 +31,12 @@ public class WebClientConfig {
                 conn.addHandlerLast(new ReadTimeoutHandler(10))
                     .addHandlerLast(new WriteTimeoutHandler(10)));
 
-        return WebClient.builder()
+        WebClient.Builder builder = WebClient.builder()
             .clientConnector(new ReactorClientHttpConnector(httpClient));
+
+        // Aplicar customizers do Spring Boot (inclui ObservationWebClientCustomizer para tracing)
+        customizerProvider.orderedStream().forEach(customizer -> customizer.customize(builder));
+
+        return builder;
     }
 }
-

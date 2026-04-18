@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
+import io.micrometer.observation.annotation.Observed;
+
 import com.marketplace.search.search.domain.entities.Product;
 import com.marketplace.search.search.domain.repositories.ProductSearchRepository;
 import com.marketplace.search.search.domain.valueobjects.ProductId;
@@ -61,6 +63,7 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 	}
 
 	@Override
+	@Observed(name = "opensearch.search", contextualName = "opensearch-bm25-search")
 	public SearchResult search(SearchQuery query, UserContext userContext) {
 		logger.debug("Executando busca no índice '{}': query='{}', limit={}", INDEX_NAME, query.terms(),
 				query.limit());
@@ -297,6 +300,7 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 	}
 
 	@Override
+	@Observed(name = "opensearch.candidates", contextualName = "opensearch-hybrid-candidates")
 	public ProductSearchRepository.CandidatesWithScores searchCandidatesWithScores(SearchQuery query, UserContext userContext, Optional<float[]> queryEmbedding) {
 		if (queryEmbedding.isPresent()) {
 			logger.info("Buscando candidatos com busca híbrida (BM25 + k-NN): query='{}', limit=200", query.terms());

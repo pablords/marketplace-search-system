@@ -7,13 +7,16 @@ import sys
 import os
 from typing import Optional
 import json
-from datetime import datetime
-
+from opentelemetry import trace
 
 class StructuredFormatter(logging.Formatter):
     """Formatter que gera logs estruturados em formato JSON"""
     
     def format(self, record: logging.LogRecord) -> str:
+        # Tentar obter contexto do trace atual
+        current_span = trace.get_current_span()
+        span_context = current_span.get_span_context()
+        
         log_data = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "level": record.levelname,
@@ -23,6 +26,11 @@ class StructuredFormatter(logging.Formatter):
             "function": record.funcName,
             "line": record.lineno,
         }
+        
+        # Injetar IDs de rastreamento se o trace estiver ativo
+        if span_context.is_valid:
+            log_data["trace_id"] = format(span_context.trace_id, "032x")
+            log_data["span_id"] = format(span_context.span_id, "016x")
         
         # Adicionar campos extras do record (todos os atributos customizados)
         # Excluir atributos padrão do LogRecord
@@ -44,12 +52,26 @@ class StructuredFormatter(logging.Formatter):
         return json.dumps(log_data, ensure_ascii=False)
 
 
+class TraceContextFilter(logging.Filter):
+    """Filtro que injeta trace_id e span_id no record para o TextFormatter"""
+    def filter(self, record):
+        current_span = trace.get_current_span()
+        span_context = current_span.get_span_context()
+        if span_context.is_valid:
+            record.trace_id = format(span_context.trace_id, "032x")
+            record.span_id = format(span_context.span_id, "016x")
+        else:
+            record.trace_id = "0" * 32
+            record.span_id = "0" * 16
+        return True
+
+
 class TextFormatter(logging.Formatter):
-    """Formatter padrão com informações detalhadas"""
+    """Formatter padrão com informações detalhadas e trace context"""
     
     def __init__(self):
         super().__init__(
-            fmt='%(asctime)s - %(name)s - %(levelname)s - [%(module)s:%(funcName)s:%(lineno)d] - %(message)s',
+            fmt='%(asctime)s - %(name)s - %(levelname)s - [%(trace_id)s:%(span_id)s] - [%(module)s:%(funcName)s:%(lineno)d] - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
 
@@ -93,6 +115,7 @@ def setup_logging(log_level: Optional[str] = None, log_format: Optional[str] = N
         formatter = TextFormatter()
     
     handler.setFormatter(formatter)
+    handler.addFilter(TraceContextFilter())
     root_logger.addHandler(handler)
     
     # Configurar loggers específicos

@@ -73,6 +73,23 @@ public class Category {
     return path;
   }
 
+  public static double calculateCategorySimilarity(Category cat1, Category cat2) {
+    if (cat1.equals(cat2))
+      return 1.0;
+    if (cat1.isSubcategoryOf(cat2) || cat2.isSubcategoryOf(cat1))
+      return 0.8;
+
+    // Verifica se são da mesma categoria pai
+    String[] path1 = cat1.getPath().split("/");
+    String[] path2 = cat2.getPath().split("/");
+
+    if (path1.length > 0 && path2.length > 0 && path1[0].equals(path2[0])) {
+      return 0.5; // Mesmo nível superior
+    }
+
+    return 0.0;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o)
@@ -97,4 +114,3 @@ public class Category {
         '}';
   }
 }
-

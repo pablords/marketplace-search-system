@@ -18,8 +18,7 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/catalog-service/bootstrap",
-            "preLaunchTask": "RUN_CATALOG_SERVICE",
-            "noDebug": false
+            "preLaunchTask": "RUN_CATALOG_SERVICE"
         },
         {
             "type": "java",
@@ -40,8 +39,7 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/indexing-service/bootstrap",
-            "preLaunchTask": "RUN_INDEXING_SERVICE",
-            "noDebug": false
+            "preLaunchTask": "RUN_INDEXING_SERVICE"
         },
         {
             "type": "java",
@@ -60,8 +58,7 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}/search-service/bootstrap",
-            "preLaunchTask": "RUN_SEARCH_SERVICE",
-            "noDebug": false
+            "preLaunchTask": "RUN_SEARCH_SERVICE"
         },
         {
             "name": "🤖 ML Embedding Service",
@@ -100,11 +97,10 @@
             "args": [
                 "--config=${workspaceFolder}/api-gateway/configs/config.development.yaml"
             ],
-            "env": {
-                "ENVIRONMENT": "development"
-            },
+            "envFile": "${workspaceFolder}/api-gateway/.env.dev",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/api-gateway",
+            "preLaunchTask": "GO_BUILD_API_GATEWAY",
             "showLog": true
         }
     ]

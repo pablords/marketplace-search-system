@@ -5,6 +5,8 @@
   "java.debug.settings.enableRunDebugCodeLens": true,
   "java.debug.settings.hotCodeReplace": "auto",
   "java.debug.logLevel": "warn",
+  "java.debug.settings.forceBuildBeforeLaunch": false,
+  "java.server.launchMode": "Standard",
   "spring-boot.live-reload.enabled": true,
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,
@@ -44,7 +46,7 @@
   "jupyter.kernels.excludePythonEnvironments": [
     "./notebooks/venv/bin/python"
   ],
-  "go.delveConfig":{
-      "debugAdapter":"legacy"
-   }
+  "go.delveConfig": {
+    "debugAdapter": "dlv-dap"
+  }
 }

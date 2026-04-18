@@ -117,6 +117,7 @@ public class Product {
     double popularityScore = metrics.getPopularityScore();
     double sellerScore = seller.getReputationScore();
     double freshnessPenalty = calculateFreshnessPenalty();
+    
 
     // Aplicar personalização baseada no contexto do usuário
     double personalizationBoost = calculatePersonalizationBoost(userContext);
@@ -128,6 +129,66 @@ public class Product {
         freshnessPenalty;
 
     return new SearchScore(Math.max(0, Math.min(1, finalScore)));
+  }
+
+  /**
+   * Calcula similaridade de preço entre dois produtos
+   */
+  private static double calculatePriceSimilarity(java.math.BigDecimal price1, java.math.BigDecimal price2) {
+    double p1 = price1.doubleValue();
+    double p2 = price2.doubleValue();
+
+    double ratio = Math.min(p1, p2) / Math.max(p1, p2);
+    return ratio; // Quanto mais próximos os preços, maior a similaridade
+  }
+
+  public static double calculateAttributeSimilarity(java.util.Set<String> attrs1, java.util.Set<String> attrs2) {
+    java.util.Set<String> intersection = new java.util.HashSet<>(attrs1);
+    intersection.retainAll(attrs2);
+
+    java.util.Set<String> union = new java.util.HashSet<>(attrs1);
+    union.addAll(attrs2);
+
+    return union.isEmpty() ? 0.0 : (double) intersection.size() / union.size();
+  }
+
+  /**
+   * Valida se um produto deve aparecer nos resultados de busca
+   */
+  public static boolean isProductSearchable(Product product, UserContext userContext) {
+
+    if (!product.isSearchable()) {
+      return false;
+    }
+
+    if (product.getSeller().isSuspended()) {
+      return false;
+    }
+
+    // Verificações baseadas na localização do usuário
+    if (userContext != null && userContext.location() != null) {
+      // Aqui poderia ter regras de entrega por região, etc.
+    }
+
+    return true;
+  }
+
+  /**
+   * Calcula similaridade entre dois produtos
+   */
+  public static double calculateProductSimilarity(Product product1, Product product2) {
+    double categoryScore = Category.calculateCategorySimilarity(product1.getInfo().getCategory(),
+        product2.getInfo().getCategory());
+
+    double brandScore = product1.getInfo().getBrand().equals(product2.getInfo().getBrand()) ? 1.0 : 0.0;
+
+    double priceScore = calculatePriceSimilarity(product1.getInfo().getPrice(),
+        product2.getInfo().getPrice());
+
+    double attributeScore = calculateAttributeSimilarity(product1.getInfo().getAttributes(),
+        product2.getInfo().getAttributes());
+
+    return (categoryScore * 0.4) + (brandScore * 0.3) + (priceScore * 0.2) + (attributeScore * 0.1);
   }
 
   /**
@@ -245,4 +306,3 @@ public class Product {
         + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + "]";
   }
 }
-

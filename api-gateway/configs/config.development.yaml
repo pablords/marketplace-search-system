@@ -3,7 +3,7 @@
 # Application
 application:
   environment: development
-
+  base_url: /api/v1
 # Logging - mais verboso para desenvolvimento
 logging:
   level: DEBUG

@@ -18,6 +18,10 @@ import org.springframework.stereotype.Service;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.DistributionSummary;
 
 import com.marketplace.search.search.application.config.SearchCacheProperties;
 import com.marketplace.search.search.application.exceptions.SearchException;
@@ -52,6 +56,7 @@ public class SearchProductsUseCase {
   private final ProductSearchRepository productSearchRepository;
   private final EmbeddingService embeddingService;
   private final ObservationRegistry observationRegistry;
+  private final MeterRegistry meterRegistry;
 
   public SearchProductsUseCase(SearchDomainService searchDomainService,
       SearchMapper searchMapper,
@@ -60,7 +65,8 @@ public class SearchProductsUseCase {
       RankWithMLUseCase rankWithMLUseCase,
       ProductSearchRepository productSearchRepository,
       EmbeddingService embeddingService,
-      ObservationRegistry observationRegistry) {
+      ObservationRegistry observationRegistry,
+      MeterRegistry meterRegistry) {
     this.searchDomainService = searchDomainService;
     this.searchMapper = searchMapper;
     this.cacheRepository = cacheRepository;
@@ -69,6 +75,7 @@ public class SearchProductsUseCase {
     this.productSearchRepository = productSearchRepository;
     this.embeddingService = embeddingService;
     this.observationRegistry = observationRegistry;
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -80,6 +87,13 @@ public class SearchProductsUseCase {
     logger.info("Executing search with 2-phase flow: query='{}', limit={}, offset={}",
         request.query(), request.limit(), request.offset());
 
+    Counter.builder("search.requests.total")
+        .description("Total number of search requests")
+        .tag("service", "search-service")
+        .register(meterRegistry)
+        .increment();
+
+    Timer.Sample sample = Timer.start(meterRegistry);
     Instant startTime = Instant.now();
 
     try {
@@ -102,13 +116,19 @@ public class SearchProductsUseCase {
       Optional<float[]> queryEmbedding = Optional.empty();
       
       try {
+        Timer.Sample embeddingSample = Timer.start(meterRegistry);
         queryEmbedding = embeddingService.generateQueryEmbedding(query.terms());
+        embeddingSample.stop(Timer.builder("search.phase.duration")
+            .tag("phase", "embedding")
+            .register(meterRegistry));
+
         if (queryEmbedding.isPresent()) {
           logger.info("Embedding gerado com sucesso para query: '{}' - busca híbrida será usada", query.terms());
         } else {
           logger.warn("Embedding Service retornou vazio para query: '{}' - usando apenas busca BM25 (fallback)", query.terms());
         }
       } catch (Exception e) {
+        meterRegistry.counter("search.embedding.errors.total").increment();
         logger.warn("Erro ao gerar embedding para query: '{}' - usando apenas busca BM25 (fallback). Erro: {}", 
             query.terms(), e.getMessage());
         queryEmbedding = Optional.empty();
@@ -117,20 +137,26 @@ public class SearchProductsUseCase {
       // FASE 1: Buscar Top 200 candidatos no OpenSearch
       // Se embedding disponível: busca híbrida (BM25 + k-NN em paralelo)
       // Se embedding não disponível: apenas busca BM25 (fallback)
-      if (queryEmbedding.isPresent()) {
-        logger.debug("Fase 1: Buscando Top 200 candidatos no OpenSearch (busca híbrida: BM25 + k-NN em paralelo)");
-      } else {
-        logger.debug("Fase 1: Buscando Top 200 candidatos no OpenSearch (apenas BM25 - fallback)");
-      }
-      
+      String searchType = queryEmbedding.isPresent() ? "hybrid" : "lexical";
+      meterRegistry.counter("search.requests.type.total", "type", searchType).increment();
+
+      Timer.Sample retrievalSample = Timer.start(meterRegistry);
       ProductSearchRepository.CandidatesWithScores candidatesWithScores = 
           productSearchRepository.searchCandidatesWithScores(query, userContext, queryEmbedding);
+      retrievalSample.stop(Timer.builder("search.phase.duration")
+          .tag("phase", "retrieval")
+          .tag("type", searchType)
+          .register(meterRegistry));
       
       List<Product> candidates = candidatesWithScores.products();
+      
+      meterRegistry.summary("search.candidates.count", "type", searchType).record(candidates.size());
+
       Map<String, ProductSearchRepository.ScorePair> scoresMap = 
           candidatesWithScores.scores();
 
       if (candidates.isEmpty()) {
+        meterRegistry.counter("search.empty.results.total", "type", searchType).increment();
         logger.info("Nenhum candidato encontrado para query: '{}'", query.terms());
         return createEmptyResult(query, Duration.between(startTime, Instant.now()));
       }
@@ -150,7 +176,11 @@ public class SearchProductsUseCase {
       }
 
       // Re-ranquear usando ML
+      Timer.Sample rankingSample = Timer.start(meterRegistry);
       List<Product> rankedProducts = rankWithMLUseCase.rank(candidates, query, userContext, scorePairs);
+      rankingSample.stop(Timer.builder("search.phase.duration")
+          .tag("phase", "ranking")
+          .register(meterRegistry));
 
       // Limitar aos resultados solicitados (considerando offset e limit)
       int fromIndex = Math.min(query.offset(), rankedProducts.size());
@@ -183,6 +213,19 @@ public class SearchProductsUseCase {
       SearchResultQuery resultDTO = searchMapper.toDTO(result);
 
       storeInCache(cacheKey, resultDTO, result.hasResults());
+
+      sample.stop(Timer.builder("search.execution.time")
+          .description("Time taken to execute search")
+          .tag("service", "search-service")
+          .tag("cache_hit", "false")
+          .tag("type", searchType)
+          .register(meterRegistry));
+
+      DistributionSummary.builder("search.results.count")
+          .description("Number of products returned in search")
+          .tag("service", "search-service")
+          .register(meterRegistry)
+          .record(finalProducts.size());
 
       logger.info("Search completed with 2-phase flow: {} products returned from {} candidates in {}ms",
           finalProducts.size(), candidates.size(), executionTime.toMillis());

@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 
 import com.marketplace.search.indexing.application.commands.ProductCommand;
@@ -31,13 +33,16 @@ public class IndexProductUseCase {
     private final ProductIndexRepository indexRepository;
     private final ProductMapper productMapper;
     private final ProductFeatureCalculationService featureCalculationService;
+    private final MeterRegistry meterRegistry;
 
     public IndexProductUseCase(ProductIndexRepository indexRepository,
             ProductMapper productMapper,
-            ProductFeatureCalculationService featureCalculationService) {
+            ProductFeatureCalculationService featureCalculationService,
+            MeterRegistry meterRegistry) {
         this.indexRepository = indexRepository;
         this.productMapper = productMapper;
         this.featureCalculationService = featureCalculationService;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -52,17 +57,29 @@ public class IndexProductUseCase {
         productCommand.id(), productCommand.title());
 
         try {
+            meterRegistry.counter("indexing.events.consumed.total", "status", "received").increment();
+            Timer.Sample totalSample = Timer.start(meterRegistry);
+
             Product product = productMapper.toDomain(productCommand);
 
             // Indexar produto no OpenSearch
+            Timer.Sample osSample = Timer.start(meterRegistry);
             indexRepository.indexProduct(product);
+            osSample.stop(Timer.builder("indexing.opensearch.duration").register(meterRegistry));
 
             // Calcular e cachear features de ML no Redis
+            Timer.Sample featureSample = Timer.start(meterRegistry);
             featureCalculationService.calculateAndCacheFeatures(product);
+            featureSample.stop(Timer.builder("indexing.features.duration").register(meterRegistry));
+
+            totalSample.stop(Timer.builder("indexing.process.duration")
+                .tag("status", "success")
+                .register(meterRegistry));
 
             return CompletableFuture.completedFuture(null);
 
         } catch (Exception e) {
+            meterRegistry.counter("indexing.events.consumed.total", "status", "error").increment();
             logger.error("Error indexing product: {}", productCommand.id(), e);
             return CompletableFuture.failedFuture(
                     new IndexingException("Failed to index product: " + productCommand.id(), e));

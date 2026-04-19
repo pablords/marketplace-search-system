@@ -23,6 +23,10 @@
 
 
     <dependencies>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
         <!-- Domain -->
         <dependency>
             <groupId>com.marketplace.search.catalog</groupId>

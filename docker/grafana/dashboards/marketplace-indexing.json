@@ -96,6 +96,53 @@
         }
       ],
       "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 200,
+      "title": "Ingestion Status (Events/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(indexing_events_consumed_total[1m])) by (status)",
+          "legendFormat": "Events {{status}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 201,
+      "title": "Indexing Internal Latency (P95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(indexing_opensearch_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P95 OpenSearch"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(indexing_features_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P95 ML Features"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 202,
+      "title": "Catalog Product Creations",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(catalog_product_operations_total{operation=\"create\"}[1m]))",
+          "legendFormat": "Products Created"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
     }
   ]
 }

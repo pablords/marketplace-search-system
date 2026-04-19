@@ -24,6 +24,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.marketplace.search.indexing</groupId>
             <artifactId>domain</artifactId>
         </dependency>

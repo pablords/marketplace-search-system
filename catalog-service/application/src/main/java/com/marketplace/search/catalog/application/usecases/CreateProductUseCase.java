@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 
 import com.marketplace.search.catalog.application.commands.ProductCommand;
@@ -28,12 +30,15 @@ public class CreateProductUseCase {
 
     private final ProductMapper productMapper;
     private final ProductRepository productRepository;
+    private final MeterRegistry meterRegistry;
 
     public CreateProductUseCase(
             ProductMapper productMapper,
-            ProductRepository productRepository) {
+            ProductRepository productRepository,
+            MeterRegistry meterRegistry) {
         this.productMapper = productMapper;
         this.productRepository = productRepository;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -48,6 +53,9 @@ public class CreateProductUseCase {
      */
     @Transactional
     public void execute(ProductCommand productDTO) {
+        meterRegistry.counter("catalog.product.operations.total", "operation", "create").increment();
+        Timer.Sample sample = Timer.start(meterRegistry);
+
         logger.info("Received request for create product: id={}, title='{}'",
             productDTO.id(), productDTO.title());
 
@@ -63,6 +71,10 @@ public class CreateProductUseCase {
 
         // Salva usando o repositório (port - implementado por adapter na infrastructure)
         productRepository.save(product);
+
+        sample.stop(Timer.builder("catalog.db.operation.duration")
+            .tag("operation", "save")
+            .register(meterRegistry));
 
         logger.info("Product {} saved to PostgreSQL. Debezium will capture and publish to Kafka.", 
             productDTO.id());

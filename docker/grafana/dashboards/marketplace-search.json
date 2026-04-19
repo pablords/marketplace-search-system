@@ -126,6 +126,48 @@
         }
       ],
       "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 100,
+      "title": "Search Mix - Lexical vs Hybrid",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(search_requests_type_total[5m])) by (type)",
+          "legendFormat": "{{type}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none" } }
+    },
+    {
+      "id": 101,
+      "title": "Latência por Fase (P95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(search_phase_duration_seconds_bucket[5m])) by (le, phase))",
+          "legendFormat": "P95 {{phase}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 102,
+      "title": "Saúde do Resultado (Zero Results Rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(search_empty_results_total[5m])) / sum(rate(search_requests_type_total[5m]))",
+          "legendFormat": "Empty Results %"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } }
     }
   ]
 }

@@ -208,11 +208,15 @@ KAFKA_DEDUPLICATION_TTL_HOURS=168  # 7 dias (padrão)
 # Traefik Cache (Cache de Borda)
 CACHE_SEARCH_TTL_SECONDS=300  # 5 minutos (padrão) - TTL do cache HTTP para rotas de search
 
-# Jaeger Tracing
-JAEGER_AGENT_HOST=jaeger
-JAEGER_AGENT_PORT=6831
-JAEGER_SAMPLER_TYPE=const
-JAEGER_SAMPLER_PARAM=1  # 1 = sample all traces
+# OpenTelemetry Tracing
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+OTEL_SERVICE_NAME=search-service  # Ajustar por serviço
+OTEL_METRICS_EXPORTER=none
+OTEL_LOGS_EXPORTER=none
+OTEL_HTTP_SERVER_EXCLUDED_PATHS=/actuator/prometheus,/actuator/health,/api/v1/actuator/prometheus,/api/v1/actuator/health
+OTEL_JAVAAGENT_EXCLUDED_URLS=.*\/actuator\/.*
+OTEL_JAVAAGENT_DISABLED_INSTRUMENTATIONS=redis,jedis,lettuce
+OTEL_INSTRUMENTATION_METHODS_INCLUDE=com.marketplace.search..*[*]
 ```
 
 ## 📊 Monitoramento

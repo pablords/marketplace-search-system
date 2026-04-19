@@ -22,7 +22,6 @@
     </properties>
 
     <dependencies>
-        <!-- Dependência para validação de dados -->
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>

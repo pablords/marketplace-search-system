@@ -23,7 +23,6 @@
 
 
     <dependencies>
-
         <!-- Domain -->
         <dependency>
             <groupId>com.marketplace.search.catalog</groupId>

@@ -17,6 +17,15 @@ processors:
   memory_limiter:
     limit_mib: 512
     check_interval: 1s
+  filter:
+    error_mode: ignore
+    traces:
+      span:
+        - 'IsMatch(attributes["http.target"], ".*actuator.*")'
+        - 'attributes["db.system"] == "redis"'
+        - 'name == "PING"'
+        - 'name == "HELLO"'
+        - 'name == "CLIENT"'
 
 exporters:
   otlp:
@@ -30,7 +39,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter, filter, batch]
       exporters: [otlp, debug]
 
   extensions: [health_check]

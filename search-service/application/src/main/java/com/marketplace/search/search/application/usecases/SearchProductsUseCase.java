@@ -1,5 +1,6 @@
 package com.marketplace.search.search.application.usecases;
 
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import io.micrometer.observation.annotation.Observed;
 
 import com.marketplace.search.search.application.config.SearchCacheProperties;
 import com.marketplace.search.search.application.exceptions.SearchException;
@@ -76,8 +76,7 @@ public class SearchProductsUseCase {
    * Fase 1: Busca Top 200 candidatos no OpenSearch
    * Fase 2: Extração de features, ML ranking e retorno Top 20
    */
-  @Observed(name = "search.execute", contextualName = "search-products")
-  public SearchResultQuery execute(SearchRequestQuery request) {
+    public SearchResultQuery execute(SearchRequestQuery request) {
     logger.info("Executing search with 2-phase flow: query='{}', limit={}, offset={}",
         request.query(), request.limit(), request.offset());
 
@@ -216,7 +215,7 @@ public class SearchProductsUseCase {
    * Executa busca de forma assíncrona
    */
   @Async("taskExecutor")
-  public CompletableFuture<SearchResultQuery> executeAsync(SearchRequestQuery request) {
+    public CompletableFuture<SearchResultQuery> executeAsync(SearchRequestQuery request) {
     try {
       SearchResultQuery result = execute(request);
       return CompletableFuture.completedFuture(result);
@@ -228,8 +227,7 @@ public class SearchProductsUseCase {
   /**
    * Executa busca com fallback automático
    */
-  @Observed(name = "search.execute-with-fallback", contextualName = "search-products-fallback")
-  public SearchResultQuery executeWithFallback(SearchRequestQuery request) {
+    public SearchResultQuery executeWithFallback(SearchRequestQuery request) {
     logger.info("Executing search with fallback: query='{}'", request.query());
 
     try {

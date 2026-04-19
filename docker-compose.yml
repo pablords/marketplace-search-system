@@ -472,6 +472,13 @@ services:
       context: .
       dockerfile: ./catalog-service/Dockerfile
     container_name: marketplace-catalog-service
+    environment:
+      - OTEL_SERVICE_NAME=catalog-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_HTTP_SERVER_EXCLUDED_PATHS=/actuator/prometheus,/actuator/health
+      - OTEL_INSTRUMENTATION_METHODS_INCLUDE=com.marketplace.search.catalog..*[*]
     env_file:
       - ./catalog-service/.env
     depends_on:
@@ -498,6 +505,13 @@ services:
       context: .
       dockerfile: ./search-service/Dockerfile
     container_name: marketplace-search-service
+    environment:
+      - OTEL_SERVICE_NAME=search-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_HTTP_SERVER_EXCLUDED_PATHS=/actuator/prometheus,/actuator/health
+      - OTEL_INSTRUMENTATION_METHODS_INCLUDE=com.marketplace.search.search..*[*]
     env_file:
       - ./search-service/.env
     depends_on:
@@ -528,6 +542,13 @@ services:
       context: .
       dockerfile: ./indexing-service/Dockerfile
     container_name: marketplace-indexing-service
+    environment:
+      - OTEL_SERVICE_NAME=indexing-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_HTTP_SERVER_EXCLUDED_PATHS=/actuator/prometheus,/actuator/health
+      - OTEL_INSTRUMENTATION_METHODS_INCLUDE=com.marketplace.search.indexing..*[*]
     env_file:
       - ./indexing-service/.env
     depends_on:

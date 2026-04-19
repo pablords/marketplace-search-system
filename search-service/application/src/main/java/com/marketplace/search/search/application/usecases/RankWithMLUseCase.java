@@ -13,14 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import io.micrometer.observation.annotation.Observed;
-
 import com.marketplace.search.search.domain.entities.Product;
 import com.marketplace.search.search.domain.repositories.MLFeatureStore;
 import com.marketplace.search.search.domain.services.FeatureExtractor;
 import com.marketplace.search.search.domain.services.MLRankingService;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
+
 
 /**
  * Caso de uso para re-ranking de produtos usando Machine Learning
@@ -63,7 +62,6 @@ public class RankWithMLUseCase {
      * @param scores Map de productId -> (bm25Score, knnScore) dos resultados do OpenSearch
      * @return Lista de produtos re-ranqueados (Top 20)
      */
-    @Observed(name = "ml.rank", contextualName = "ml-ranking")
     public List<Product> rank(List<Product> candidates, SearchQuery query, UserContext userContext,
                               Map<String, ScorePair> scores) {
         

@@ -46,6 +46,9 @@ WORKDIR /app
 # Copiar JAR executável do stage de build (excluir *-original.jar)
 COPY --from=builder /build/search-service/bootstrap/target/bootstrap-*.jar app.jar
 
+# Download OpenTelemetry Java Agent
+RUN wget -O opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+
 RUN chown -R appuser:appuser /app
 
 USER appuser
@@ -58,5 +61,5 @@ ENV ENVIRONMENT=production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8083/api/v1/actuator/health || exit 1
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]
 

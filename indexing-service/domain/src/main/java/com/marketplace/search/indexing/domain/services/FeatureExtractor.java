@@ -1,5 +1,6 @@
 package com.marketplace.search.indexing.domain.services;
 
+
 import java.util.Map;
 import java.util.regex.Pattern;
 

@@ -18,7 +18,6 @@ import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
-import io.micrometer.observation.annotation.Observed;
 
 import com.marketplace.search.indexing.domain.entities.Product;
 import com.marketplace.search.indexing.domain.repositories.ProductIndexRepository;
@@ -155,8 +154,7 @@ public class OpensearchRepository implements ProductIndexRepository {
 	}
 
 	@Override
-	@Observed(name = "indexing.opensearch.batch", contextualName = "index-batch-opensearch")
-	public void indexDocumentsBatch(List<Product> products) throws Exception {
+		public void indexDocumentsBatch(List<Product> products) throws Exception {
 		if (products == null || products.isEmpty()) {
 			log.debug("Nenhum documento para indexar.");
 			return;
@@ -250,8 +248,7 @@ public class OpensearchRepository implements ProductIndexRepository {
 	}
 
 	@Override
-	@Observed(name = "indexing.opensearch.update", contextualName = "update-product-opensearch")
-	public void updateProduct(Product product) throws Exception {
+		public void updateProduct(Product product) throws Exception {
 		// Criar documento completo usando o mapper
 		Map<String, Object> docBody = mapper.toDocumentMap(product);
 
@@ -284,8 +281,7 @@ public class OpensearchRepository implements ProductIndexRepository {
 	}
 
 	@Override
-	@Observed(name = "indexing.opensearch.index", contextualName = "index-product-opensearch")
-	public void indexProduct(Product product) throws Exception {
+		public void indexProduct(Product product) throws Exception {
 		// Criar documento completo usando o mapper
 		Map<String, Object> docBody = mapper.toDocumentMap(product);
 

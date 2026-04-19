@@ -1,11 +1,11 @@
 package com.marketplace.search.catalog.application.usecases;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import io.micrometer.observation.annotation.Observed;
 
 import com.marketplace.search.catalog.application.commands.ProductCommand;
 import com.marketplace.search.catalog.application.mappers.ProductMapper;
@@ -47,7 +47,6 @@ public class CreateProductUseCase {
      * @throws ProductAlreadyExistsException se o produto já existe
      */
     @Transactional
-    @Observed(name = "catalog.product.create", contextualName = "create-product")
     public void execute(ProductCommand productDTO) {
         logger.info("Received request for create product: id={}, title='{}'",
             productDTO.id(), productDTO.title());

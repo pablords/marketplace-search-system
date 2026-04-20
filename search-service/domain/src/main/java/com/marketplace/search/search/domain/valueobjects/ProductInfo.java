@@ -1,9 +1,13 @@
 package com.marketplace.search.search.domain.valueobjects;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import com.marketplace.search.search.domain.entities.Category;
 
@@ -102,17 +106,18 @@ public class ProductInfo {
   /**
    * Obtém todas as palavras-chave para indexação
    */
+  @JsonIgnore
   public Set<String> getSearchableKeywords() {
-    Set<String> keywords = Set.of((title + " " + description + " " + brand.name())
+    Set<String> keywords = Arrays.stream((title + " " + description + " " + brand.name())
         .toLowerCase()
         .replaceAll("[^a-zA-Z0-9\\s]", "")
-        .split("\\s+"));
+        .split("\\s+"))
+        .collect(Collectors.toSet());
 
-    Set<String> result = new java.util.HashSet<>(keywords);
-    result.addAll(tags);
-    result.addAll(attributes);
+    keywords.addAll(tags);
+    keywords.addAll(attributes);
 
-    return result;
+    return keywords;
   }
 
   // Getters

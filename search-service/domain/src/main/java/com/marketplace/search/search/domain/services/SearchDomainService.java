@@ -2,16 +2,20 @@ package com.marketplace.search.search.domain.services;
 
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import com.marketplace.search.search.domain.entities.Product;
+import com.marketplace.search.search.domain.repositories.CacheRepository;
 import com.marketplace.search.search.domain.repositories.ProductSearchRepository;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
+import java.time.Duration;
 
 /**
  * Serviço de domínio para operações de busca avançada
@@ -19,10 +23,29 @@ import com.marketplace.search.search.domain.valueobjects.UserContext;
 public class SearchDomainService {
 
   private final ProductSearchRepository searchRepository;
+  private final CacheRepository cacheRepository;
   private static final Logger logger = LoggerFactory.getLogger(SearchDomainService.class);
 
-  public SearchDomainService(ProductSearchRepository searchRepository) {
+  public SearchDomainService(ProductSearchRepository searchRepository, CacheRepository cacheRepository) {
     this.searchRepository = searchRepository;
+    this.cacheRepository = cacheRepository;
+  }
+
+  /**
+   * Busca no cache um resultado de domínio
+   */
+  public Optional<SearchResult> getFromCache(String cacheKey) {
+    return cacheRepository.get(cacheKey, SearchResult.class);
+  }
+
+  /**
+   * Armazena no cache um resultado de domínio
+   */
+  public void storeInCache(String cacheKey, SearchResult result, Duration ttl) {
+    if (result != null && result.hasResults()) {
+      cacheRepository.put(cacheKey, result, ttl);
+      logger.debug("Resultado armazenado no cache para chave: {}", cacheKey);
+    }
   }
 
   /**
@@ -44,6 +67,36 @@ public class SearchDomainService {
         initialResult.pageNumber(),
         initialResult.executionTime(),
         initialResult.metrics());
+  }
+
+  /**
+   * Busca e valida candidatos para o ranking de ML, aplicando regras de negócio de domínio.
+   */
+  public ProductSearchRepository.CandidatesWithScores fetchAndValidateCandidates(
+      SearchQuery query, 
+      UserContext userContext, 
+      Optional<float[]> queryEmbedding) {
+    
+    logger.debug("Buscando candidatos no repositório para query: {}", query.terms());
+    ProductSearchRepository.CandidatesWithScores rawCandidates = 
+        searchRepository.searchCandidatesWithScores(query, userContext, queryEmbedding);
+
+    if (rawCandidates.products().isEmpty()) {
+      return rawCandidates;
+    }
+
+    logger.debug("Aplicando regras de negócio de domínio em {} candidatos", rawCandidates.products().size());
+    List<Product> validatedProducts = applyBusinessRules(rawCandidates.products(), query, userContext);
+
+    // Filtrar o mapa de scores para conter apenas os produtos validados
+    Map<String, ProductSearchRepository.ScorePair> validatedScores = validatedProducts.stream()
+        .collect(Collectors.toMap(
+            p -> p.getId().toString(),
+            p -> rawCandidates.scores().get(p.getId().toString()),
+            (v1, v2) -> v1 // Em caso de duplicata (não deveria ocorrer), manter o primeiro
+        ));
+
+    return new ProductSearchRepository.CandidatesWithScores(validatedProducts, validatedScores);
   }
 
   /**

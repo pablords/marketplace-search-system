@@ -12,6 +12,8 @@ import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchScore;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -194,6 +196,7 @@ public class Product {
   /**
    * Verifica se o produto está disponível para busca
    */
+  @JsonIgnore
   public boolean isSearchable() {
     return status.isActive() &&
         status.hasStock() &&
@@ -204,6 +207,7 @@ public class Product {
   /**
    * Verifica se o produto está bloqueado por regras de negócio
    */
+  @JsonIgnore
   public boolean isBlocked() {
     return status.isSuspended() ||
         seller.isSuspended() ||

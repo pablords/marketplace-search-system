@@ -16,28 +16,25 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import io.micrometer.observation.Observation;
-import io.micrometer.observation.ObservationRegistry;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.DistributionSummary;
-
-import com.marketplace.search.search.application.config.SearchCacheProperties;
 import com.marketplace.search.search.application.exceptions.SearchException;
 import com.marketplace.search.search.application.mappers.SearchMapper;
-import com.marketplace.search.search.application.queries.SearchMetricsData;
+import com.marketplace.search.search.application.ports.SearchCacheSettings;
 import com.marketplace.search.search.application.queries.SearchRequestQuery;
 import com.marketplace.search.search.application.queries.SearchResultQuery;
 import com.marketplace.search.search.domain.entities.Product;
-import com.marketplace.search.search.domain.repositories.CacheRepository;
-import com.marketplace.search.search.domain.repositories.ProductSearchRepository;
 import com.marketplace.search.search.domain.services.EmbeddingService;
 import com.marketplace.search.search.domain.services.SearchDomainService;
 import com.marketplace.search.search.domain.valueobjects.SearchMetrics;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
+
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 
 
 /**
@@ -50,29 +47,23 @@ public class SearchProductsUseCase {
 
   private final SearchDomainService searchDomainService;
   private final SearchMapper searchMapper;
-  private final CacheRepository cacheRepository;
-  private final SearchCacheProperties cacheProperties;
+  private final SearchCacheSettings cacheProperties;
   private final RankWithMLUseCase rankWithMLUseCase;
-  private final ProductSearchRepository productSearchRepository;
   private final EmbeddingService embeddingService;
   private final ObservationRegistry observationRegistry;
   private final MeterRegistry meterRegistry;
 
   public SearchProductsUseCase(SearchDomainService searchDomainService,
       SearchMapper searchMapper,
-      CacheRepository cacheRepository,
-      SearchCacheProperties cacheProperties,
+      SearchCacheSettings cacheProperties,
       RankWithMLUseCase rankWithMLUseCase,
-      ProductSearchRepository productSearchRepository,
       EmbeddingService embeddingService,
       ObservationRegistry observationRegistry,
       MeterRegistry meterRegistry) {
     this.searchDomainService = searchDomainService;
     this.searchMapper = searchMapper;
-    this.cacheRepository = cacheRepository;
     this.cacheProperties = cacheProperties;
     this.rankWithMLUseCase = rankWithMLUseCase;
-    this.productSearchRepository = productSearchRepository;
     this.embeddingService = embeddingService;
     this.observationRegistry = observationRegistry;
     this.meterRegistry = meterRegistry;
@@ -87,7 +78,7 @@ public class SearchProductsUseCase {
     logger.info("Executing search with 2-phase flow: query='{}', limit={}, offset={}",
         request.query(), request.limit(), request.offset());
 
-    Counter.builder("search.requests.total")
+    Counter.builder("search.requests.type.total")
         .description("Total number of search requests")
         .tag("service", "search-service")
         .register(meterRegistry)
@@ -103,11 +94,13 @@ public class SearchProductsUseCase {
 
       String cacheKey = buildCacheKey(query, userContext, "standard");
       
-      SearchResultQuery cachedResult = Observation.createNotStarted("search.cache.lookup", observationRegistry)
-          .observe(() -> getFromCache(cacheKey));
-          
-      if (cachedResult != null) {
-        return cachedResult;
+      if (cacheProperties.isEnabled()) {
+        Optional<SearchResult> cachedResult = Observation.createNotStarted("search.cache.lookup", observationRegistry)
+            .observe(() -> searchDomainService.getFromCache(cacheKey));
+            
+        if (cachedResult != null && cachedResult.isPresent()) {
+            return searchMapper.toDTO(cachedResult.get());
+        }
       }
 
       // PASSO 1: Chamar Embedding Service para gerar vetor da query
@@ -135,102 +128,66 @@ public class SearchProductsUseCase {
       }
 
       // FASE 1: Buscar Top 200 candidatos no OpenSearch
-      // Se embedding disponível: busca híbrida (BM25 + k-NN em paralelo)
-      // Se embedding não disponível: apenas busca BM25 (fallback)
       String searchType = queryEmbedding.isPresent() ? "hybrid" : "lexical";
       meterRegistry.counter("search.requests.type.total", "type", searchType).increment();
 
       Timer.Sample retrievalSample = Timer.start(meterRegistry);
-      ProductSearchRepository.CandidatesWithScores candidatesWithScores = 
-          productSearchRepository.searchCandidatesWithScores(query, userContext, queryEmbedding);
-      retrievalSample.stop(Timer.builder("search.phase.duration")
-          .tag("phase", "retrieval")
-          .tag("type", searchType)
-          .register(meterRegistry));
+      var candidatesWithScores = searchDomainService.fetchAndValidateCandidates(query, userContext, queryEmbedding);
+      retrievalSample.stop(Timer.builder("search.phase.duration").tag("phase", "retrieval").tag("type", searchType).register(meterRegistry));
       
       List<Product> candidates = candidatesWithScores.products();
-      
-      meterRegistry.summary("search.candidates.count", "type", searchType).record(candidates.size());
-
-      Map<String, ProductSearchRepository.ScorePair> scoresMap = 
-          candidatesWithScores.scores();
-
       if (candidates.isEmpty()) {
-        meterRegistry.counter("search.empty.results.total", "type", searchType).increment();
-        logger.info("Nenhum candidato encontrado para query: '{}'", query.terms());
-        return createEmptyResult(query, Duration.between(startTime, Instant.now()));
+          meterRegistry.counter("search.empty.results.total").increment();
+          return createEmptyResult(query, Duration.between(startTime, Instant.now()));
       }
 
-      logger.info("Fase 1 concluída: {} candidatos encontrados", candidates.size());
-
-      // FASE 2: Extrair features, chamar ML ranking e re-ranquear para Top 20
-      logger.debug("Fase 2: Extraindo features e chamando ML ranking");
-      
-      // Converter scores para o formato esperado pelo RankWithMLUseCase
+      // Mapear scores para o formato do ML
       Map<String, RankWithMLUseCase.ScorePair> scorePairs = new HashMap<>();
-      for (Map.Entry<String, ProductSearchRepository.ScorePair> entry : scoresMap.entrySet()) {
-        scorePairs.put(entry.getKey(), 
-            new RankWithMLUseCase.ScorePair(
-                entry.getValue().bm25Score(), 
-                entry.getValue().knnScore()));
-      }
+      candidatesWithScores.scores().forEach((id, score) -> 
+          scorePairs.put(id, new RankWithMLUseCase.ScorePair(score.bm25Score(), score.knnScore()))
+      );
 
-      // Re-ranquear usando ML
+      // FASE 2: ML Ranking
       Timer.Sample rankingSample = Timer.start(meterRegistry);
       List<Product> rankedProducts = rankWithMLUseCase.rank(candidates, query, userContext, scorePairs);
-      rankingSample.stop(Timer.builder("search.phase.duration")
-          .tag("phase", "ranking")
-          .register(meterRegistry));
+      rankingSample.stop(Timer.builder("search.phase.duration").tag("phase", "ranking").register(meterRegistry));
 
-      // Limitar aos resultados solicitados (considerando offset e limit)
+      // Paginação simples
       int fromIndex = Math.min(query.offset(), rankedProducts.size());
       int toIndex = Math.min(query.offset() + query.limit(), rankedProducts.size());
       List<Product> finalProducts = rankedProducts.subList(fromIndex, toIndex);
-      logger.info("Final product: {}", finalProducts.get(0).toString());
 
-      Duration executionTime = Duration.between(startTime, Instant.now());
+      double averageScore = candidatesWithScores.scores().values().stream()
+          .mapToDouble(score -> (score.bm25Score() + score.knnScore()) / 2.0)
+          .average().orElse(0.0);
 
-      // Criar SearchResult com os produtos re-ranqueados
-      SearchMetrics metrics = new SearchMetrics(
-          100, // QPS estimado
-          0.0, // Average score (pode ser calculado se necessário)
-          candidates.size(), // Total count (candidatos encontrados)
-          (int) executionTime.toMillis(), // Took
-          false, // Cache usage
-          "" // Shard info
-      );
-
-      SearchResult result = new SearchResult(
-          finalProducts,
-          candidates.size(), // totalCount
-          query.limit(), // pageSize
-          query.offset() / query.limit(), // pageNumber
-          executionTime,
-          metrics
-      );
-
-      // Mapear resultado para DTO
-      SearchResultQuery resultDTO = searchMapper.toDTO(result);
-
-      storeInCache(cacheKey, resultDTO, result.hasResults());
-
-      sample.stop(Timer.builder("search.execution.time")
-          .description("Time taken to execute search")
-          .tag("service", "search-service")
-          .tag("cache_hit", "false")
+      DistributionSummary.builder("search.candidates.count")
+          .description("Number of candidates retrieved in phase 1")
           .tag("type", searchType)
-          .register(meterRegistry));
+          .register(meterRegistry)
+          .record(candidates.size());
 
       DistributionSummary.builder("search.results.count")
-          .description("Number of products returned in search")
-          .tag("service", "search-service")
+          .description("Number of results returned after ranking")
+          .tag("type", searchType)
           .register(meterRegistry)
           .record(finalProducts.size());
 
-      logger.info("Search completed with 2-phase flow: {} products returned from {} candidates in {}ms",
-          finalProducts.size(), candidates.size(), executionTime.toMillis());
+      DistributionSummary.builder("search.relevance.average")
+          .description("Average relevance score of search results")
+          .tag("type", searchType)
+          .register(meterRegistry)
+          .record(averageScore);
 
-      return resultDTO;
+      Duration executionTime = Duration.between(startTime, Instant.now());
+      SearchMetrics metrics = new SearchMetrics(100, averageScore, candidates.size(), 0L, false, "");
+      SearchResult result = new SearchResult(finalProducts, candidates.size(), query.limit(), query.offset() / query.limit(), executionTime, metrics);
+
+      if (cacheProperties.isEnabled()) {
+          searchDomainService.storeInCache(cacheKey, result, cacheProperties.getSearchResultsTtl());
+      }
+
+      return searchMapper.toDTO(result);
 
     } catch (Exception e) {
       logger.error("Error executing search for query: {}", request.query(), e);
@@ -242,17 +199,18 @@ public class SearchProductsUseCase {
    * Cria um resultado vazio quando não há candidatos
    */
   private SearchResultQuery createEmptyResult(SearchQuery query, Duration executionTime) {
-    SearchMetrics metrics = new SearchMetrics(100, 0.0, 0, (int) executionTime.toMillis(), false, "");
-    SearchResult emptyResult = new SearchResult(
+    SearchResult result = new SearchResult(
         List.of(),
         0,
         query.limit(),
         query.offset() / query.limit(),
         executionTime,
-        metrics
+        SearchMetrics.empty()
     );
-    return searchMapper.toDTO(emptyResult);
+    return searchMapper.toDTO(result);
   }
+
+  // Métodos auxiliares privados foram removidos pois a lógica foi para o domínio
 
   /**
    * Executa busca de forma assíncrona
@@ -278,20 +236,27 @@ public class SearchProductsUseCase {
       UserContext userContext = searchMapper.mapUserContext(request.userContext());
 
       String cacheKey = buildCacheKey(query, userContext, "fallback");
-      SearchResultQuery cachedResult = getFromCache(cacheKey);
-      if (cachedResult != null) {
-        return cachedResult;
+      
+      if (cacheProperties.isEnabled()) {
+          Optional<SearchResult> cachedResult = searchDomainService.getFromCache(cacheKey);
+          if (cachedResult.isPresent()) {
+              return searchMapper.toDTO(cachedResult.get());
+          }
       }
 
       SearchResult result = searchDomainService.searchWithFallback(query, userContext);
-      SearchResultQuery resultDTO = searchMapper.toDTO(result);
+      
+      DistributionSummary.builder("search.results.count")
+          .description("Number of results returned after fallback")
+          .tag("type", "fallback")
+          .register(meterRegistry)
+          .record(result.products().size());
+      
+      if (cacheProperties.isEnabled()) {
+          searchDomainService.storeInCache(cacheKey, result, cacheProperties.getSearchResultsTtl());
+      }
 
-      storeInCache(cacheKey, resultDTO, result.hasResults());
-
-      logger.info("Search with fallback completed: found {} products",
-          result.products().size());
-
-      return resultDTO;
+      return searchMapper.toDTO(result);
 
     } catch (Exception e) {
       logger.error("Error executing search with fallback for query: {}", request.query(), e);
@@ -299,53 +264,7 @@ public class SearchProductsUseCase {
     }
   }
 
-  private SearchResultQuery getFromCache(String cacheKey) {
-    if (!isCacheEnabled() || cacheKey == null) {
-      return null;
-    }
-
-    try {
-      Optional<SearchResultQuery> cached = cacheRepository.get(cacheKey, SearchResultQuery.class);
-      if (cached.isPresent()) {
-        logger.debug("Cache hit for key {}", cacheKey);
-        return markAsCached(cached.get());
-      }
-      logger.debug("Cache miss for key {}", cacheKey);
-    } catch (Exception ex) {
-      logger.warn("Failed to retrieve cache entry for key {}: {}", cacheKey, ex.getMessage());
-    }
-    return null;
-  }
-
-  private void storeInCache(String cacheKey, SearchResultQuery resultDTO, boolean hasResults) {
-    if (!isCacheEnabled() || cacheKey == null || resultDTO == null) {
-      return;
-    }
-
-    if (!hasResults) {
-      logger.debug("Skipping cache store for key {} because result has no products", cacheKey);
-      return;
-    }
-
-    Duration ttl = cacheProperties.getSearchResultsTtl();
-    if (ttl.isZero() || ttl.isNegative()) {
-      logger.debug("Skipping cache store for key {} due to invalid TTL {}", cacheKey, ttl);
-      return;
-    }
-
-    try {
-      cacheRepository.put(cacheKey, resultDTO, ttl);
-      logger.debug("Stored search result in cache with key {} for TTL {}", cacheKey, ttl);
-    } catch (Exception ex) {
-      logger.warn("Failed to store cache entry for key {}: {}", cacheKey, ex.getMessage());
-    }
-  }
-
   private String buildCacheKey(SearchQuery query, UserContext userContext, String mode) {
-    if (!isCacheEnabled()) {
-      return null;
-    }
-
     StringBuilder builder = new StringBuilder(cacheProperties.getKeyPrefix());
     builder.append(":mode=").append(mode);
     builder.append(":q=").append(query.terms());
@@ -381,47 +300,6 @@ public class SearchProductsUseCase {
     }
 
     return builder.toString().toLowerCase();
-  }
-
-  private boolean isCacheEnabled() {
-    return cacheProperties != null && cacheProperties.isEnabled() && cacheProperties.hasValidSearchTtl();
-  }
-
-  private SearchResultQuery markAsCached(SearchResultQuery dto) {
-    logger.debug("isCacheEnabled {}", isCacheEnabled());
-    if (dto == null) {
-      return null;
-    }
-
-    // Records são imutáveis, precisamos criar novas instâncias
-    SearchMetricsData metrics = dto.metrics();
-    if (metrics == null) {
-      metrics = SearchMetricsData.builder()
-          .usedCache(isCacheEnabled())
-          .build();
-    } else {
-      metrics = SearchMetricsData.builder()
-          .queriesPerSecond(metrics.queriesPerSecond())
-          .averageScore(metrics.averageScore())
-          .indexedDocuments(metrics.indexedDocuments())
-          .indexSize(metrics.indexSize())
-          .usedCache(isCacheEnabled())
-          .shardInfo(metrics.shardInfo())
-          .build();
-    }
-
-    // Criar novo DTO com metrics atualizado e executionTime zerado
-    return SearchResultQuery.builder()
-        .products(dto.products())
-        .totalCount(dto.totalCount())
-        .pageSize(dto.pageSize())
-        .pageNumber(dto.pageNumber())
-        .totalPages(dto.totalPages())
-        .hasNextPage(dto.hasNextPage())
-        .hasPreviousPage(dto.hasPreviousPage())
-        .executionTimeMs(0)
-        .metrics(metrics)
-        .build();
   }
 }
 

@@ -1,6 +1,7 @@
 package com.marketplace.search.search.domain.valueobjects;
 
 import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Value Object contendo métricas da execução da busca
@@ -67,10 +68,12 @@ public class SearchMetrics {
     return new SearchMetrics(0, 0.0, 0, 0, false, null);
   }
 
+  @JsonIgnore
   public boolean isHighLoad() {
     return queriesPerSecond > 1000;
   }
 
+  @JsonIgnore
   public boolean hasGoodQuality() {
     return averageScore > 0.7;
   }

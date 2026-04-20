@@ -1,15 +1,17 @@
-package com.marketplace.search.search.application.config;
+package com.marketplace.search.search.infrastructure.config;
 
 import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.marketplace.search.search.application.ports.SearchCacheSettings;
+
 /**
- * Encapsula as configurações de cache de busca.
+ * Infrastructure implementation of SearchCacheSettings using Spring @Value.
  */
 @Component
-public class SearchCacheProperties {
+public class SearchCacheProperties implements SearchCacheSettings {
 
     private final boolean enabled;
     private final Duration defaultTtl;
@@ -30,28 +32,33 @@ public class SearchCacheProperties {
         this.keyPrefix = keyPrefix != null && !keyPrefix.isBlank() ? keyPrefix : "search:results";
     }
 
+    @Override
     public boolean isEnabled() {
         return enabled;
     }
 
+    @Override
     public Duration getDefaultTtl() {
         return defaultTtl;
     }
 
+    @Override
     public Duration getSearchResultsTtl() {
         return searchResultsTtl;
     }
 
+    @Override
     public Duration getPopularSearchesTtl() {
         return popularSearchesTtl;
     }
 
+    @Override
     public String getKeyPrefix() {
         return keyPrefix;
     }
 
+    @Override
     public boolean hasValidSearchTtl() {
         return !searchResultsTtl.isZero() && !searchResultsTtl.isNegative();
     }
 }
-

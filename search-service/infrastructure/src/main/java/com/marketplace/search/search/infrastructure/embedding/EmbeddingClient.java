@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.marketplace.search.search.domain.services.EmbeddingService;
 
 import reactor.util.retry.Retry;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 /**
  * Cliente HTTP para comunicação com o Embedding Service
@@ -55,6 +56,8 @@ public class EmbeddingClient implements EmbeddingService {
      * @param query Texto da query de busca
      * @return Vetor de embedding (float[]) ou Optional.empty() em caso de erro
      */
+    @Override
+    @CircuitBreaker(name = "embeddingService", fallbackMethod = "embeddingFallback")
     public Optional<float[]> generateQueryEmbedding(String query) {
         if (!enabled) {
             logger.debug("Embedding Service desabilitado. Retornando vazio.");
@@ -127,10 +130,16 @@ public class EmbeddingClient implements EmbeddingService {
             }
             logger.debug("Erro ao chamar Embedding Service: {}", cause != null ? cause.getMessage() : message);
             return Optional.empty();
-        } catch (Exception e) {
-            logger.debug("Erro ao chamar Embedding Service: {}", e.getMessage());
-            return Optional.empty();
         }
+    }
+
+    /**
+     * Fallback para o Circuit Breaker do Embedding Service.
+     */
+    public Optional<float[]> embeddingFallback(String query, Throwable t) {
+        logger.error("Circuit Breaker acionado para Embedding Service. Causa: {}. Fazendo fallback para busca padrão.", 
+            t.getMessage());
+        return Optional.empty();
     }
 
     /**

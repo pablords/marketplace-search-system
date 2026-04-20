@@ -21,6 +21,7 @@ import com.marketplace.search.search.domain.services.MLRankingService;
 
 import reactor.core.Exceptions;
 import reactor.util.retry.Retry;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 /**
  * Cliente HTTP para comunicação com o ML Ranking Service
@@ -50,6 +51,7 @@ public class MlRankingClient implements MLRankingService {
     }
 
     @Override
+    @CircuitBreaker(name = "mlRankingService", fallbackMethod = "rankFallback")
     public Optional<List<RankedProduct>> rank(List<FeatureVector> candidates, String query) {
         if (candidates == null || candidates.isEmpty()) {
             logger.warn("Lista de candidatos vazia ou nula para ranking ML");
@@ -125,6 +127,16 @@ public class MlRankingClient implements MLRankingService {
             logger.error("Erro inesperado ao chamar ML Ranking Service", e);
             return Optional.empty();
         }
+    }
+
+    /**
+     * Fallback para o Circuit Breaker do ML Ranking Service.
+     * Retorna Optional.empty() para que a busca prossiga sem o re-ranking do ML.
+     */
+    public Optional<List<RankedProduct>> rankFallback(List<FeatureVector> candidates, String query, Throwable t) {
+        logger.error("Circuit Breaker acionado para ML Ranking Service. Causa: {}. Fazendo fallback para busca padrão.", 
+            t.getMessage());
+        return Optional.empty();
     }
 
     @Override

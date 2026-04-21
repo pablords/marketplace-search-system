@@ -45,7 +45,8 @@ public class SearchMapper {
         filters,
         sort,
         dto.offset(),
-        dto.limit());
+        dto.limit(),
+        dto.rankingDebug());
   }
 
   public UserContext mapUserContext(UserContextData dto) {

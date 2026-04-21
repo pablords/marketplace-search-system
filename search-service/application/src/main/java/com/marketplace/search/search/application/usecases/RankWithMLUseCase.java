@@ -80,8 +80,11 @@ public class RankWithMLUseCase {
 
         try {
             // 1. Buscar ou calcular features para todos os candidatos
-            List<MLRankingService.FeatureVector> featureVectors = prepareFeatureVectors(
-                candidates, query, scores);
+            Map<String, Map<String, Double>> featuresMap = collectFeatures(candidates, query, scores);
+            
+            List<MLRankingService.FeatureVector> featureVectors = featuresMap.entrySet().stream()
+                .map(e -> new MLRankingService.FeatureVector(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
 
             if (featureVectors.isEmpty()) {
                 logger.warn("Nenhuma feature foi preparada, retornando candidatos originais");
@@ -98,7 +101,7 @@ public class RankWithMLUseCase {
             }
 
             // 3. Re-ordenar produtos baseado no ranking ML
-            List<Product> reRankedProducts = reorderProducts(candidates, rankedProducts.get());
+            List<Product> reRankedProducts = reorderProducts(candidates, rankedProducts.get(), featuresMap, query.rankingDebug());
 
             Duration executionTime = Duration.between(startTime, Instant.now());
             logger.info("Re-ranking ML concluído: {} produtos ranqueados em {}ms",
@@ -113,13 +116,13 @@ public class RankWithMLUseCase {
     }
 
     /**
-     * Prepara feature vectors para todos os candidatos
+     * Coleta feature vectors para todos os candidatos
      * Busca features em cache primeiro, calcula se necessário
      */
-    private List<MLRankingService.FeatureVector> prepareFeatureVectors(
+    private Map<String, Map<String, Double>> collectFeatures(
             List<Product> candidates, SearchQuery query, Map<String, ScorePair> scores) {
         
-        List<MLRankingService.FeatureVector> featureVectors = new ArrayList<>();
+        Map<String, Map<String, Double>> featuresMap = new java.util.HashMap<>();
         List<String> productIds = candidates.stream()
             .map(p -> p.getId().getValue())
             .collect(Collectors.toList());
@@ -127,7 +130,7 @@ public class RankWithMLUseCase {
         // Buscar features em lote do cache
         Map<String, Map<String, Double>> cachedFeatures = featureStore.getFeaturesBatch(productIds);
 
-        // Preparar feature vectors
+        // Preparar features
         for (Product candidate : candidates) {
             String productId = candidate.getId().getValue();
             Map<String, Double> features;
@@ -151,17 +154,20 @@ public class RankWithMLUseCase {
                 }
             }
 
-            featureVectors.add(new MLRankingService.FeatureVector(productId, features));
+            featuresMap.put(productId, features);
         }
 
-        return featureVectors;
+        return featuresMap;
     }
 
     /**
-     * Re-ordena produtos baseado no ranking ML
+     * Re-ordena produtos baseado no ranking ML e popula dados de depuração se solicitado
      */
     private List<Product> reorderProducts(
-            List<Product> candidates, List<MLRankingService.RankedProduct> rankedProducts) {
+            List<Product> candidates, 
+            List<MLRankingService.RankedProduct> rankedProducts,
+            Map<String, Map<String, Double>> features,
+            boolean rankingDebug) {
         
         Map<String, Product> productMap = candidates.stream()
             .collect(Collectors.toMap(p -> p.getId().getValue(), p -> p));
@@ -172,6 +178,13 @@ public class RankWithMLUseCase {
         for (MLRankingService.RankedProduct ranked : rankedProducts) {
             Product product = productMap.get(ranked.productId());
             if (product != null) {
+                if (rankingDebug) {
+                    Map<String, Double> productFeatures = features.get(ranked.productId());
+                    product.setRankingDebug(new com.marketplace.search.search.domain.valueobjects.RankingDebug(
+                        ranked.mlScore(), 
+                        productFeatures != null ? productFeatures : Map.of()
+                    ));
+                }
                 reordered.add(product);
             }
         }
@@ -192,6 +205,15 @@ public class RankWithMLUseCase {
     private List<Product> fallbackRanking(List<Product> candidates, SearchQuery query) {
         logger.info("Usando fallback ranking (híbrido) para {} candidatos", candidates.size());
         
+        if (query.rankingDebug()) {
+            for (Product p : candidates) {
+                Map<String, Double> features = new java.util.HashMap<>();
+                features.put("fallback_popularity_score", p.getMetrics().getPopularityScore());
+                p.setRankingDebug(new com.marketplace.search.search.domain.valueobjects.RankingDebug(
+                    p.getMetrics().getPopularityScore(), features));
+            }
+        }
+
         // Ordenar por score híbrido (simplificado)
         // Em produção, poderia usar scores do OpenSearch
         return candidates.stream()

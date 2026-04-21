@@ -271,6 +271,7 @@ public class SearchProductsUseCase {
     builder.append(":o=").append(query.offset());
     builder.append(":l=").append(query.limit());
     builder.append(":s=").append(query.sort().name());
+    builder.append(":rd=").append(query.rankingDebug());
 
     if (query.hasCategoryFilter() && query.category() != null) {
       builder.append(":c=").append(query.category().getId());

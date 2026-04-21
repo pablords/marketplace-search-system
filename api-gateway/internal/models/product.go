@@ -4,6 +4,12 @@ import (
 	"time"
 )
 
+// RankingDebug representa informações de depuração do ranking
+type RankingDebug struct {
+	FinalScore float64            `json:"final_score"`
+	Features   map[string]float64 `json:"features"`
+}
+
 // Product representa um produto no marketplace
 type Product struct {
 	ID             string          `json:"id" validate:"required"`
@@ -21,6 +27,7 @@ type Product struct {
 	Condition      *string         `json:"condition,omitempty"`
 	IsActive       *bool           `json:"is_active,omitempty"`
 	ProductMetrics *ProductMetrics `json:"metrics,omitempty"`
+	RankingDebug   *RankingDebug   `json:"ranking_debug,omitempty"`
 }
 
 // Category representa uma categoria de produto

@@ -109,3 +109,6 @@ __pycache__/
 *.log
 *.csv
 *.zip
+
+
+/bin

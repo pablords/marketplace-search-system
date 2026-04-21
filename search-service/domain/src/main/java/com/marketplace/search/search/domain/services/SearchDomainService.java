@@ -162,18 +162,28 @@ public class SearchDomainService {
     Product referenceProduct = filteredProducts.get(0);
 
     return filteredProducts.stream()
-        .sorted((p1, p2) -> {
-          double similarity1 = Product.calculateProductSimilarity(p1, referenceProduct);
-          double similarity2 = Product.calculateProductSimilarity(p2, referenceProduct);
+        .map(product -> {
+          double textScore = product.calculateRelevanceScore(query, userContext).getValue();
+          double similarity = Product.calculateProductSimilarity(product, referenceProduct);
+          double businessBoost = calculateBusinessBoost(product, userContext);
 
-          // O score final combina a relevância base, o boost de similaridade e o boost de negócio
-          double score1 = (p1.calculateRelevanceScore(query, userContext).getValue() + (similarity1 * 0.15)) *
-              calculateBusinessBoost(p1, userContext);
-          double score2 = (p2.calculateRelevanceScore(query, userContext).getValue() + (similarity2 * 0.15)) *
-              calculateBusinessBoost(p2, userContext);
+          double finalScore = (textScore + (similarity * 0.15)) * businessBoost;
 
-          return Double.compare(score2, score1); // Ordem decrescente
+          if (query.rankingDebug()) {
+            java.util.Map<String, Double> features = new java.util.HashMap<>();
+            features.put("base_relevance", textScore);
+            features.put("similarity_boost", similarity * 0.15);
+            features.put("business_boost", businessBoost);
+            product.setRankingDebug(new com.marketplace.search.search.domain.valueobjects.RankingDebug(finalScore, features));
+          }
+
+          return new Object() {
+            Product p = product;
+            double score = finalScore;
+          };
         })
+        .sorted((o1, o2) -> Double.compare(o2.score, o1.score))
+        .map(o -> o.p)
         .toList();
   }
 
@@ -184,7 +194,8 @@ public class SearchDomainService {
         List.of(), // Remove todos os filtros
         originalQuery.sort(),
         originalQuery.offset(),
-        originalQuery.limit() * 2 // Aumenta o limite
+        originalQuery.limit() * 2, // Aumenta o limite
+        originalQuery.rankingDebug()
     );
   }
 

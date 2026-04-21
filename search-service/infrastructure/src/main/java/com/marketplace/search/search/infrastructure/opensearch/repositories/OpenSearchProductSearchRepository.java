@@ -315,7 +315,8 @@ public class OpenSearchProductSearchRepository implements ProductSearchRepositor
 					query.filters(),
 					query.sort(),
 					0, // offset = 0
-					200 // limit = 200 para fase 1
+					200, // limit = 200 para fase 1
+					query.rankingDebug()
 			);
 
 			// PASSO 1: Embedding já foi gerado pelo UseCase (não gerar aqui)

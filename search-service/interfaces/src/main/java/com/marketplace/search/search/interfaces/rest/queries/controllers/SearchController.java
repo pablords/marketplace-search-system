@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.marketplace.search.search.application.mappers.SearchMapper;
 import com.marketplace.search.search.application.queries.SearchRequestQuery;
 import com.marketplace.search.search.application.queries.SearchResultQuery;
 import com.marketplace.search.search.application.usecases.SearchProductsUseCase;
-import com.marketplace.search.search.application.mappers.SearchMapper;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -57,10 +57,11 @@ public class SearchController {
 			@RequestParam(defaultValue = "0") @Min(0) Integer page,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
 			@RequestParam(defaultValue = "RELEVANCE") String sort,
-			@RequestParam(required = false) String userId) {
+			@RequestParam(required = false) String userId,
+			@RequestParam(name = "ranking_debug", required = false, defaultValue = "false") boolean rankingDebug) {
 
-		logger.info("Requisição de busca recebida: query={}, categoryId={}, page={}, size={}", query, categoryId, page,
-				size);
+		logger.info("Requisição de busca recebida: query={}, categoryId={}, page={}, size={}, rankingDebug={}", query, categoryId, page,
+				size, rankingDebug);
 
 		if (query == null || query.trim().isEmpty()) {
 			throw new IllegalArgumentException("Termo de busca não pode ser nulo ou vazio");
@@ -68,7 +69,7 @@ public class SearchController {
 
 		// Construir SearchRequestQuery
 		SearchRequestQuery searchRequest = SearchRequestQuery.builder().query(query.trim())
-				.categoryId(categoryId).offset(page * size).limit(size).sort(sort).build();
+				.categoryId(categoryId).offset(page * size).limit(size).sort(sort).rankingDebug(rankingDebug).build();
 
 		// Executar busca de forma assíncrona
 		CompletableFuture<SearchResultQuery> searchResult = searchProductsUseCase.executeAsync(searchRequest)

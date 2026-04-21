@@ -10,12 +10,13 @@ import (
 
 // SearchQuery representa os parâmetros de query para busca de produtos
 type SearchQuery struct {
-	Query         string  `form:"query" binding:"required"`
-	CategoryID    *string `form:"categoryId"`
-	Page          int     `form:"page" binding:"omitempty,min=0"`
-	Size          int     `form:"size" binding:"omitempty,min=1,max=100"`
-	Sort          string  `form:"sort"`
-	UserID        *string `form:"userId"`
+	Query        string  `form:"query" binding:"required"`
+	CategoryID   *string `form:"categoryId"`
+	Page         int     `form:"page" binding:"omitempty,min=0"`
+	Size         int     `form:"size" binding:"omitempty,min=1,max=100"`
+	Sort         string  `form:"sort"`
+	UserID       *string `form:"userId"`
+	RankingDebug bool    `form:"ranking_debug"`
 }
 
 // SuggestionsQuery representa os parâmetros de query para sugestões
@@ -125,6 +126,7 @@ func (h *SearchHandler) SearchProducts(c *gin.Context) {
 		query.Size,
 		query.Sort,
 		query.UserID,
+		query.RankingDebug,
 	)
 	if err != nil {
 		// Verificar tipo de erro

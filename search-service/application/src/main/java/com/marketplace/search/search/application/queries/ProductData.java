@@ -37,7 +37,9 @@ public record ProductData(
 
     @JsonProperty("condition") String condition,
 
-    @JsonProperty("is_active") Boolean isActive) {
+    @JsonProperty("is_active") Boolean isActive,
+
+    @JsonProperty("ranking_debug") RankingDebugData rankingDebug) {
 
   public static Builder builder() {
     return new Builder();
@@ -59,6 +61,7 @@ public record ProductData(
     private Integer stockQuantity;
     private String condition;
     private Boolean isActive;
+    private RankingDebugData rankingDebug;
 
     public Builder id(String id) {
       this.id = id;
@@ -130,6 +133,11 @@ public record ProductData(
       return this;
     }
 
+    public Builder rankingDebug(RankingDebugData rankingDebug) {
+      this.rankingDebug = rankingDebug;
+      return this;
+    }
+
     public ProductData build() {
       return new ProductData(
           id,
@@ -145,7 +153,8 @@ public record ProductData(
           tags,
           stockQuantity,
           condition,
-          isActive);
+          isActive,
+          rankingDebug);
     }
   }
 

@@ -22,10 +22,12 @@ public record SearchRequestQuery(
 
     @Min(1) @Max(100) @JsonProperty("limit") int limit,
 
+    @JsonProperty("ranking_debug") boolean rankingDebug,
+
     @JsonProperty("user_context") UserContextData userContext) {
 
   public SearchRequestQuery(String query) {
-    this(query, null, null, "RELEVANCE", 0, 20, null);
+    this(query, null, null, "RELEVANCE", 0, 20, false, null);
   }
 
   public static Builder builder() {
@@ -39,6 +41,7 @@ public record SearchRequestQuery(
     private String sort = "RELEVANCE";
     private int offset = 0;
     private int limit = 20;
+    private boolean rankingDebug = false;
     private UserContextData userContext;
 
     public Builder query(String query) {
@@ -71,13 +74,18 @@ public record SearchRequestQuery(
       return this;
     }
 
+    public Builder rankingDebug(boolean rankingDebug) {
+      this.rankingDebug = rankingDebug;
+      return this;
+    }
+
     public Builder userContext(UserContextData userContext) {
       this.userContext = userContext;
       return this;
     }
 
     public SearchRequestQuery build() {
-      return new SearchRequestQuery(query, categoryId, filters, sort, offset, limit, userContext);
+      return new SearchRequestQuery(query, categoryId, filters, sort, offset, limit, rankingDebug, userContext);
     }
   }
 

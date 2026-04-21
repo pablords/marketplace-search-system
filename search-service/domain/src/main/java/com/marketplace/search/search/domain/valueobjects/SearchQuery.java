@@ -20,7 +20,8 @@ public record SearchQuery(
     List<SearchFilter> filters,
     SearchSort sort,
     int offset,
-    int limit
+    int limit,
+    boolean rankingDebug
 ) {
     public SearchQuery {
         if (terms == null || terms.trim().isEmpty()) {

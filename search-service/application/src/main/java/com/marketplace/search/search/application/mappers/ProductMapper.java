@@ -44,7 +44,15 @@ public class ProductMapper {
         .tags(product.getInfo().getTags())
         .stockQuantity(product.getMetrics().stockQuantity())
         .isActive(product.getStatus().isActive())
+        .rankingDebug(mapRankingDebugToDTO(product.getRankingDebug()))
         .build();
+  }
+
+  private com.marketplace.search.search.application.queries.RankingDebugData mapRankingDebugToDTO(com.marketplace.search.search.domain.valueobjects.RankingDebug rankingDebug) {
+    if (rankingDebug == null) {
+      return null;
+    }
+    return new com.marketplace.search.search.application.queries.RankingDebugData(rankingDebug.finalScore(), rankingDebug.features());
   }
 
   private CategoryData mapCategoryToDTO(Category category) {

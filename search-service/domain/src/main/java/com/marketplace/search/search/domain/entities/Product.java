@@ -8,6 +8,7 @@ import com.marketplace.search.search.domain.valueobjects.ProductId;
 import com.marketplace.search.search.domain.valueobjects.ProductInfo;
 import com.marketplace.search.search.domain.valueobjects.ProductMetrics;
 import com.marketplace.search.search.domain.valueobjects.ProductStatus;
+import com.marketplace.search.search.domain.valueobjects.RankingDebug;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchScore;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
@@ -47,6 +48,8 @@ public class Product {
 
   @NotNull
   private final Instant updatedAt;
+
+  private RankingDebug rankingDebug;
 
   private Product(Builder builder) {
     this.id = Objects.requireNonNull(builder.id, "Product ID cannot be null");
@@ -287,6 +290,14 @@ public class Product {
 
   public Instant getUpdatedAt() {
     return updatedAt;
+  }
+
+  public RankingDebug getRankingDebug() {
+    return rankingDebug;
+  }
+
+  public void setRankingDebug(RankingDebug rankingDebug) {
+    this.rankingDebug = rankingDebug;
   }
 
   @Override

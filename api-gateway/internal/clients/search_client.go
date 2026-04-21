@@ -87,8 +87,9 @@ func (c *SearchClient) SearchProducts(
 	size int,
 	sort string,
 	userID *string,
+	rankingDebug bool,
 ) (*models.SearchResult, error) {
-	log.Printf("[SearchClient] Enviando requisição para buscar produtos: query=%s", query)
+	log.Printf("[SearchClient] Enviando requisição para buscar produtos: query=%s, ranking_debug=%t", query, rankingDebug)
 
 	// Construir URL com query parameters
 	endpoint := c.baseURL + "/search/products"
@@ -111,6 +112,7 @@ func (c *SearchClient) SearchProducts(
 	if userID != nil && *userID != "" {
 		q.Set("userId", *userID)
 	}
+	q.Set("ranking_debug", fmt.Sprintf("%t", rankingDebug))
 	reqURL.RawQuery = q.Encode()
 
 	// Criar requisição HTTP

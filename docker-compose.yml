@@ -12,7 +12,7 @@ services:
     container_name: marketplace-traefik
     command:
       - "--api.dashboard=true"
-      - "--api.insecure=false"
+      - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=marketplace-network"
@@ -196,21 +196,21 @@ services:
   #     - open-search
   #   labels:
   #     - "traefik.enable=true"
-  #     - "traefik.http.routers.opensearch.rule=PathPrefix(`/opensearch-dashboards`)"
-  #     - "traefik.http.routers.opensearch.entrypoints=web"
-  #     - "traefik.http.services.opensearch.loadbalancer.server.port=5601"
-  #     - "traefik.http.routers.opensearch.middlewares=opensearch-stripprefix"
+  #     - "traefik.http.routers.osdashboards.rule=PathPrefix(`/opensearch-dashboards`)"
+  #     - "traefik.http.routers.osdashboards.entrypoints=web"
+  #     - "traefik.http.services.osdashboards.loadbalancer.server.port=5601"
   #   environment:
+  #     - SERVER_BASEPATH="/opensearch-dashboards"
+  #     - SERVER_REWRITEBASEPATH="true"
   #     - 'OPENSEARCH_HOSTS=["http://open-search:9200"]'
   #     - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true" # disables security dashboards plugin in OpenSearch Dashboards
   #   networks:
   #     - marketplace-network
   #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+  #     test: ["CMD-SHELL", "curl -f http://localhost:5601/opensearch-dashboards/api/status || exit 1"]
   #     interval: 30s
   #     timeout: 10s
   #     retries: 5
-
   # Zookeeper (para Kafka)
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -321,24 +321,23 @@ services:
       - jaeger
     restart: unless-stopped
 
-  # Jaeger (all-in-one com storage em memória)
-  # Usa all-in-one para compartilhar storage entre collector e query
-  # O OTEL Collector envia traces para o Jaeger Collector via gRPC
+  # Jaeger (all-in-one com storage em OpenSearch)
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: marketplace-jaeger
     environment:
-      - SPAN_STORAGE_TYPE=memory
-      - MEMORY_MAX_TRACES=50000
+      - SPAN_STORAGE_TYPE=opensearch
+      - ES_SERVER_URLS=http://open-search:9200
       - COLLECTOR_OTLP_ENABLED=true
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
       - QUERY_BASE_PATH=/jaeger
     ports:
-      - "16686:16686"  # Query UI (acessível via Traefik em /jaeger)
-      # Portas 4317 e 4318 não precisam ser expostas - comunicação interna via rede Docker
-    # Rota configurada no arquivo dynamic.yml do Traefik
+      - "16686:16686"
     networks:
       - marketplace-network
+    depends_on:
+      open-search:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:16686/ || exit 1"]
       interval: 30s

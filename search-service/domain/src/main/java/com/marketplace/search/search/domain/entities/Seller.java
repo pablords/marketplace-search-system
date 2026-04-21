@@ -7,8 +7,6 @@ import com.marketplace.search.search.domain.valueobjects.SellerReputation;
 import com.marketplace.search.search.domain.valueobjects.SellerStatus;
 import com.marketplace.search.search.domain.valueobjects.SellerType;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -34,14 +32,14 @@ public class Seller {
 
   private final Instant memberSince;
 
-  @JsonCreator
+  
   public Seller(
-      @JsonProperty("id") String id,
-      @JsonProperty("name") String name,
-      @JsonProperty("type") SellerType type,
-      @JsonProperty("reputation") SellerReputation reputation,
-      @JsonProperty("status") SellerStatus status,
-      @JsonProperty("memberSince") Instant memberSince) {
+      String id,
+      String name,
+      SellerType type,
+      SellerReputation reputation,
+      SellerStatus status,
+      Instant memberSince) {
     this.id = validateId(id);
     this.name = validateName(name);
     this.type = Objects.requireNonNull(type, "Seller type cannot be null");

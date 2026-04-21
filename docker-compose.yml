@@ -10,19 +10,7 @@ services:
   traefik:
     image: traefik:v2.10
     container_name: marketplace-traefik
-    command:
-      - "--api.dashboard=true"
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=marketplace-network"
-      - "--providers.file.directory=/etc/traefik"
-      - "--providers.file.watch=true"
-      - "--entrypoints.web.address=:8888"
-      - "--entrypoints.websecure.address=:443"
-      - "--log.level=INFO"
-      - "--log.format=json"
-      - "--accesslog.format=json"
+    # As configurações estão no arquivo ./docker/traefik/traefik.yml
     ports:
       - "8888:8888"  # Porta HTTP principal
       - "443:443"

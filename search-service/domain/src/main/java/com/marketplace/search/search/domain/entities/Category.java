@@ -5,8 +5,6 @@ import java.util.Objects;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Category {
 
@@ -23,12 +21,12 @@ public class Category {
   @NotNull
   private final String path; // ex: "eletronicos/celulares/smartphones"
 
-  @JsonCreator
+  
   public Category(
-      @JsonProperty("id") String id,
-      @JsonProperty("name") String name,
-      @JsonProperty("parentId") String parentId,
-      @JsonProperty("path") String path) {
+      String id,
+      String name,
+      String parentId,
+      String path) {
     this.id = validateId(id);
     this.name = validateName(name);
     this.parentId = parentId;

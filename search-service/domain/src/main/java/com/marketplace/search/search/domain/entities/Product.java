@@ -13,9 +13,6 @@ import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchScore;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -52,15 +49,15 @@ public class Product {
 
   private RankingDebug rankingDebug;
 
-  @JsonCreator
+  
   public Product(
-      @JsonProperty("id") ProductId id,
-      @JsonProperty("info") ProductInfo info,
-      @JsonProperty("seller") Seller seller,
-      @JsonProperty("metrics") ProductMetrics metrics,
-      @JsonProperty("status") ProductStatus status,
-      @JsonProperty("createdAt") Instant createdAt,
-      @JsonProperty("updatedAt") Instant updatedAt) {
+      ProductId id,
+      ProductInfo info,
+      Seller seller,
+      ProductMetrics metrics,
+      ProductStatus status,
+      Instant createdAt,
+      Instant updatedAt) {
     this.id = Objects.requireNonNull(id, "Product ID cannot be null");
     this.info = Objects.requireNonNull(info, "Product info cannot be null");
     this.seller = Objects.requireNonNull(seller, "Seller cannot be null");
@@ -212,7 +209,7 @@ public class Product {
   /**
    * Verifica se o produto está disponível para busca
    */
-  @JsonIgnore
+  
   public boolean isSearchable() {
     return status.isActive() &&
         status.hasStock() &&
@@ -223,7 +220,7 @@ public class Product {
   /**
    * Verifica se o produto está bloqueado por regras de negócio
    */
-  @JsonIgnore
+  
   public boolean isBlocked() {
     return status.isSuspended() ||
         seller.isSuspended() ||

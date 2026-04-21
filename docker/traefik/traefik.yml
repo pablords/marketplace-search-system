@@ -1,13 +1,15 @@
 # Configuração estática do Traefik
 api:
   dashboard: true
-  insecure: false  # Dashboard apenas interno
+  insecure: true
 
 entryPoints:
   web:
     address: ":8888"
   websecure:
     address: ":443"
+  metrics:
+    address: ":8082"
 
 providers:
   docker:
@@ -15,7 +17,7 @@ providers:
     exposedByDefault: false
     network: marketplace-network
   file:
-    filename: /etc/traefik/dynamic.yml
+    directory: /etc/traefik
     watch: true
 
 log:
@@ -25,3 +27,13 @@ log:
 accessLog:
   format: json
 
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0

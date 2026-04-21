@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.marketplace.search.search.domain.entities.Category;
 
 import jakarta.validation.constraints.NotBlank;
@@ -41,7 +40,7 @@ public record SearchQuery(
     /**
      * Extrai palavras-chave individuais da consulta
      */
-    @JsonIgnore
+    
     public Set<String> getKeywords() {
         return Arrays.stream(terms.replaceAll("[^a-zA-Z0-9\\s]", "").split("\\s+"))
                      .collect(Collectors.toSet());
@@ -57,7 +56,7 @@ public record SearchQuery(
     /**
      * Obtém filtro por nome
      */
-    @JsonIgnore
+    
     public SearchFilter getFilter(String name) {
         return filters.stream()
                 .filter(filter -> filter.name().equals(name))

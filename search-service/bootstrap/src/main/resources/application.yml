@@ -102,6 +102,9 @@ management:
       application: marketplace-search-system
       service: search-service
       environment: ${ENVIRONMENT:production}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
   tracing:
     sampling:
       probability: 1.0

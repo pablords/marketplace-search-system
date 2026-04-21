@@ -37,6 +37,7 @@ management:
     distribution:
       percentiles-histogram:
         spring.data.repository.invocations: true
+        http.server.requests: true
   observation:
     key-values:
       application: catalog-service

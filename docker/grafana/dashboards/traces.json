@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 12,
+  "id": 6,
   "links": [],
   "panels": [
     {
@@ -79,7 +79,8 @@
           "operation": "GET /api/v1/search/products",
           "queryType": "search",
           "refId": "A",
-          "service": "search-service"
+          "service": "search-service",
+          "tags": "error=true"
         }
       ],
       "title": "Search",
@@ -143,7 +144,8 @@
           "operation": "POST /api/v1/products",
           "queryType": "search",
           "refId": "A",
-          "service": "catalog-service"
+          "service": "catalog-service",
+          "tags": "error=true"
         }
       ],
       "title": "Catalog",

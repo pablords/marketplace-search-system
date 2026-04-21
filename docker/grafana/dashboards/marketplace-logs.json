@@ -24,10 +24,10 @@
         "name": "level",
         "type": "custom",
         "label": "Nível",
-        "query": "DEBUG,INFO,WARN,ERROR",
+        "query": "debug,info,warn,error",
         "multi": false,
         "includeAll": true,
-        "current": { "text": "All", "value": "" }
+        "current": { "text": "All", "value": "*" }
       },
       {
         "name": "search",
@@ -49,7 +49,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "container_name:$service AND NOT container_name:*prometheus* AND NOT container_name:*fluent-bit* AND *$search*",
+          "query": "level:$level AND container_name:$service AND NOT container_name:*prometheus* AND NOT container_name:*fluent-bit* AND *$search*",
           "metrics": [{ "type": "logs", "id": "1" }],
           "timeField": "@timestamp",
           "bucketAggs": []

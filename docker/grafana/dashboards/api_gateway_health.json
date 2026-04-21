@@ -54,7 +54,7 @@
       "type": "stat",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
-        { "expr": "api_gateway_circuit_breaker_state", "legendFormat": "{{name}}", "refId": "A" }
+        { "expr": "api_gateway_circuit_breaker_state", "legendFormat": "{{service}}", "refId": "A" }
       ],
       "options": {
         "colorMode": "background",
@@ -64,8 +64,9 @@
       },
       "fieldConfig": {
         "defaults": {
+          "displayName": "${__field.labels.service}",
           "mappings": [
-            { "options": { "0": { "color": "green", "text": "Closed" }, "1": { "color": "yellow", "text": "Half-Open" }, "2": { "color": "red", "text": "Open" } }, "type": "value" }
+            { "options": { "0": { "color": "green", "text": "Closed" }, "1": { "color": "red", "text": "Open" }, "2": { "color": "yellow", "text": "Half-Open" } }, "type": "value" }
           ]
         }
       }

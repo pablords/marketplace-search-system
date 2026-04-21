@@ -361,6 +361,39 @@ services:
       - marketplace-network
     restart: unless-stopped
 
+  # Node Exporter - Métricas do hardware e SO do Host
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: marketplace-node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
+  # cAdvisor - Métricas de performance dos Containers
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: marketplace-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
   # Prometheus (para métricas)
   prometheus:
     image: prom/prometheus:latest

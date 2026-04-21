@@ -52,6 +52,12 @@ func NewCircuitBreakerManagerWithMetrics(cfg *config.Config, metrics MetricsReco
 	// Inicializar circuit breaker para search service
 	manager.breakers[ServiceSearch] = manager.createCircuitBreaker(ServiceSearch, cfg.Services.Search.CircuitBreaker)
 
+	// Registrar estado inicial como Closed para garantir visibilidade imediata
+	if metrics != nil {
+		metrics.RecordCircuitBreakerState(string(ServiceCatalog), gobreaker.StateClosed)
+		metrics.RecordCircuitBreakerState(string(ServiceSearch), gobreaker.StateClosed)
+	}
+
 	return manager
 }
 

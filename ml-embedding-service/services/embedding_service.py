@@ -8,9 +8,23 @@ from typing import List, Literal, Optional
 import numpy as np
 from models.embedding_model import EmbeddingModel
 from cache.redis_cache import RedisCache
+from opentelemetry import trace
+from prometheus_client import Counter, Histogram
 import logging
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
+
+# Métricas Prometheus
+EMBEDDING_CACHE_TOTAL = Counter(
+    "embedding_cache_total", 
+    "Total de consultas ao cache de embeddings", 
+    ["status"]
+)
+EMBEDDING_GENERATION_DURATION = Histogram(
+    "embedding_generation_duration_seconds", 
+    "Tempo de geração de embeddings pelo modelo (inferência)"
+)
 
 
 class EmbeddingService:
@@ -56,6 +70,7 @@ class EmbeddingService:
                 }}
             )
     
+    @tracer.start_as_current_span("generate_embeddings")
     def generate_embeddings(
         self,
         texts: List[str],
@@ -109,11 +124,13 @@ class EmbeddingService:
                     embedding_list = redis_cache_results[normalized_text]
                     result[idx] = np.array(embedding_list)
                     redis_hits += 1
+                    EMBEDDING_CACHE_TOTAL.labels(status="hit").inc()
                 else:
                     # Cache miss - precisa gerar
                     texts_to_generate.append(text)
                     texts_to_generate_indices.append(idx)
                     redis_misses += 1
+                    EMBEDDING_CACHE_TOTAL.labels(status="miss").inc()
         else:
             # Redis não disponível - todos precisam ser gerados
             for idx, text in enumerate(texts):
@@ -129,7 +146,8 @@ class EmbeddingService:
         if texts_to_generate:
             try:
                 # Usar modelo (que tem cache LRU em memória como fallback)
-                generated_embeddings = self.model.embed_batch(texts_to_generate)
+                with EMBEDDING_GENERATION_DURATION.time():
+                    generated_embeddings = self.model.embed_batch(texts_to_generate)
                 
                 # Preencher resultados e preparar para cache Redis
                 for gen_idx, original_idx in enumerate(texts_to_generate_indices):

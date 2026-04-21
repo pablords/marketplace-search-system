@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 11,
+  "id": 12,
   "links": [],
   "panels": [
     {
@@ -140,7 +140,7 @@
             "type": "jaeger",
             "uid": "PC9A941E8F2E49454"
           },
-          "operation": "catalog",
+          "operation": "POST /api/v1/products",
           "queryType": "search",
           "refId": "A",
           "service": "catalog-service"
@@ -164,5 +164,5 @@
   "timezone": "browser",
   "title": "Traces",
   "uid": "adk7wzw",
-  "version": 7
+  "version": 1
 }

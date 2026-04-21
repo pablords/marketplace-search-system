@@ -1,7 +1,5 @@
 package com.marketplace.search.search.application.usecases;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -19,6 +17,9 @@ import com.marketplace.search.search.domain.services.FeatureExtractor;
 import com.marketplace.search.search.domain.services.MLRankingService;
 import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 
 /**
@@ -43,14 +44,17 @@ public class RankWithMLUseCase {
     private final MLRankingService mlRankingService;
     private final MLFeatureStore featureStore;
     private final FeatureExtractor featureExtractor;
+    private final MeterRegistry meterRegistry;
 
     public RankWithMLUseCase(
             MLRankingService mlRankingService,
             MLFeatureStore featureStore,
-            FeatureExtractor featureExtractor) {
+            FeatureExtractor featureExtractor,
+            MeterRegistry meterRegistry) {
         this.mlRankingService = mlRankingService;
         this.featureStore = featureStore;
         this.featureExtractor = featureExtractor;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -75,9 +79,9 @@ public class RankWithMLUseCase {
             candidates = candidates.subList(0, TOP_CANDIDATES);
         }
 
-        Instant startTime = Instant.now();
         logger.info("Iniciando re-ranking ML para {} candidatos (query: '{}')", candidates.size(), query.terms());
 
+        Timer.Sample rankingSample = Timer.start(meterRegistry);
         try {
             // 1. Buscar ou calcular features para todos os candidatos
             Map<String, Map<String, Double>> featuresMap = collectFeatures(candidates, query, scores);
@@ -97,19 +101,23 @@ public class RankWithMLUseCase {
 
             if (rankedProducts.isEmpty() || rankedProducts.get().isEmpty()) {
                 logger.warn("ML Ranking Service não retornou resultados, usando fallback");
+                meterRegistry.counter("search.ml.ranking.fallback.total", "reason", "no_results").increment();
                 return fallbackRanking(candidates, query);
             }
 
             // 3. Re-ordenar produtos baseado no ranking ML
-            List<Product> reRankedProducts = reorderProducts(candidates, rankedProducts.get(), featuresMap, query.rankingDebug());
+            List<Product> reorderProducts = reorderProducts(candidates, rankedProducts.get(), featuresMap, query.rankingDebug());
 
-            Duration executionTime = Duration.between(startTime, Instant.now());
-            logger.info("Re-ranking ML concluído: {} produtos ranqueados em {}ms",
-                reRankedProducts.size(), executionTime.toMillis());
+            rankingSample.stop(Timer.builder("search.ml.ranking.duration")
+                .description("Tempo total do processo de re-ranking ML")
+                .register(meterRegistry));
+            
+            meterRegistry.counter("search.ml.ranking.success.total").increment();
 
-            return reRankedProducts.stream().limit(TOP_RESULTS).collect(Collectors.toList());
+            return reorderProducts.stream().limit(TOP_RESULTS).collect(Collectors.toList());
 
         } catch (Exception e) {
+            meterRegistry.counter("search.ml.ranking.errors.total").increment();
             logger.error("Erro ao executar re-ranking ML para query: '{}'", query.terms(), e);
             return fallbackRanking(candidates, query);
         }
@@ -138,9 +146,11 @@ public class RankWithMLUseCase {
             // Tentar usar features do cache
             if (cachedFeatures.containsKey(productId)) {
                 features = cachedFeatures.get(productId);
+                meterRegistry.counter("search.ml.features.cache.total", "status", "hit").increment();
                 logger.debug("Features do cache para produto: {}", productId);
             } else {
                 // Calcular features on-the-fly
+                meterRegistry.counter("search.ml.features.cache.total", "status", "miss").increment();
                 ScorePair scorePair = scores.getOrDefault(productId, new ScorePair(0.0, 0.0));
                 features = featureExtractor.extractFeatures(
                     candidate, query, scorePair.bm25Score(), scorePair.knnScore());

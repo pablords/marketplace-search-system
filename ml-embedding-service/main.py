@@ -15,6 +15,7 @@ from cache.redis_cache import RedisCache
 from services.service_manager import ServiceManager
 from services.embedding_service import EmbeddingService
 from api.routes import register_routes
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Configurar logging primeiro
 setup_logging()
@@ -22,6 +23,9 @@ logger = get_logger(__name__)
 
 # Criar aplicação FastAPI
 app = create_app()
+
+# Inicializar métricas Prometheus
+Instrumentator().instrument(app).expose(app)
 
 # Variáveis globais para serviços
 service_manager: ServiceManager = None

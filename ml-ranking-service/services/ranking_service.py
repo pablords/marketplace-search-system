@@ -7,12 +7,26 @@ import time
 from typing import List, Optional, TYPE_CHECKING
 from models.ltr_model import LearningToRankModel, InternalFeatureVector
 from cache.redis_cache import RedisCache
+from opentelemetry import trace
+from prometheus_client import Counter, Histogram
 import logging
 
 if TYPE_CHECKING:
     from api.schemas import FeatureVector, RankedProduct
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
+
+# Métricas Prometheus
+RANKING_CACHE_TOTAL = Counter(
+    "ranking_cache_total", 
+    "Total de consultas ao cache de ranking", 
+    ["status"]
+)
+RANKING_PROCESS_DURATION = Histogram(
+    "ranking_process_duration_seconds", 
+    "Tempo de processamento de ranking pelo modelo (inferência)"
+)
 
 
 class RankingService:
@@ -57,6 +71,7 @@ class RankingService:
                 }
             )
     
+    @tracer.start_as_current_span("rank_products")
     def rank(
         self,
         candidates: List['FeatureVector'],
@@ -114,9 +129,12 @@ class RankingService:
                         "elapsed_ms": round(elapsed, 2)
                     }
                 )
+                RANKING_CACHE_TOTAL.labels(status="hit").inc()
                 return ranked_products
         
         # 2. Processar ranking (cache miss ou Redis não disponível)
+        if self.redis_cache and self.redis_cache.is_connected():
+            RANKING_CACHE_TOTAL.labels(status="miss").inc()
         # Converter FeatureVectors para formato interno
         feature_vectors = [
             self._to_internal_format(candidate)
@@ -124,7 +142,8 @@ class RankingService:
         ]
         
         # Ranquear usando o modelo
-        ranked_results = self.model.rank(feature_vectors, top_k=top_k)
+        with RANKING_PROCESS_DURATION.time():
+            ranked_results = self.model.rank(feature_vectors, top_k=top_k)
         
         # Importar aqui para evitar importação circular
         from api.schemas import RankedProduct

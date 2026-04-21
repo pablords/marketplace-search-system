@@ -36,6 +36,7 @@ public class OpensearchConfig {
 		ObjectMapper om = new ObjectMapper();
 		om.registerModule(new JavaTimeModule());
 		om.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+		om.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
 		RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper(om));
 		return new OpenSearchClient(transport);

@@ -885,7 +885,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(search_empty_results_total[5m])) / sum(rate(search_requests_type_total[5m]))",
+          "expr": "(sum(rate(search_empty_results_total[5m])) or vector(0)) / (sum(rate(search_requests_type_total[5m])) or vector(1))",
           "legendFormat": "Empty Results %",
           "refId": "A"
         }
@@ -959,8 +959,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "max(resilience4j_circuitbreaker_state{name=\"mlRankingService\"})",
-          "legendFormat": "Estado Atual",
+          "expr": "(sum(resilience4j_circuitbreaker_state{name=\"mlRankingService\", state=\"open\"}) or vector(0)) * 1 + (sum(resilience4j_circuitbreaker_state{name=\"mlRankingService\", state=\"half_open\"}) or vector(0)) * 2",
+          "legendFormat": "ML Ranking",
           "refId": "A"
         }
       ],
@@ -1033,8 +1033,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "max(resilience4j_circuitbreaker_state{name=\"embeddingService\"})",
-          "legendFormat": "Estado Atual",
+          "expr": "(sum(resilience4j_circuitbreaker_state{name=\"embeddingService\", state=\"open\"}) or vector(0)) * 1 + (sum(resilience4j_circuitbreaker_state{name=\"embeddingService\", state=\"half_open\"}) or vector(0)) * 2",
+          "legendFormat": "Embedding",
           "refId": "A"
         }
       ],
@@ -1126,7 +1126,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(search_candidates_count_sum[5m])) / sum(rate(search_candidates_count_count[5m]))",
+          "expr": "(sum(rate(search_candidates_count_sum[5m])) or vector(0)) / (sum(rate(search_candidates_count_count[5m])) or vector(1))",
           "legendFormat": "Avg Candidates {{type}}",
           "refId": "A"
         }
@@ -1314,7 +1314,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(search_results_count_sum[5m])) / sum(rate(search_results_count_count[5m]))",
+          "expr": "(sum(rate(search_results_count_sum[5m])) or vector(0)) / (sum(rate(search_results_count_count[5m])) or vector(1))",
           "legendFormat": "Avg Results {{type}}",
           "refId": "A"
         }
@@ -1409,7 +1409,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(search_relevance_average_sum[5m])) / sum(rate(search_relevance_average_count[5m]))",
+          "expr": "(sum(rate(search_relevance_average_sum[5m])) or vector(0)) / (sum(rate(search_relevance_average_count[5m])) or vector(1))",
           "legendFormat": "Avg Relevance Score",
           "refId": "A"
         }

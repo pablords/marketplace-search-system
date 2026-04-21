@@ -105,6 +105,7 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        search.phase.duration: true
   tracing:
     sampling:
       probability: 1.0

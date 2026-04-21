@@ -29,7 +29,6 @@ import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchResult;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -77,12 +76,6 @@ public class SearchProductsUseCase {
     public SearchResultQuery execute(SearchRequestQuery request) {
     logger.info("Executing search with 2-phase flow: query='{}', limit={}, offset={}",
         request.query(), request.limit(), request.offset());
-
-    Counter.builder("search.requests.type.total")
-        .description("Total number of search requests")
-        .tag("service", "search-service")
-        .register(meterRegistry)
-        .increment();
 
     Timer.Sample sample = Timer.start(meterRegistry);
     Instant startTime = Instant.now();

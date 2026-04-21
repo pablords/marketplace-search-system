@@ -513,7 +513,10 @@ services:
       - OTEL_LOGS_EXPORTER=none
       - OTEL_HTTP_SERVER_EXCLUDED_PATHS=/actuator/prometheus,/actuator/health
       - LOG_LEVEL=INFO
-      - LOGGING_LEVEL_COM_MARKETPLACE_SEARCH=INFO
+      - LOG_LEVEL_ML=INFO
+      - LOG_LEVEL_FEATURE_STORE=INFO
+      - ENVIRONMENT=production
+      - SPRING_PROFILES_ACTIVE=production
       - OTEL_INSTRUMENTATION_METHODS_INCLUDE=com.marketplace.search.search.domain.services.SearchDomainService[smartSearch,fetchAndValidateCandidates,applyBusinessRules,calculateBusinessBoost,searchWithFallback],com.marketplace.search.search.application.usecases.SearchProductsUseCase[execute],com.marketplace.search.search.infrastructure.opensearch.repositories.OpenSearchProductSearchRepository[search,searchCandidatesWithScores],com.marketplace.search.search.infrastructure.ml.MlRankingClient[rank],com.marketplace.search.search.infrastructure.embedding.EmbeddingClient[getEmbedding]
     env_file:
       - ./search-service/.env
@@ -551,6 +554,7 @@ services:
       - OTEL_METRICS_EXPORTER=none
       - OTEL_LOGS_EXPORTER=none
       - OTEL_HTTP_SERVER_EXCLUDED_PATHS=/actuator/prometheus,/actuator/health
+      - SPRING_PROFILES_ACTIVE=production
       - OTEL_INSTRUMENTATION_METHODS_INCLUDE=com.marketplace.search.indexing.application.usecases.IndexProductUseCase[execute],com.marketplace.search.indexing.application.services.ProductEnrichmentService[enrich],com.marketplace.search.indexing.application.services.ProductFeatureCalculationService[calculate],com.marketplace.search.indexing.domain.services.FeatureExtractor[extract]
       - LOG_LEVEL=INFO
       - LOGGING_LEVEL_COM_MARKETPLACE_SEARCH=INFO

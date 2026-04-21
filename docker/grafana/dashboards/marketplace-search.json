@@ -697,7 +697,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(search_requests_type_total[5m])) by (type)",
+          "expr": "sum(rate(search_requests_type_total{type!=\"\"}[5m])) by (type)",
           "legendFormat": "{{type}}",
           "refId": "A"
         }

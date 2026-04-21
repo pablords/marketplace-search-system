@@ -86,9 +86,9 @@ logging:
     com.marketplace.search: DEBUG
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){blue} %clr(%logger{36}){cyan} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/marketplace-search.log
+  #   file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  # file:
+  #   name: logs/marketplace-search.log
 
 # Management/Actuator
 management:
@@ -126,7 +126,7 @@ management:
       enabled: true
     tags:
       application: marketplace-search-system
-      environment: ${ENVIRONMENT:development}
+      environment: ${ENVIRONMENT:production}
   tracing:
     sampling:
       probability: 1.0

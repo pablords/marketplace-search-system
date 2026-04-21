@@ -7,7 +7,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.marketplace.search.search.domain.entities.Category;
 
@@ -49,9 +51,17 @@ public class ProductInfo {
   @NotNull
   private final Set<String> tags;
 
-  public ProductInfo(String title, String description, BigDecimal price,
-      String currency, Category category, Brand brand,
-      List<String> images, Set<String> attributes, Set<String> tags) {
+  @JsonCreator
+  public ProductInfo(
+      @JsonProperty("title") String title,
+      @JsonProperty("description") String description,
+      @JsonProperty("price") BigDecimal price,
+      @JsonProperty("currency") String currency,
+      @JsonProperty("category") Category category,
+      @JsonProperty("brand") Brand brand,
+      @JsonProperty("images") List<String> images,
+      @JsonProperty("attributes") Set<String> attributes,
+      @JsonProperty("tags") Set<String> tags) {
     this.title = validateTitle(title);
     this.description = Objects.requireNonNull(description, "Description cannot be null");
     this.price = validatePrice(price);

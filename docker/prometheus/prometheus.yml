@@ -80,6 +80,12 @@ scrape_configs:
     static_configs:
       - targets: ['redis-exporter:9121']
     scrape_interval: 30s
+  
+  # Kafka metrics (via kafka_exporter)
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+    scrape_interval: 30s
 
   # PostgreSQL metrics (via postgres_exporter)
   - job_name: 'postgres'

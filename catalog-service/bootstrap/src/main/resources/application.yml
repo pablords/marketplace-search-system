@@ -15,9 +15,9 @@ logging:
     com.marketplace.search: DEBUG
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){blue} %clr(%logger{36}){cyan} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/catalog.log
+  #   file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  # file:
+  #   name: logs/catalog.log
 
 # Management/Actuator
 management:
@@ -34,6 +34,9 @@ management:
   metrics:
     export:
       enabled: true
+    distribution:
+      percentiles-histogram:
+        spring.data.repository.invocations: true
   observation:
     key-values:
       application: catalog-service

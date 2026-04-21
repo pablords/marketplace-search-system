@@ -13,6 +13,7 @@ import com.marketplace.search.search.domain.valueobjects.SearchQuery;
 import com.marketplace.search.search.domain.valueobjects.SearchScore;
 import com.marketplace.search.search.domain.valueobjects.UserContext;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -51,14 +52,26 @@ public class Product {
 
   private RankingDebug rankingDebug;
 
+  @JsonCreator
+  public Product(
+      @JsonProperty("id") ProductId id,
+      @JsonProperty("info") ProductInfo info,
+      @JsonProperty("seller") Seller seller,
+      @JsonProperty("metrics") ProductMetrics metrics,
+      @JsonProperty("status") ProductStatus status,
+      @JsonProperty("createdAt") Instant createdAt,
+      @JsonProperty("updatedAt") Instant updatedAt) {
+    this.id = Objects.requireNonNull(id, "Product ID cannot be null");
+    this.info = Objects.requireNonNull(info, "Product info cannot be null");
+    this.seller = Objects.requireNonNull(seller, "Seller cannot be null");
+    this.metrics = Objects.requireNonNull(metrics, "Metrics cannot be null");
+    this.status = Objects.requireNonNull(status, "Status cannot be null");
+    this.createdAt = Objects.requireNonNull(createdAt, "Created at cannot be null");
+    this.updatedAt = Objects.requireNonNull(updatedAt, "Updated at cannot be null");
+  }
+
   private Product(Builder builder) {
-    this.id = Objects.requireNonNull(builder.id, "Product ID cannot be null");
-    this.info = Objects.requireNonNull(builder.info, "Product info cannot be null");
-    this.seller = Objects.requireNonNull(builder.seller, "Seller cannot be null");
-    this.metrics = Objects.requireNonNull(builder.metrics, "Metrics cannot be null");
-    this.status = Objects.requireNonNull(builder.status, "Status cannot be null");
-    this.createdAt = Objects.requireNonNull(builder.createdAt, "Created at cannot be null");
-    this.updatedAt = Objects.requireNonNull(builder.updatedAt, "Updated at cannot be null");
+    this(builder.id, builder.info, builder.seller, builder.metrics, builder.status, builder.createdAt, builder.updatedAt);
   }
 
   public static Builder builder() {

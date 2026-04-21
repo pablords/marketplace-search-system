@@ -77,7 +77,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(embedding_cache_total_total{status=\"hit\"}[5m])) / sum(rate(embedding_cache_total_total[5m])) * 100",
+          "expr": "sum(rate(embedding_cache_total{status=\"hit\"}[5m])) / sum(rate(embedding_cache_total[5m])) * 100",
           "legendFormat": "Hit Rate %",
           "refId": "A"
         }
@@ -141,7 +141,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(ranking_cache_total_total{status=\"hit\"}[5m])) / sum(rate(ranking_cache_total_total[5m])) * 100",
+          "expr": "sum(rate(ranking_cache_total{status=\"hit\"}[5m])) / sum(rate(ranking_cache_total[5m])) * 100",
           "legendFormat": "Hit Rate %",
           "refId": "A"
         }

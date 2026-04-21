@@ -1,51 +1,170 @@
 {
-  "__inputs": [],
-  "__requires": [],
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 1,
   "links": [],
   "panels": [
     {
-      "title": "Postgres: Active Connections",
-      "type": "gauge",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "pg_stat_activity_count",
           "refId": "A"
         }
       ],
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+      "title": "Postgres: Active Connections",
+      "type": "gauge"
     },
     {
-      "title": "Redis: Cache Hit Ratio",
-      "type": "gauge",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 11
+      },
+      "id": 2,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "(rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))) * 100",
           "refId": "A"
         }
       ],
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+      "title": "Redis: Cache Hit Ratio",
+      "type": "gauge"
     },
     {
-      "title": "Elasticsearch: Cluster Health Status",
+      "id": 3,
+      "title": "OpenSearch: Cluster Status",
       "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 11 },
       "targets": [
-        {
-          "expr": "elasticsearch_cluster_health_status",
-          "refId": "A"
-        }
+        { "expr": "elasticsearch_cluster_health_status", "refId": "A" }
       ],
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 }
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Kafka: Brokers Up",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 11 },
+      "targets": [
+        { "expr": "kafka_brokers", "refId": "A" }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      }
     }
   ],
+  "preload": false,
   "refresh": "5s",
-  "schemaVersion": 38,
-  "tags": ["datastores", "infra"],
+  "schemaVersion": 42,
+  "tags": [
+    "datastores",
+    "infra"
+  ],
   "templating": {
     "list": []
   },

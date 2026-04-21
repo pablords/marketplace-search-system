@@ -148,13 +148,27 @@ services:
       - '--es.uri=http://open-search:9200'
       - '--es.all'
       - '--es.indices'
-      - '--es.cluster_settings'
     ports:
       - "9114:9114"
     networks:
       - marketplace-network
     depends_on:
       open-search:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Kafka Exporter
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: marketplace-kafka-exporter
+    command:
+      - "--kafka.server=kafka:29092"
+    ports:
+      - "9308:9308"
+    networks:
+      - marketplace-network
+    depends_on:
+      kafka:
         condition: service_healthy
     restart: unless-stopped
 

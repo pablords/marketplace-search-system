@@ -3,7 +3,7 @@ spring:
     name: search-service
   
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:development}
+    active: ${SPRING_PROFILES_ACTIVE:production}
 
   output:
     ansi:
@@ -75,13 +75,13 @@ features:
 logging:
   level:
     com.marketplace.search: ${LOG_LEVEL:INFO}
-    com.marketplace.search.search.infrastructure.ml: ${LOG_LEVEL_ML:DEBUG}
-    com.marketplace.search.search.infrastructure.featurestore: ${LOG_LEVEL_FEATURE_STORE:DEBUG}
+    com.marketplace.search.search.infrastructure.ml: ${LOG_LEVEL_ML:INFO}
+    com.marketplace.search.search.infrastructure.featurestore: ${LOG_LEVEL_FEATURE_STORE:INFO}
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){blue} %clr(%logger{36}){cyan} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/search-service.log
+  #   file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  # file:
+  #   name: logs/search-service.log
 
 # Management/Actuator
 management:
@@ -101,7 +101,7 @@ management:
     tags:
       application: marketplace-search-system
       service: search-service
-      environment: ${ENVIRONMENT:development}
+      environment: ${ENVIRONMENT:production}
   tracing:
     sampling:
       probability: 1.0

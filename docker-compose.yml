@@ -2,7 +2,7 @@ x-logging: &default-logging
   driver: fluentd
   options:
     fluentd-address: "127.0.0.1:24224"
-    tag: docker.{{.Name}}
+    tag: "docker.{{.Name}}"
     fluentd-async: "true"
 
 services:
@@ -111,7 +111,7 @@ services:
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
       - "DISABLE_SECURITY_PLUGIN=true" # Disables Security plugin
     ulimits:
       memlock:
@@ -167,9 +167,11 @@ services:
     ports:
       - "24224:24224"
       - "24224:24224/udp"
+      - "2020:2020"
     volumes:
       - ./docker/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - ./docker/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - ./docker/fluent-bit/cleanup.lua:/fluent-bit/etc/cleanup.lua:ro
     networks:
       - marketplace-network
     depends_on:
@@ -513,6 +515,9 @@ services:
       - OTEL_LOGS_EXPORTER=none
       - OTEL_INSTRUMENTATION_METHODS_INCLUDE=com.marketplace.search.catalog.application.usecases.CreateProductUseCase[execute]
       - OTEL_HTTP_SERVER_EXCLUDED_PATHS=/actuator/prometheus,/actuator/health
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=30
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=5
+      - SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT=30000
     env_file:
       - ./catalog-service/.env
     depends_on:
@@ -524,6 +529,8 @@ services:
         condition: service_started
     networks:
       - marketplace-network
+    ports:
+      - "8081:8081"
     logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/api/v1/actuator/health || exit 1"]
@@ -566,6 +573,8 @@ services:
         condition: service_started
     networks:
       - marketplace-network
+    ports:
+      - "8086:8083"
     logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8083/api/v1/actuator/health || exit 1"]
@@ -606,6 +615,8 @@ services:
         condition: service_started
     networks:
       - marketplace-network
+    ports:
+      - "8082:8082"
     logging: *default-logging
     healthcheck:
       # Usa o endpoint de liveness que é mais simples e não verifica dependências
@@ -630,6 +641,13 @@ services:
       - "traefik.http.routers.api.middlewares=cache-search@file"
       - "traefik.http.routers.api.priority=10"
       - "traefik.http.services.api.loadbalancer.server.port=8080"
+    environment:
+      - CATALOG_SERVICE_TIMEOUT=2000
+      - SEARCH_SERVICE_TIMEOUT=3000
+      - CATALOG_SERVICE_CB_FAILURE_RATE_THRESHOLD=30
+      - SEARCH_SERVICE_CB_FAILURE_RATE_THRESHOLD=30
+      - CATALOG_SERVICE_CB_SLIDING_WINDOW_SIZE=20
+      - SEARCH_SERVICE_CB_SLIDING_WINDOW_SIZE=20
     env_file:
       - ./api-gateway/.env
     depends_on:

@@ -124,6 +124,9 @@ management:
   metrics:
     export:
       enabled: true
+    distribution:
+      percentiles-histogram:
+        jvm.gc.pause: true
     tags:
       application: marketplace-search-system
       environment: ${ENVIRONMENT:production}

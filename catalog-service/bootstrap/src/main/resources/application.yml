@@ -9,6 +9,12 @@ spring:
     ansi:
       enabled: always
 
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
 # Logging
 logging:
   level:
@@ -38,6 +44,7 @@ management:
       percentiles-histogram:
         spring.data.repository.invocations: true
         http.server.requests: true
+        jvm.gc.pause: true
   observation:
     key-values:
       application: catalog-service

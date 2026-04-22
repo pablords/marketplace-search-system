@@ -20,6 +20,8 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
 import com.marketplace.search.catalog.domain.exceptions.ProductAlreadyExistsException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.TransactionSystemException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -144,6 +146,42 @@ public class GlobalExceptionHandler {
         logger.debug("Recurso não encontrado: {}", ex.getResourcePath());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex, WebRequest request) {
+        
+        // Se for erro de chave duplicada ou violação de unique, tratamos como conflito (409)
+        String errorMessage = ex.getMostSpecificCause().getMessage();
+        if (errorMessage != null && (errorMessage.contains("duplicate key") || errorMessage.contains("violates unique constraint"))) {
+            return handleProductAlreadyExistsException(new ProductAlreadyExistsException("via constraint"), request);
+        }
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Data Integrity Violation")
+                .message("Erro de integridade de dados")
+                .path(request.getDescription(false))
+                .build();
+
+        logger.warn("Conflito de integridade de dados: {}", errorMessage);
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(TransactionSystemException.class)
+    public ResponseEntity<ErrorResponse> handleTransactionSystemException(
+            TransactionSystemException ex, WebRequest request) {
+        
+        // Percorre as causas para encontrar erro de duplicidade do Postgres/Hibernate
+        Throwable cause = ex.getRootCause();
+        if (cause != null && cause.getMessage() != null && cause.getMessage().contains("duplicate key")) {
+             return handleProductAlreadyExistsException(new ProductAlreadyExistsException("via transaction"), request);
+        }
+
+        return handleRuntimeException(new RuntimeException("Erro de transação"), request);
     }
 
     @ExceptionHandler(RuntimeException.class)

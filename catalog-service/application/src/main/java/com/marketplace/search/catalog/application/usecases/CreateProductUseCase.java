@@ -13,6 +13,8 @@ import com.marketplace.search.catalog.application.commands.ProductCommand;
 import com.marketplace.search.catalog.application.mappers.ProductMapper;
 import com.marketplace.search.catalog.domain.entities.Product;
 import com.marketplace.search.catalog.domain.exceptions.ProductAlreadyExistsException;
+import com.marketplace.search.catalog.domain.ports.DistributedLockPort;
+import java.time.Duration;
 import com.marketplace.search.catalog.domain.repositories.ProductRepository;
 
 
@@ -30,14 +32,17 @@ public class CreateProductUseCase {
 
     private final ProductMapper productMapper;
     private final ProductRepository productRepository;
+    private final DistributedLockPort lockPort;
     private final MeterRegistry meterRegistry;
 
     public CreateProductUseCase(
             ProductMapper productMapper,
             ProductRepository productRepository,
+            DistributedLockPort lockPort,
             MeterRegistry meterRegistry) {
         this.productMapper = productMapper;
         this.productRepository = productRepository;
+        this.lockPort = lockPort;
         this.meterRegistry = meterRegistry;
     }
 
@@ -59,25 +64,42 @@ public class CreateProductUseCase {
         logger.info("Received request for create product: id={}, title='{}'",
             productDTO.id(), productDTO.title());
 
-        // Verifica idempotência: se o produto já existe, lança exceção
-        if (productRepository.existsById(productDTO.id())) {
-            logger.warn("Product {} already exists. Skipping creation to avoid duplication.", 
+        // 1. Tenta adquirir Lock Distribuído por 5 segundos
+        boolean acquired = lockPort.acquireLock(productDTO.id(), Duration.ofSeconds(5));
+        
+        if (!acquired) {
+            meterRegistry.counter("catalog.product.lock.denied.total").increment();
+            logger.warn("Não foi possível adquirir o lock para o produto {}. Outra instância pode estar processando.", 
                 productDTO.id());
+            // Se não conseguiu o lock, tratamos como conflito pois provavelmente já está sendo criado
             throw new ProductAlreadyExistsException(productDTO.id());
         }
 
-        // Converte DTO para domínio
-        Product product = productMapper.toDomain(productDTO);
+        meterRegistry.counter("catalog.product.lock.acquired.total").increment();
 
-        // Salva usando o repositório (port - implementado por adapter na infrastructure)
-        productRepository.save(product);
+        try {
+            // 2. Verifica idempotência no Banco: se o produto já existe, lança exceção
+            if (productRepository.existsById(productDTO.id())) {
+                logger.warn("Product {} already exists. Skipping creation to avoid duplication.", 
+                    productDTO.id());
+                throw new ProductAlreadyExistsException(productDTO.id());
+            }
 
-        sample.stop(Timer.builder("catalog.db.operation.duration")
-            .tag("operation", "save")
-            .register(meterRegistry));
+            // 3. Converte DTO para domínio e Salva
+            Product product = productMapper.toDomain(productDTO);
+            productRepository.save(product);
 
-        logger.info("Product {} saved to PostgreSQL. Debezium will capture and publish to Kafka.", 
-            productDTO.id());
+            sample.stop(Timer.builder("catalog.db.operation.duration")
+                .tag("operation", "save")
+                .register(meterRegistry));
+
+            logger.info("Product {} saved to PostgreSQL. Debezium will capture and publish to Kafka.", 
+                productDTO.id());
+                
+        } finally {
+            // 4. Libera o Lock
+            lockPort.releaseLock(productDTO.id());
+        }
     }
 }
 

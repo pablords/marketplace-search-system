@@ -1,14 +1,11 @@
 package com.marketplace.search.catalog.interfaces.rest.commands.controllers;
 
 import java.net.URI;
-import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +16,7 @@ import com.marketplace.search.catalog.interfaces.rest.commands.mappers.ProductMa
 import com.marketplace.search.catalog.interfaces.rest.dtos.ProductDTO;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+
 
 /**
  * Endpoints de comando (escrita) relacionados a produtos.

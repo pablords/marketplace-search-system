@@ -25,6 +25,8 @@ import com.marketplace.search.indexing.application.services.EventDeduplicationSe
 import com.marketplace.search.indexing.application.services.ProductEnrichmentService;
 import com.marketplace.search.indexing.application.usecases.IndexProductUseCase;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -65,6 +67,8 @@ public class ProductEventHandler {
       ConsumerRecord<String, String> record,
       Acknowledgment acknowledgment) {
 
+    Span currentSpan = Span.current();
+
     try {
       logger.info("Recebido evento CDC - Topic: {}, Partition: {}, Offset: {}, Timestamp: {}",
           topic, partition, record.offset(), Instant.ofEpochMilli(timestamp));
@@ -78,6 +82,10 @@ public class ProductEventHandler {
       String productId = extractProductId(cdcEvent);
       Long eventTimestamp = cdcEvent.getTimestamp();
       Long kafkaOffset = record.offset();
+
+      if (productId != null) {
+        currentSpan.setAttribute("product.id", productId);
+      }
 
       // Verificar se o evento já foi processado (deduplicação)
       if (productId != null && eventTimestamp != null && kafkaOffset != null) {
@@ -111,12 +119,24 @@ public class ProductEventHandler {
           .exceptionally(throwable -> {
             logger.error("Erro ao processar evento CDC - Operation: {}, Error: {}",
                 cdcEvent.getOperation(), throwable.getMessage(), throwable);
+            
+            // Mark span as error
+            currentSpan.setStatus(StatusCode.ERROR, "Process Error: " + throwable.getMessage());
+            currentSpan.setAttribute("error", true);
+            currentSpan.recordException(throwable);
+            
             // Em caso de erro, não fazer acknowledge para reprocessar a mensagem
             return null;
           });
 
     } catch (Exception e) {
       logger.error("Erro ao parsear evento CDC do Kafka - Message: {}, Error: {}", message, e.getMessage(), e);
+      
+      // Mark span as error
+      currentSpan.setStatus(StatusCode.ERROR, "Parsing Error: " + e.getMessage());
+      currentSpan.setAttribute("error", true);
+      currentSpan.recordException(e);
+      
       // Em caso de erro de parsing, fazer acknowledge para evitar loop infinito
       acknowledgment.acknowledge();
     }
@@ -164,11 +184,6 @@ public class ProductEventHandler {
     }
   }
 
-  /**
-   * Extrai o ID do produto do evento CDC.
-   * Tenta extrair do campo 'after' para operações de criação/atualização
-   * ou do campo 'before' para operações de deleção.
-   */
   private String extractProductId(DebeziumCDCEvent cdcEvent) {
     try {
       // Para operações de criação/atualização, usar 'after'
@@ -193,9 +208,6 @@ public class ProductEventHandler {
     return null;
   }
 
-  /**
-   * Verifica se o produto foi totalmente enriquecido com dados críticos
-   */
   private boolean isProductEnrichmentComplete(ProductPayload product) {
     // Verificar se pelo menos os IDs estão presentes (mínimo necessário)
     boolean hasBasicData = product.getId() != null && 

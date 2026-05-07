@@ -41,8 +41,9 @@ if (( $(echo "$FREE_PCT < $FREE_THRESHOLD" | bc -l) )); then
         DELETE_RES=$(curl -s -X DELETE "$OS_URL/$INDEX_TO_DELETE")
         echo "[$(date)] Resultado: $DELETE_RES" >> $LOG_FILE
         
-        # Desbloquear o cluster caso tenha caído no flood-stage
+        # Desbloquear o cluster caso tenha caído no flood-stage ou tenha bloqueio manual
         curl -s -X PUT "$OS_URL/_all/_settings" -H 'Content-Type: application/json' -d'{"index.blocks.read_only_allow_delete": null}' >> $LOG_FILE
+        curl -s -X PUT "$OS_URL/_cluster/settings" -H 'Content-Type: application/json' -d'{"persistent": {"cluster.blocks.create_index": null}}' >> $LOG_FILE
     fi
 else
     echo "[$(date)] Espaço em disco OK." >> $LOG_FILE

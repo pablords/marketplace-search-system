@@ -1,6 +1,10 @@
 package com.marketplace.search.search.infrastructure.config;
 
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -25,9 +29,22 @@ public class OpensearchConfig {
 	@Value("${opensearch.port:9200}")
 	private int port;
 
+	@Value("${opensearch.username:admin}")
+	private String username;
+
+	@Value("${opensearch.password:admin}")
+	private String password;
+
 	@Bean(destroyMethod = "close")
 	public RestClient restClient() {
-		return RestClient.builder(new HttpHost(host, port, scheme)).build();
+		final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+		credentialsProvider.setCredentials(AuthScope.ANY,
+				new UsernamePasswordCredentials(username, password));
+
+		return RestClient.builder(new HttpHost(host, port, scheme))
+				.setHttpClientConfigCallback(httpClientBuilder -> 
+					httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
+				.build();
 	}
 
 	@Bean

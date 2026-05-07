@@ -11,10 +11,13 @@ dataset:
   # - "amazon-products-dataset"
   # - "ecommerce-product-dataset"
   # - "products-dataset"
-  name: "asaniczka/amazon-products-dataset-2023-1-4m-products"
+  name: "asaniczka/amazon-brazil-products-2023-1-3m-products"
   
   # Nome do arquivo dentro do dataset (geralmente products.csv, products.json, etc)
-  file: "products.csv"
+  file: "amz_br_total_products_data_processed.csv"
+  
+  # Campo de categoria no novo dataset (categoryName em vez de category_id numérico)
+  category_column: "categoryName"
   
   # Diretório para cache do dataset baixado
   cache_dir: "./data/cache"

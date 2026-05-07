@@ -8,6 +8,7 @@ Suporta integração com datasets reais do Kaggle mantendo geração de métrica
 import json
 import random
 import re
+import hashlib
 from faker import Faker
 import requests
 import time
@@ -39,13 +40,29 @@ fake = Faker('pt_BR')
 
 SELLERS = [
     {"id": "TechStore", "name": "TechStore Brasil", "type": "PROFESSIONAL", "status": "ACTIVE", 
-     "reputation": {"score": 4.8, "total_reviews": 1500, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
-    {"id": "InfoShop", "name": "Casa & Decoração Ltda", "type": "PROFESSIONAL", "status": "ACTIVE",
-     "reputation": {"score": 4.5, "total_reviews": 1200, "cancellation_rate": 0.03, "delivery_performance": 0.95}},
-    {"id": "SportCenter", "name": "Fashion Store", "type": "INDIVIDUAL", "status": "ACTIVE",
-     "reputation": {"score": 4.2, "total_reviews": 800, "cancellation_rate": 0.05, "delivery_performance": 0.92}},
-    {"id": "Sport", "name": "Gamer Pro", "type": "PROFESSIONAL", "status": "ACTIVE",
      "reputation": {"score": 4.9, "total_reviews": 2000, "cancellation_rate": 0.01, "delivery_performance": 0.99}},
+    {"id": "ModaBrasil", "name": "Moda Brasil Online", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.5, "total_reviews": 1200, "cancellation_rate": 0.03, "delivery_performance": 0.97}},
+    {"id": "SportBr", "name": "Sport Center Brasil", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.7, "total_reviews": 900, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "CasaDecor", "name": "Casa & Decor Online", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.6, "total_reviews": 1100, "cancellation_rate": 0.03, "delivery_performance": 0.97}},
+    {"id": "BelezaBr", "name": "Beleza e Saúde Brasil", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.3, "total_reviews": 700, "cancellation_rate": 0.05, "delivery_performance": 0.95}},
+    {"id": "BebeFeliz", "name": "Bebê Feliz Shop", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.8, "total_reviews": 500, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "NutriShop", "name": "Nutri Shop Brasil", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.2, "total_reviews": 400, "cancellation_rate": 0.05, "delivery_performance": 0.95}},
+    {"id": "PetAmigo", "name": "Pet Amigo Shop", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.6, "total_reviews": 600, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "AutoShop", "name": "Auto Shop Online", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.5, "total_reviews": 600, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "CulturaBr", "name": "Cultura Brasil", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.6, "total_reviews": 350, "cancellation_rate": 0.03, "delivery_performance": 0.97}},
+    {"id": "FerroPro", "name": "Ferramentas Pro", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.7, "total_reviews": 450, "cancellation_rate": 0.01, "delivery_performance": 0.99}},
+    {"id": "Marketplace", "name": "Marketplace Brasil", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.5, "total_reviews": 1000, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
 ]
 
 BRANDS_DB = {
@@ -61,90 +78,65 @@ BRANDS_DB = {
     # "brand_sony": {"id": "brand_sony", "name": "Sony", "description": "Make Believe"},
 }
 
-# Cache para categorias carregadas
+# Cache para categorias carregadas (mantido para compatibilidade se data_mapper não estiver disponível)
 _CATEGORIES_DB_CACHE = None
 
-def load_categories_from_dataset(cache_dir: str = "./data/cache") -> List[Dict]:
+def get_categories_db(cache_dir: str = "./dataset-generate/data/cache") -> List[Dict]:
     """
-    Carrega categorias do arquivo amazon_categories.csv.
-    
-    Args:
-        cache_dir: Diretório onde está o arquivo de categorias
-        
-    Returns:
-        Lista de dicionários com categorias no formato:
-        [{"id": "1", "name": "Category Name", "path": "/category-name", "parent_id": None}, ...]
+    Retorna as categorias (carregadas do dataset ou padrão).
+    Tenta usar a função do data_mapper se disponível para garantir consistência.
     """
+    if DATASET_MODULES_AVAILABLE:
+        try:
+            from data_mapper import get_categories_db as get_mapper_categories
+            return get_mapper_categories()
+        except ImportError:
+            pass
+            
+    # Fallback se data_mapper não estiver disponível ou falhar
     global _CATEGORIES_DB_CACHE
-    
-    # Retornar cache se já foi carregado
     if _CATEGORIES_DB_CACHE is not None:
         return _CATEGORIES_DB_CACHE
-    
-    categories_file = os.path.join(cache_dir, "amazon_categories.csv")
-    categories = []
-    
-    if os.path.exists(categories_file):
-        try:
-            df = pd.read_csv(categories_file)
-            
-            for _, row in df.iterrows():
-                category_id = str(row.get("id", ""))
-                category_name = str(row.get("category_name", "")).strip()
-                
-                if not category_name:
-                    continue
-                
-                # Gerar path baseado no nome da categoria (slug)
-                # Converter para lowercase, remover caracteres especiais, substituir espaços por hífens
-                path_slug = re.sub(r'[^\w\s-]', '', category_name.lower())
-                path_slug = re.sub(r'[-\s]+', '-', path_slug)
-                path = f"/{path_slug}"
-                
-                categories.append({
-                    "id": category_id,
-                    "name": category_name,
-                    "path": path,
-                    "parent_id": None  # Não temos informação de hierarquia no CSV
-                })
-            
-            print(f"✅ Carregadas {len(categories)} categorias do dataset")
-            _CATEGORIES_DB_CACHE = categories
-            return categories
-        except Exception as e:
-            print(f"⚠️  Erro ao carregar categorias do dataset: {e}")
-            # Fallback para categorias padrão
-            return get_default_categories()
-    else:
-        print(f"⚠️  Arquivo de categorias não encontrado: {categories_file}")
-        print("💡 Usando categorias padrão")
-        return get_default_categories()
 
-def get_default_categories() -> List[Dict]:
-    """
-    Retorna categorias padrão como fallback.
-    
-    Returns:
-        Lista de categorias padrão
-    """
+    # --- Tentativa 1: extrair do CSV principal (Amazon Brazil) ---
+    brazil_csv = os.path.join(cache_dir, "amazon_products.csv")
+    if os.path.exists(brazil_csv):
+        try:
+            # Ler apenas a coluna categoryName para economizar memória
+            df = pd.read_csv(brazil_csv, usecols=["categoryName"], dtype=str)
+            unique_names = df["categoryName"].dropna().unique()
+
+            categories = []
+            for name in unique_names:
+                name = name.strip()
+                if not name:
+                    continue
+                # ID determinístico via MD5
+                cat_id = str(int(hashlib.md5(name.encode('utf-8')).hexdigest(), 16) % 100000)
+                path_slug = re.sub(r'[^\w\s-]', '', name.lower())
+                path_slug = re.sub(r'[-\s]+', '-', path_slug).strip('-')
+                categories.append({
+                    "id": cat_id,
+                    "name": name,
+                    "path": f"/{path_slug}",
+                    "parent_id": None
+                })
+
+            if categories:
+                print(f"✅ Carregadas {len(categories)} categorias do dataset Amazon Brazil")
+                _CATEGORIES_DB_CACHE = categories
+                return categories
+        except Exception as e:
+            print(f"⚠️  Erro ao extrair categorias do CSV Brazil: {e}")
+
+    # Fallback final
     return [
         {"id": "1", "name": "Electronics", "path": "/electronics", "parent_id": None},
         {"id": "2", "name": "Computers", "path": "/computers", "parent_id": None},
-        {"id": "3", "name": "Home & Kitchen", "path": "/home-kitchen", "parent_id": None},
-        {"id": "4", "name": "Clothing", "path": "/clothing", "parent_id": None},
     ]
 
-def get_categories_db() -> List[Dict]:
-    """
-    Retorna as categorias (carregadas do dataset ou padrão).
-    
-    Returns:
-        Lista de categorias
-    """
-    return load_categories_from_dataset()
-
 # Carregar categorias do dataset dinamicamente
-CATEGORIES_DB = get_categories_db()
+CATEGORIES_DB = get_categories_db(cache_dir="./dataset-generate/data/cache")
 
 # ==========================================
 # 2. REGRAS DE CATÁLOGO (Taxonomia)
@@ -295,21 +287,54 @@ def enrich_real_product(real_product_data: dict, category_id: Optional[str] = No
         raise ValueError("real_product_data deve ser um dicionário não vazio")
     
     try:
-        # 1. Extrair categoria do produto real
-        if category_id is None:
-            category = real_product_data.get("category", {})
-            if isinstance(category, dict):
-                category_id = category.get("id", "Celulares")
-            else:
-                category_id = "Celulares"
-        
-        # Validar que category_id existe nas regras
-        if category_id not in CATALOG_RULES:
-            category_id = "Celulares"
-        
-        # 2. Buscar regras de métricas para a categoria
-        rule = CATALOG_RULES.get(category_id, CATALOG_RULES["Celulares"])
-        metrics_seed = rule.get("metrics_seed", {"pop_min": 100, "pop_max": 5000, "qual_min": 3.5, "qual_max": 4.8})
+        # 1. Usar a categoria real do produto (vinda do data_mapper via categoryName)
+        real_category = real_product_data.get("category", {})
+        real_category_name = real_category.get("name", "") if isinstance(real_category, dict) else ""
+
+        # 2. Tentar encontrar um metrics_seed compatível em CATALOG_RULES
+        #    Faz match parcial por nome (ex: "Smartphones" → "Celulares")
+        #    Se não encontrar, usa seed genérico — mas NUNCA substitui a categoria real.
+        _RULES_ALIAS = {
+            "smartphone": "Celulares",
+            "celular": "Celulares",
+            "phone": "Celulares",
+            "notebook": "Notebooks",
+            "laptop": "Notebooks",
+            "computador": "Notebooks",
+            "tv": "TV e Áudio",
+            "televisão": "TV e Áudio",
+            "televisao": "TV e Áudio",
+            "áudio": "TV e Áudio",
+            "audio": "TV e Áudio",
+            "móvel": "Móveis",
+            "movel": "Móveis",
+            "furniture": "Móveis",
+            "decoração": "Decoração",
+            "decor": "Decoração",
+            "roupa": "Vestuário",
+            "vestuario": "Vestuário",
+            "clothing": "Vestuário",
+            "fashion": "Vestuário",
+        }
+
+        matched_rule_key = None
+        name_lower = real_category_name.lower()
+        for alias, rule_key in _RULES_ALIAS.items():
+            if alias in name_lower:
+                matched_rule_key = rule_key
+                break
+        # Fallback direto por nome exato
+        if matched_rule_key is None and real_category_name in CATALOG_RULES:
+            matched_rule_key = real_category_name
+
+        if matched_rule_key:
+            metrics_seed = CATALOG_RULES[matched_rule_key].get(
+                "metrics_seed", {"pop_min": 100, "pop_max": 5000, "qual_min": 3.5, "qual_max": 4.8}
+            )
+        else:
+            # Seed genérico — aplica para qualquer categoria do Amazon Brazil
+            metrics_seed = {"pop_min": 100, "pop_max": 5000, "qual_min": 3.5, "qual_max": 4.8}
+
         
         # 3. Gerar métricas de qualidade usando a função existente
         try:

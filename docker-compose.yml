@@ -31,6 +31,8 @@ services:
   catalog-db:
     image: postgres:15-alpine
     container_name: catalog-db
+    depends_on:
+      - redis
     env_file:
       - ./catalog-service/.env
     command:
@@ -172,6 +174,7 @@ services:
       - ./docker/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - ./docker/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
       - ./docker/fluent-bit/cleanup.lua:/fluent-bit/etc/cleanup.lua:ro
+      - ./docker/fluent-bit/extract_service.lua:/fluent-bit/etc/extract_service.lua:ro
     networks:
       - marketplace-network
     depends_on:
@@ -332,7 +335,9 @@ services:
     environment:
       - SPAN_STORAGE_TYPE=opensearch
       - ES_SERVER_URLS=http://open-search:9200
+      - ES_TAGS_AS_FIELDS_ALL_FIELDS=true
       - COLLECTOR_OTLP_ENABLED=true
+
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
       - QUERY_BASE_PATH=/jaeger
     ports:
@@ -518,6 +523,8 @@ services:
       - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=30
       - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=5
       - SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT=30000
+      - SPRING_OUTPUT_ANSI_ENABLED=NEVER
+
     env_file:
       - ./catalog-service/.env
     depends_on:
@@ -557,6 +564,8 @@ services:
       - LOG_LEVEL_FEATURE_STORE=INFO
       - ENVIRONMENT=production
       - SPRING_PROFILES_ACTIVE=production
+      - SPRING_OUTPUT_ANSI_ENABLED=NEVER
+
       - OTEL_INSTRUMENTATION_METHODS_INCLUDE=com.marketplace.search.search.domain.services.SearchDomainService[smartSearch,fetchAndValidateCandidates,applyBusinessRules,calculateBusinessBoost,searchWithFallback],com.marketplace.search.search.application.usecases.SearchProductsUseCase[execute],com.marketplace.search.search.infrastructure.opensearch.repositories.OpenSearchProductSearchRepository[search,searchCandidatesWithScores],com.marketplace.search.search.infrastructure.ml.MlRankingClient[rank],com.marketplace.search.search.infrastructure.embedding.EmbeddingClient[getEmbedding]
     env_file:
       - ./search-service/.env

@@ -17,6 +17,8 @@ import com.marketplace.search.indexing.application.events.DebeziumCDCEvent;
 import com.marketplace.search.indexing.application.handlers.payloads.ProductMetricsPayload;
 import com.marketplace.search.indexing.application.services.ProductMetricsCacheService;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -47,6 +49,8 @@ public class ProductMetricsEventHandler {
       ConsumerRecord<String, String> record,
       Acknowledgment acknowledgment) {
 
+    Span currentSpan = Span.current();
+
     try {
       logger.debug("Recebido evento CDC de ProductMetrics - Topic: {}, Partition: {}, Offset: {}",
           topic, partition, record.offset());
@@ -58,6 +62,12 @@ public class ProductMetricsEventHandler {
       ProductMetricsPayload metricsBefore = cdcEvent.getBefore() != null 
           ? objectMapper.convertValue(cdcEvent.getBefore(), ProductMetricsPayload.class) 
           : null;
+
+      if (metricsAfter != null) {
+        currentSpan.setAttribute("product.id", metricsAfter.getProductId());
+      } else if (metricsBefore != null) {
+        currentSpan.setAttribute("product.id", metricsBefore.getProductId());
+      }
 
       switch (cdcEvent.getOperation()) {
         case "c", "r", "u" -> {
@@ -83,9 +93,14 @@ public class ProductMetricsEventHandler {
 
     } catch (Exception e) {
       logger.error("Erro ao processar evento CDC de ProductMetrics - Message: {}, Error: {}", message, e.getMessage(), e);
+      
+      // Mark span as error
+      currentSpan.setStatus(StatusCode.ERROR, "ProductMetrics Process Error: " + e.getMessage());
+      currentSpan.setAttribute("error", true);
+      currentSpan.recordException(e);
+      
       // Em caso de erro, fazer acknowledge para evitar loop infinito
       acknowledgment.acknowledge();
     }
   }
 }
-

@@ -1,21 +1,22 @@
 package com.marketplace.search.catalog.application.usecases;
 
 
+import java.time.Duration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-
 
 import com.marketplace.search.catalog.application.commands.ProductCommand;
 import com.marketplace.search.catalog.application.mappers.ProductMapper;
 import com.marketplace.search.catalog.domain.entities.Product;
 import com.marketplace.search.catalog.domain.exceptions.ProductAlreadyExistsException;
 import com.marketplace.search.catalog.domain.ports.DistributedLockPort;
-import java.time.Duration;
 import com.marketplace.search.catalog.domain.repositories.ProductRepository;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 
 /**
@@ -69,7 +70,7 @@ public class CreateProductUseCase {
         
         if (!acquired) {
             meterRegistry.counter("catalog.product.lock.denied.total").increment();
-            logger.warn("Não foi possível adquirir o lock para o produto {}. Outra instância pode estar processando.", 
+            logger.warn("Not possible to acquire lock for product {}. Another instance might be processing.", 
                 productDTO.id());
             // Se não conseguiu o lock, tratamos como conflito pois provavelmente já está sendo criado
             throw new ProductAlreadyExistsException(productDTO.id());

@@ -6,6 +6,7 @@ Responsável por transformar dados brutos do dataset em DTOs compatíveis com a 
 
 import random
 import re
+import hashlib
 from typing import Dict, List, Optional, Set
 from datetime import datetime
 import pandas as pd
@@ -14,59 +15,93 @@ import os
 # Cache para categorias carregadas
 _CATEGORIES_DB_CACHE = None
 
-def load_categories_from_dataset(cache_dir: str = "./data/cache") -> List[Dict]:
+def load_categories_from_dataset(cache_dir: str = "./dataset-generate/data/cache") -> List[Dict]:
     """
-    Carrega categorias do arquivo amazon_categories.csv.
-    
+    Carrega categorias do novo dataset Amazon Brazil.
+
+    O dataset Amazon Brazil não possui um arquivo separado de categorias —
+    as categorias estão embutidas na coluna 'categoryName' do CSV principal.
+    Esta função lê esse CSV, extrai os nomes únicos de categoria e gera IDs
+    determinísticos (hash) para manter consistência entre execuções.
+
+    Como fallback, ainda tenta o arquivo amazon_categories.csv legado.
+
     Args:
-        cache_dir: Diretório onde está o arquivo de categorias
-        
+        cache_dir: Diretório onde está o arquivo de produtos
+
     Returns:
         Lista de dicionários com categorias no formato:
-        [{"id": "1", "name": "Category Name", "path": "/category-name", "parent_id": None}, ...]
+        [{"id": "123", "name": "Smartphones", "path": "/smartphones", "parent_id": None}, ...]
     """
     global _CATEGORIES_DB_CACHE
-    
-    # Retornar cache se já foi carregado
+
     if _CATEGORIES_DB_CACHE is not None:
         return _CATEGORIES_DB_CACHE
-    
+
+    # --- Tentativa 1: extrair do CSV principal (Amazon Brazil) ---
+    brazil_csv = os.path.join(cache_dir, "amazon_products.csv")
+    if os.path.exists(brazil_csv):
+        try:
+            # Ler apenas a coluna categoryName para economizar memória
+            df = pd.read_csv(brazil_csv, usecols=["categoryName"], dtype=str)
+            unique_names = df["categoryName"].dropna().unique()
+
+            categories = []
+            for name in unique_names:
+                name = name.strip()
+                if not name:
+                    continue
+                # ID determinístico via MD5 (hash() do Python não é estável entre execuções)
+                cat_id = str(int(hashlib.md5(name.encode('utf-8')).hexdigest(), 16) % 100000)
+                path_slug = re.sub(r'[^\w\s-]', '', name.lower())
+                path_slug = re.sub(r'[-\s]+', '-', path_slug).strip('-')
+                categories.append({
+                    "id": cat_id,
+                    "name": name,
+                    "path": f"/{path_slug}",
+                    "parent_id": None
+                })
+
+            if categories:
+                _CATEGORIES_DB_CACHE = categories
+                return categories
+        except Exception as e:
+            # Não logar erro se for FileNotFoundError, apenas se for algo inesperado
+            if not isinstance(e, FileNotFoundError):
+                print(f"⚠️  Erro ao extrair categorias do CSV Brazil: {e}")
+
+    # --- Tentativa 2: arquivo legado amazon_categories.csv ---
     categories_file = os.path.join(cache_dir, "amazon_categories.csv")
-    categories = []
-    
     if os.path.exists(categories_file):
         try:
             df = pd.read_csv(categories_file)
-            
+            categories = []
+
             for _, row in df.iterrows():
                 category_id = str(row.get("id", ""))
                 category_name = str(row.get("category_name", "")).strip()
-                
+
                 if not category_name:
                     continue
-                
-                # Gerar path baseado no nome da categoria (slug)
-                # Converter para lowercase, remover caracteres especiais, substituir espaços por hífens
+
                 path_slug = re.sub(r'[^\w\s-]', '', category_name.lower())
                 path_slug = re.sub(r'[-\s]+', '-', path_slug)
                 path = f"/{path_slug}"
-                
+
                 categories.append({
                     "id": category_id,
                     "name": category_name,
                     "path": path,
-                    "parent_id": None  # Não temos informação de hierarquia no CSV
+                    "parent_id": None
                 })
-            
+
             _CATEGORIES_DB_CACHE = categories
             return categories
         except Exception as e:
-            print(f"⚠️  Erro ao carregar categorias do dataset: {e}")
-            # Fallback para categorias padrão
-            return get_default_categories()
-    else:
-        # Fallback para categorias padrão
-        return get_default_categories()
+            print(f"⚠️  Erro ao carregar categorias do dataset legado: {e}")
+
+    # --- Fallback final ---
+    return get_default_categories()
 
 def get_default_categories() -> List[Dict]:
     """
@@ -91,27 +126,92 @@ def get_categories_db() -> List[Dict]:
     """
     return load_categories_from_dataset()
 
-# Dados mestres (compartilhados com data_gen.py)
-# Carregar categorias do dataset dinamicamente
-CATEGORIES_DB = get_categories_db()
+def load_brands_from_dataset(cache_dir: str = "./dataset-generate/data/cache", min_count: int = 5, max_brands: int = 1000) -> Set[str]:
+    """
+    Extrai marcas dos títulos dos produtos seguindo a mesma lógica do generate_seed.py.
+    """
+    brazil_csv = os.path.join(cache_dir, "amazon_products.csv")
+    if not os.path.exists(brazil_csv):
+        return {"Outros"}
+        
+    try:
+        df = pd.read_csv(brazil_csv, usecols=["title"], dtype=str)
+        
+        def extract_brand(title):
+            if not isinstance(title, str): return None
+            for word in title.strip().split()[:4]:
+                clean = re.sub(r"[^\w]", "", word).strip()
+                if len(clean) < 2 or clean[0].isdigit(): continue
+                if clean.lower() in _NON_BRAND_WORDS: continue
+                return clean.upper() if clean.isupper() else clean.capitalize()
+            return None
+            
+        extracted = df["title"].apply(extract_brand).dropna()
+        counts = extracted.value_counts()
+        top_brands = set(counts[counts >= min_count].head(max_brands).index)
+        top_brands.add("Outros")
+        return top_brands
+    except Exception as e:
+        print(f"⚠️  Erro ao carregar marcas: {e}")
+        return {"Outros"}
 
-BRANDS_DB = {
-    "Apple": {"id": "Apple", "name": "Apple", "description": "Inovação e design"},
-    "Samsung": {"id": "Samsung", "name": "Samsung", "description": "Líder em Android"},
-    "Dell": {"id": "Dell", "name": "Dell", "description": "Soluções corporativas"},
-    "Nike": {"id": "Nike", "name": "Nike", "description": "Just do it"},
-    "Adidas": {"id": "Adidas", "name": "Adidas", "description": "Performance esportiva"},
+# Dados mestres (compartilhados com data_gen.py)
+# Carregar categorias e marcas do dataset dinamicamente
+CATEGORIES_DB = get_categories_db()
+_NON_BRAND_WORDS = {
+    "ração","racao","raçao","kit","suplemento","brinquedo","comedouro","tapete",
+    "shampoo","coleira","cama","antipulgas","combo","arranhador","bebedouro",
+    "pet","petisco","escova","biscoito","bola","guia","cercado","caixa",
+    "vermifugo","vermífugo","mordedor","capa","osso","bolsa","peitoral",
+    "conjunto","bifinho","smart","grade","fonte","smartphone","notebook",
+    "tablet","cadeira","mesa","sofa","sofá","tenis","tênis","camiseta",
+    "calca","calça","vestido","meia","camera","câmera","tv","geladeira",
+    "fogao","fogão","liquidificador","fritadeira","aspirador","ferro","micro",
+    "colchao","colchão","travesseiro","cobertor","lencol","lençol","panela",
+    "frigideira","faca","garfo","prato","copo","livro","agenda","caderno",
+    "caneta","lapis","lápis","sabonete","creme","perfume","condicionador",
+    "hidratante","vitamina","proteina","whey","creatina","cabo","carregador",
+    "case","pelicula","película","oleo","óleo","filtro","pneu","bateria",
+    "raquete","capacete","luva","poltrona","armario","armário","luminaria",
+    "luminária","lampada","lâmpada","relogio","relógio","oculos","óculos",
+    "mochila","carteira","novo","original","premium","profissional","pro",
+    "pack","mini","maxi","ultra","super","mega","turbo","set","par",
+    "carro","moto","bike","bicicleta","dog","cat","gato","cachorro",
+    "baby","bebe","bebê","infantil","novo","nova","grande","pequeno",
+    "linha","serie","série","edição","edicao","especial","exclusivo",
+    "dog","cat","ave","peixe","hamster","coelho","alimento","comida",
+    "seco","umido","úmido","adulto","filhote","senior","castrado",
+    "light","natural","organico","orgânico","vegano","integral",
 }
+
+# Carregar marcas do dataset dinamicamente (precisa do _NON_BRAND_WORDS definido)
+BRANDS_DB = load_brands_from_dataset()
 
 SELLERS = [
     {"id": "TechStore", "name": "TechStore Brasil", "type": "PROFESSIONAL", "status": "ACTIVE", 
-     "reputation": {"score": 4.8, "total_reviews": 1500, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
-    {"id": "InfoShop", "name": "Casa & Decoração Ltda", "type": "PROFESSIONAL", "status": "ACTIVE",
-     "reputation": {"score": 4.5, "total_reviews": 1200, "cancellation_rate": 0.03, "delivery_performance": 0.95}},
-    {"id": "SportCenter", "name": "Fashion Store", "type": "INDIVIDUAL", "status": "ACTIVE",
-     "reputation": {"score": 4.2, "total_reviews": 800, "cancellation_rate": 0.05, "delivery_performance": 0.92}},
-    {"id": "Sport", "name": "Gamer Pro", "type": "PROFESSIONAL", "status": "ACTIVE",
      "reputation": {"score": 4.9, "total_reviews": 2000, "cancellation_rate": 0.01, "delivery_performance": 0.99}},
+    {"id": "ModaBrasil", "name": "Moda Brasil Online", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.5, "total_reviews": 1200, "cancellation_rate": 0.03, "delivery_performance": 0.97}},
+    {"id": "SportBr", "name": "Sport Center Brasil", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.7, "total_reviews": 900, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "CasaDecor", "name": "Casa & Decor Online", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.6, "total_reviews": 1100, "cancellation_rate": 0.03, "delivery_performance": 0.97}},
+    {"id": "BelezaBr", "name": "Beleza e Saúde Brasil", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.3, "total_reviews": 700, "cancellation_rate": 0.05, "delivery_performance": 0.95}},
+    {"id": "BebeFeliz", "name": "Bebê Feliz Shop", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.8, "total_reviews": 500, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "NutriShop", "name": "Nutri Shop Brasil", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.2, "total_reviews": 400, "cancellation_rate": 0.05, "delivery_performance": 0.95}},
+    {"id": "PetAmigo", "name": "Pet Amigo Shop", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.6, "total_reviews": 600, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "AutoShop", "name": "Auto Shop Online", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.5, "total_reviews": 600, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
+    {"id": "CulturaBr", "name": "Cultura Brasil", "type": "INDIVIDUAL", "status": "ACTIVE",
+     "reputation": {"score": 4.6, "total_reviews": 350, "cancellation_rate": 0.03, "delivery_performance": 0.97}},
+    {"id": "FerroPro", "name": "Ferramentas Pro", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.7, "total_reviews": 450, "cancellation_rate": 0.01, "delivery_performance": 0.99}},
+    {"id": "Marketplace", "name": "Marketplace Brasil", "type": "PROFESSIONAL", "status": "ACTIVE",
+     "reputation": {"score": 4.5, "total_reviews": 1000, "cancellation_rate": 0.02, "delivery_performance": 0.98}},
 ]
 
 
@@ -194,64 +294,54 @@ class DataMapper:
                 "parent_id": category.get("parent_id")
             }
         
-        # Último fallback: categoria genérica
+        # Último fallback: usar ID '77927' (TV, Áudio e Cinema em Casa) que existe no seed.sql
+        # ou a primeira categoria se CATEGORIES_DB estiver populado
+        fallback_id = "77927" 
+        fallback_name = "TV, Áudio e Cinema em Casa"
+        
+        if categories:
+            fallback_id = categories[0]["id"]
+            fallback_name = categories[0]["name"]
+            
         return {
-            "id": "1",
-            "name": "General",
-            "path": "/general",
+            "id": fallback_id,
+            "name": fallback_name,
+            "path": f"/{fallback_id}",
             "parent_id": None
         }
     
-    def normalize_brand(self, brand_name: str) -> Dict[str, str]:
+    def normalize_brand(self, brand_name: str, title: str = "") -> Dict[str, str]:
         """
-        Normaliza o nome da marca do dataset para BrandDTO.
-        
-        Args:
-            brand_name: Nome da marca do dataset (pode ser vazio ou None)
-            
-        Returns:
-            Dicionário representando BrandDTO com id, name e description
+        Normaliza a marca para BrandDTO.
+
+        Prioridade:
+        1. brand_name explícito (campo 'brand' do CSV)
+        2. Primeira palavra não-genérica do título (padrão Amazon Brazil)
+        3. Fallback para 'Outros' (sempre presente no seed.sql)
         """
-        if not brand_name or pd.isna(brand_name):
-            # Fallback: marca genérica
-            brand = BRANDS_DB["Apple"]
-            return {
-                "id": brand["id"],
-                "name": brand["name"],
-                "description": brand.get("description", "")
-            }
-        
-        brand_name = str(brand_name).strip()
-        
-        # Verificar mapeamento customizado primeiro
-        if brand_name in self.brand_mapping:
-            brand_id = self.brand_mapping[brand_name]
-            brand = BRANDS_DB.get(brand_id)
-            if brand:
-                return {
-                    "id": brand["id"],
-                    "name": brand["name"],
-                    "description": brand.get("description", "")
-                }
-        
-        # Tentar match por nome (case-insensitive, exato ou parcial)
-        brand_name_lower = brand_name.lower()
-        for brand_id, brand in BRANDS_DB.items():
-            if brand["name"].lower() == brand_name_lower or brand_name_lower in brand["name"].lower():
-                return {
-                    "id": brand["id"],
-                    "name": brand["name"],
-                    "description": brand.get("description", "")
-                }
-        
-        # Se não encontrar, criar uma nova marca dinamicamente (ou usar fallback)
-        # Por enquanto, usar fallback para manter consistência
-        brand = BRANDS_DB["Apple"]
-        return {
-            "id": brand["id"],
-            "name": brand["name"],
-            "description": brand.get("description", "")
-        }
+        # Tenta usar brand_name explícito
+        if brand_name and not pd.isna(brand_name):
+            name = str(brand_name).strip()
+            if name:
+                return {"id": name, "name": name, "description": ""}
+
+        # Extrai da primeira palavra não-genérica do título
+        if title:
+            for word in str(title).strip().split()[:4]:
+                clean = re.sub(r"[^\w]", "", word).strip()
+                if len(clean) < 2 or clean[0].isdigit():
+                    continue
+                if clean.lower() in _NON_BRAND_WORDS:
+                    continue
+                name = clean.upper() if clean.isupper() else clean.capitalize()
+                
+                # VALIDAR SE EXISTE NO DB
+                if name in BRANDS_DB:
+                    return {"id": name, "name": name, "description": ""}
+                break # Tenta apenas a primeira marca válida encontrada no título
+
+        # Fallback garantido
+        return {"id": "Outros", "name": "Outros", "description": ""}
     
     def parse_images(self, images_field) -> List[str]:
         """
@@ -467,16 +557,19 @@ class DataMapper:
         if price is None or price <= 0:
             price = round(random.uniform(50.0, 5000.0), 2)  # Fallback
         
-        # Categoria - usar category_id do dataset se disponível
+        # Categoria — novo dataset usa 'categoryName' (texto); fallback para category_id (legado)
         category_id = None
         category_name = None
-        
-        if "category_id" in row and not pd.isna(row.get("category_id")):
+
+        if "categoryName" in row and not pd.isna(row.get("categoryName")):
+            # Amazon Brazil: campo de texto em Português
+            category_name = str(row["categoryName"]).strip()
+        elif "category_id" in row and not pd.isna(row.get("category_id")):
+            # Amazon US legado: ID numérico
             category_id = str(row["category_id"]).strip()
         elif "category" in row and not pd.isna(row.get("category")):
             category_name = str(row["category"]).strip()
         else:
-            # Fallback: extrair categoria do título (não ideal, mas funciona)
             category_name = str(title).lower()
         
         category = self.normalize_category(category_id=category_id, category_name=category_name)
@@ -485,16 +578,8 @@ class DataMapper:
         brand_name = ""
         if "brand" in row and not pd.isna(row.get("brand")):
             brand_name = str(row["brand"]).strip()
-        else:
-            # Tentar extrair marca do título (palavras comuns de marcas)
-            title_lower = title.lower()
-            brand_keywords = ["apple", "samsung", "dell", "nike", "adidas", "sony", "lg", "hp", "lenovo"]
-            for keyword in brand_keywords:
-                if keyword in title_lower:
-                    brand_name = keyword.capitalize()
-                    break
-        
-        brand = self.normalize_brand(brand_name)
+
+        brand = self.normalize_brand(brand_name, title=title)
         
         # Vendedor (aleatório dos disponíveis)
         seller = random.choice(SELLERS).copy()

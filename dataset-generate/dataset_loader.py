@@ -112,8 +112,12 @@ class DatasetLoader:
             # Fallback: tentar baixar via URL pública se possível
             # Exemplo para datasets públicos conhecidos
             public_urls = {
+                # Dataset Amazon US (legado)
                 "asaniczka/amazon-products-dataset-2023-1-4m-products":
-                    "https://www.kaggle.com/api/v1/datasets/download/asaniczka/amazon-products-dataset-2023-1-4m-products"
+                    "https://www.kaggle.com/api/v1/datasets/download/asaniczka/amazon-products-dataset-2023-1-4m-products",
+                # Dataset Amazon Brazil (ativo)
+                "asaniczka/amazon-brazil-products-2023-1-3m-products":
+                    "https://www.kaggle.com/api/v1/datasets/download/asaniczka/amazon-brazil-products-2023-1-3m-products",
             }
             dataset_key = dataset_name if '/' in dataset_name else f"asaniczka/{dataset_name}"
             public_url = public_urls.get(dataset_key)

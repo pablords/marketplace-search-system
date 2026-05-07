@@ -56,6 +56,12 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <!-- OpenTelemetry API -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -65,4 +71,3 @@
     </dependencies>
 
 </project>
-

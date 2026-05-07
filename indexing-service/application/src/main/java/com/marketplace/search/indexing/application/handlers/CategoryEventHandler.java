@@ -17,6 +17,8 @@ import com.marketplace.search.indexing.application.events.DebeziumCDCEvent;
 import com.marketplace.search.indexing.application.handlers.payloads.CategoryPayload;
 import com.marketplace.search.indexing.application.services.DimensionCacheService;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -47,6 +49,8 @@ public class CategoryEventHandler {
       ConsumerRecord<String, String> record,
       Acknowledgment acknowledgment) {
 
+    Span currentSpan = Span.current();
+
     try {
       logger.debug("Recebido evento CDC de Category - Topic: {}, Partition: {}, Offset: {}",
           topic, partition, record.offset());
@@ -58,6 +62,12 @@ public class CategoryEventHandler {
       CategoryPayload categoryBefore = cdcEvent.getBefore() != null 
           ? objectMapper.convertValue(cdcEvent.getBefore(), CategoryPayload.class) 
           : null;
+
+      if (categoryAfter != null) {
+        currentSpan.setAttribute("category.id", categoryAfter.getId());
+      } else if (categoryBefore != null) {
+        currentSpan.setAttribute("category.id", categoryBefore.getId());
+      }
 
       switch (cdcEvent.getOperation()) {
         case "c", "r", "u" -> {
@@ -83,9 +93,14 @@ public class CategoryEventHandler {
 
     } catch (Exception e) {
       logger.error("Erro ao processar evento CDC de Category - Message: {}, Error: {}", message, e.getMessage(), e);
+      
+      // Mark span as error
+      currentSpan.setStatus(StatusCode.ERROR, "Category Process Error: " + e.getMessage());
+      currentSpan.setAttribute("error", true);
+      currentSpan.recordException(e);
+      
       // Em caso de erro, fazer acknowledge para evitar loop infinito
       acknowledgment.acknowledge();
     }
   }
 }
-

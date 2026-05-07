@@ -1,10 +1,14 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"api-gateway-go/internal/clients"
 	"api-gateway-go/internal/models"
@@ -17,7 +21,7 @@ func ErrorHandler() gin.HandlerFunc {
 		defer func() {
 			if err := recover(); err != nil {
 				// Log do panic (será logado pelo middleware de logging se configurado)
-				handleError(c, http.StatusInternalServerError, "Erro interno do servidor", err)
+				handleError(c, http.StatusInternalServerError, "Erro interno do servidor (Panic)", err)
 			}
 		}()
 
@@ -35,6 +39,19 @@ func ErrorHandler() gin.HandlerFunc {
 
 // handleError processa e retorna uma resposta de erro padronizada
 func handleError(c *gin.Context, statusCode int, message string, err interface{}) {
+	// Mark span as error in OpenTelemetry
+	span := trace.SpanFromContext(c.Request.Context())
+	if span.IsRecording() {
+		span.SetStatus(codes.Error, message)
+		span.SetAttributes(attribute.Bool("error", true))
+		
+		if e, ok := err.(error); ok {
+			span.RecordError(e)
+		} else if err != nil {
+			span.RecordError(fmt.Errorf("%v", err))
+		}
+	}
+
 	// Não escrever resposta se já foi escrita
 	if c.Writer.Written() {
 		return
@@ -121,4 +138,3 @@ func extractErrorDetails(err interface{}) map[string]string {
 
 	return details
 }
-

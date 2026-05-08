@@ -23,9 +23,26 @@ BRAZIL_CSV   = "./dataset-generate/data/cache/amazon_products.csv"
 OUTPUT_SQL   = "./catalog-service/bootstrap/src/main/resources/data/seed.sql"
 
 # ─────────────────────────────────────────────
+# Camada 1: Stopwords PT-BR (preposições, artigos, pronomes, conectivos)
+# ─────────────────────────────────────────────
+_PORTUGUESE_STOPWORDS = {
+    # Preposições
+    "a", "ao", "aos", "à", "às", "ante", "até", "após", "com", "contra",
+    "de", "do", "da", "dos", "das", "desde", "em", "entre", "no", "na",
+    "nos", "nas", "para", "per", "perante", "por", "sem", "sob", "sobre",
+    # Artigos
+    "o", "os", "um", "uma", "uns", "umas", "as",
+    # Pronomes demonstrativos / outros
+    "este", "esta", "esse", "essa", "aquele", "aquela", "isto", "isso",
+    # Conjunções / conectivos
+    "ou", "que", "se", "não", "nao", "mais", "muito", "como", "mas", "já",
+    "ja", "e", "nem",
+}
+
+# ─────────────────────────────────────────────
 # Palavras genéricas (tipos de produto, não marcas)
 # ─────────────────────────────────────────────
-NON_BRAND_WORDS = {
+_PRODUCT_GENERIC_WORDS = {
     "ração","racao","raçao","kit","suplemento","brinquedo","comedouro","tapete",
     "shampoo","coleira","cama","antipulgas","combo","arranhador","bebedouro",
     "pet","petisco","escova","biscoito","bola","guia","cercado","caixa",
@@ -45,12 +62,65 @@ NON_BRAND_WORDS = {
     "pack","mini","maxi","ultra","super","mega","turbo","set","par",
     "carro","moto","bike","bicicleta","dog","cat","gato","cachorro",
     "baby","bebe","bebê","infantil","novo","nova","grande","pequeno",
-    "kit","conjunto","duplo","triplo","com","para","de","do","da","e",
+    "duplo","triplo",
     "linha","serie","série","edição","edicao","especial","exclusivo",
-    "dog","cat","ave","peixe","hamster","coelho","ração","alimento",
+    "ave","peixe","hamster","coelho","alimento",
     "comida","petfood","seco","umido","úmido","adulto","filhote","senior",
     "castrado","light","natural","organico","orgânico","vegano","integral",
+    # Palavras genéricas detectadas na análise de dados
+    "areia","areias","higiênico","higienico","úmida","umida",
+    "carrapato","carrapatos","fórmula","formula","gatos","refil",
+    "vitamínico","vitaminico","tira","led",
+    "alimentador","alimentar","anti","banho","banheira",
 }
+
+# União de todas as palavras proibidas
+NON_BRAND_WORDS = _PORTUGUESE_STOPWORDS | _PRODUCT_GENERIC_WORDS
+
+
+# ─────────────────────────────────────────────
+# Camada 3: Heurísticas de validação de brand
+# ─────────────────────────────────────────────
+_REJECT_SUFFIXES = (
+    "ico", "ica", "ido", "ida", "oso", "osa",
+    "ção", "são", "cao", "sao",
+    "mento", "ário", "ária", "ario", "aria",
+    "ável", "ível", "avel", "ivel",
+    "ente", "ante",
+)
+
+def _is_likely_brand(clean_word: str) -> bool:
+    """
+    Retorna True se a palavra parece um nome de marca.
+    Filtra adjetivos/substantivos comuns em PT-BR pelos sufixos.
+    """
+    if len(clean_word) < 2 or len(clean_word) > 20:
+        return False
+    lower = clean_word.lower()
+    # Rejeitar palavras que terminam com sufixos de adjetivos/substantivos PT-BR
+    for suffix in _REJECT_SUFFIXES:
+        if lower.endswith(suffix) and len(lower) > len(suffix) + 2:
+            return False
+    return True
+
+
+# ─────────────────────────────────────────────
+# Camada 4: Stemming caseiro (plural/gênero)
+# ─────────────────────────────────────────────
+def _simple_stem(word: str) -> str:
+    """
+    Remove sufixos comuns de plural/gênero PT-BR.
+    Objetivo: agrupar variantes morfológicas (ex: Carrapato/Carrapatos).
+    """
+    w = word.lower()
+    if w.endswith("ões"):   return w[:-3] + "ão"
+    if w.endswith("ães"):   return w[:-3] + "ão"
+    if w.endswith("ais"):   return w[:-2] + "al"
+    if w.endswith("éis"):   return w[:-3] + "el"
+    if w.endswith("is") and len(w) > 3: return w[:-2] + "l"
+    if w.endswith("s") and not w.endswith("ss") and len(w) > 2:
+        return w[:-1]
+    return w
 
 
 def deterministic_id(name: str) -> str:
@@ -88,13 +158,18 @@ def load_categories(csv_path: str) -> list[dict]:
 
 
 # ─────────────────────────────────────────────
-# 2. Brands — extraídas dos títulos
+# 2. Brands — extraídas dos títulos (pipeline 4 camadas)
 # ─────────────────────────────────────────────
 def extract_brand_from_title(title: str) -> str | None:
     """
     Percorre as primeiras palavras do título e retorna a primeira que
-    pareça um nome de marca (não é palavra genérica, não começa com dígito,
-    tem pelo menos 2 caracteres).
+    pareça um nome de marca.
+
+    Pipeline de validação (4 camadas):
+      1. Stopwords PT-BR (preposições, artigos, conectivos)
+      2. Palavras genéricas de produto (NON_BRAND_WORDS)
+      3. Heurística de sufixos (rejeita adjetivos/substantivos comuns)
+      4. Normalização case → UPPER (determinístico)
     """
     if not isinstance(title, str):
         return None
@@ -102,33 +177,59 @@ def extract_brand_from_title(title: str) -> str | None:
         clean = re.sub(r"[^\w]", "", word).strip()
         if len(clean) < 2 or clean[0].isdigit():
             continue
+        # Camada 1+2: stopwords + palavras genéricas
         if clean.lower() in NON_BRAND_WORDS:
             continue
-        # Normalizar capitalização
-        return clean.upper() if clean.isupper() else clean.capitalize()
+        # Camada 3: heurística de sufixos
+        if not _is_likely_brand(clean):
+            continue
+        # Camada 4 (parcial): normalização case determinística
+        return clean.upper()
     return None
 
 
 def load_brands(csv_path: str, min_count: int = 5, max_brands: int = 1000) -> list[dict]:
-    print("📂 Extraindo marcas dos títulos...")
+    print("📂 Extraindo marcas dos títulos (pipeline 4 camadas)...")
     df = pd.read_csv(csv_path, usecols=["title"], dtype=str)
     extracted = df["title"].apply(extract_brand_from_title).dropna()
-    counts    = extracted.value_counts()
-    top       = counts[counts >= min_count].head(max_brands)
+    raw_counts = extracted.value_counts()
 
+    # Camada 4: agrupar por stem para eliminar variantes morfológicas
+    # Ex: "CARRAPATO" e "CARRAPATOS" → stem "carrapato" → contagem somada
+    from collections import defaultdict
+    stem_groups: dict[str, dict[str, int]] = defaultdict(dict)
+    for name, count in raw_counts.items():
+        stem = _simple_stem(name)
+        stem_groups[stem][name] = count
+
+    # Para cada grupo de stem, usar o nome mais frequente como canônico
     brands = []
-    for name, count in top.items():
+    for stem, variants in stem_groups.items():
+        total_count = sum(variants.values())
+        if total_count < min_count:
+            continue
+        # Nome canônico = variante com mais ocorrências
+        canonical = max(variants, key=variants.get)
         brands.append({
-            "id":          name,
-            "name":        name,
-            "description": f"Marca com {count} produtos no catálogo",
+            "id":          canonical,
+            "name":        canonical,
+            "description": f"Marca com {total_count} produtos no catálogo",
+            "_count":      total_count,
         })
 
-    # Garantir fallback "Outros" para produtos sem marca identificada
-    if not any(b["id"] == "Outros" for b in brands):
+    # Ordenar por contagem e limitar
+    brands.sort(key=lambda b: b["_count"], reverse=True)
+    brands = brands[:max_brands]
+
+    # Remover campo auxiliar _count
+    for b in brands:
+        del b["_count"]
+
+    # Garantir fallback "OUTROS" para produtos sem marca identificada
+    if not any(b["id"] == "OUTROS" for b in brands):
         brands.append({
-            "id":          "Outros",
-            "name":        "Outros",
+            "id":          "OUTROS",
+            "name":        "OUTROS",
             "description": "Marca não identificada",
         })
 

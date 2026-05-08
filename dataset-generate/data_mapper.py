@@ -126,39 +126,31 @@ def get_categories_db() -> List[Dict]:
     """
     return load_categories_from_dataset()
 
-def load_brands_from_dataset(cache_dir: str = "./dataset-generate/data/cache", min_count: int = 5, max_brands: int = 1000) -> Set[str]:
-    """
-    Extrai marcas dos títulos dos produtos seguindo a mesma lógica do generate_seed.py.
-    """
-    brazil_csv = os.path.join(cache_dir, "amazon_products.csv")
-    if not os.path.exists(brazil_csv):
-        return {"Outros"}
-        
-    try:
-        df = pd.read_csv(brazil_csv, usecols=["title"], dtype=str)
-        
-        def extract_brand(title):
-            if not isinstance(title, str): return None
-            for word in title.strip().split()[:4]:
-                clean = re.sub(r"[^\w]", "", word).strip()
-                if len(clean) < 2 or clean[0].isdigit(): continue
-                if clean.lower() in _NON_BRAND_WORDS: continue
-                return clean.upper() if clean.isupper() else clean.capitalize()
-            return None
-            
-        extracted = df["title"].apply(extract_brand).dropna()
-        counts = extracted.value_counts()
-        top_brands = set(counts[counts >= min_count].head(max_brands).index)
-        top_brands.add("Outros")
-        return top_brands
-    except Exception as e:
-        print(f"⚠️  Erro ao carregar marcas: {e}")
-        return {"Outros"}
-
 # Dados mestres (compartilhados com data_gen.py)
-# Carregar categorias e marcas do dataset dinamicamente
+# Carregar categorias do dataset dinamicamente
 CATEGORIES_DB = get_categories_db()
-_NON_BRAND_WORDS = {
+
+# ─────────────────────────────────────────────
+# Camada 1: Stopwords PT-BR (preposições, artigos, pronomes, conectivos)
+# ─────────────────────────────────────────────
+_PORTUGUESE_STOPWORDS = {
+    # Preposições
+    "a", "ao", "aos", "à", "às", "ante", "até", "após", "com", "contra",
+    "de", "do", "da", "dos", "das", "desde", "em", "entre", "no", "na",
+    "nos", "nas", "para", "per", "perante", "por", "sem", "sob", "sobre",
+    # Artigos
+    "o", "os", "um", "uma", "uns", "umas", "as",
+    # Pronomes demonstrativos / outros
+    "este", "esta", "esse", "essa", "aquele", "aquela", "isto", "isso",
+    # Conjunções / conectivos
+    "ou", "que", "se", "não", "nao", "mais", "muito", "como", "mas", "já",
+    "ja", "e", "nem",
+}
+
+# ─────────────────────────────────────────────
+# Palavras genéricas (tipos de produto, não marcas)
+# ─────────────────────────────────────────────
+_PRODUCT_GENERIC_WORDS = {
     "ração","racao","raçao","kit","suplemento","brinquedo","comedouro","tapete",
     "shampoo","coleira","cama","antipulgas","combo","arranhador","bebedouro",
     "pet","petisco","escova","biscoito","bola","guia","cercado","caixa",
@@ -178,13 +170,126 @@ _NON_BRAND_WORDS = {
     "pack","mini","maxi","ultra","super","mega","turbo","set","par",
     "carro","moto","bike","bicicleta","dog","cat","gato","cachorro",
     "baby","bebe","bebê","infantil","novo","nova","grande","pequeno",
+    "duplo","triplo",
     "linha","serie","série","edição","edicao","especial","exclusivo",
-    "dog","cat","ave","peixe","hamster","coelho","alimento","comida",
-    "seco","umido","úmido","adulto","filhote","senior","castrado",
-    "light","natural","organico","orgânico","vegano","integral",
+    "ave","peixe","hamster","coelho","alimento",
+    "comida","petfood","seco","umido","úmido","adulto","filhote","senior",
+    "castrado","light","natural","organico","orgânico","vegano","integral",
+    # Palavras genéricas detectadas na análise de dados
+    "areia","areias","higiênico","higienico","úmida","umida",
+    "carrapato","carrapatos","fórmula","formula","gatos","refil",
+    "vitamínico","vitaminico","tira","led",
+    "alimentador","alimentar","anti","banho","banheira",
 }
 
-# Carregar marcas do dataset dinamicamente (precisa do _NON_BRAND_WORDS definido)
+# União de todas as palavras proibidas
+_NON_BRAND_WORDS = _PORTUGUESE_STOPWORDS | _PRODUCT_GENERIC_WORDS
+
+
+# ─────────────────────────────────────────────
+# Camada 3: Heurísticas de validação de brand
+# ─────────────────────────────────────────────
+_REJECT_SUFFIXES = (
+    "ico", "ica", "ido", "ida", "oso", "osa",
+    "ção", "são", "cao", "sao",
+    "mento", "ário", "ária", "ario", "aria",
+    "ável", "ível", "avel", "ivel",
+    "ente", "ante",
+)
+
+def _is_likely_brand(clean_word: str) -> bool:
+    """
+    Retorna True se a palavra parece um nome de marca.
+    Filtra adjetivos/substantivos comuns em PT-BR pelos sufixos.
+    """
+    if len(clean_word) < 2 or len(clean_word) > 20:
+        return False
+    lower = clean_word.lower()
+    for suffix in _REJECT_SUFFIXES:
+        if lower.endswith(suffix) and len(lower) > len(suffix) + 2:
+            return False
+    return True
+
+
+# ─────────────────────────────────────────────
+# Camada 4: Stemming caseiro (plural/gênero)
+# ─────────────────────────────────────────────
+def _simple_stem(word: str) -> str:
+    """
+    Remove sufixos comuns de plural/gênero PT-BR.
+    Objetivo: agrupar variantes morfológicas (ex: Carrapato/Carrapatos).
+    """
+    w = word.lower()
+    if w.endswith("ões"):   return w[:-3] + "ão"
+    if w.endswith("ães"):   return w[:-3] + "ão"
+    if w.endswith("ais"):   return w[:-2] + "al"
+    if w.endswith("éis"):   return w[:-3] + "el"
+    if w.endswith("is") and len(w) > 3: return w[:-2] + "l"
+    if w.endswith("s") and not w.endswith("ss") and len(w) > 2:
+        return w[:-1]
+    return w
+
+
+def _extract_brand(title: str) -> Optional[str]:
+    """
+    Extrai marca do título usando pipeline de 4 camadas.
+    Retorna nome normalizado em UPPER ou None.
+    """
+    if not isinstance(title, str):
+        return None
+    for word in title.strip().split()[:4]:
+        clean = re.sub(r"[^\w]", "", word).strip()
+        if len(clean) < 2 or clean[0].isdigit():
+            continue
+        if clean.lower() in _NON_BRAND_WORDS:
+            continue
+        if not _is_likely_brand(clean):
+            continue
+        return clean.upper()
+    return None
+
+
+def load_brands_from_dataset(cache_dir: str = "./dataset-generate/data/cache", min_count: int = 5, max_brands: int = 1000) -> Set[str]:
+    """
+    Extrai marcas dos títulos dos produtos usando pipeline de 4 camadas
+    (stopwords, genéricas, heurística de sufixos, stemming para dedup).
+    """
+    brazil_csv = os.path.join(cache_dir, "amazon_products.csv")
+    if not os.path.exists(brazil_csv):
+        return {"OUTROS"}
+
+    try:
+        df = pd.read_csv(brazil_csv, usecols=["title"], dtype=str)
+        extracted = df["title"].apply(_extract_brand).dropna()
+        raw_counts = extracted.value_counts()
+
+        # Agrupar por stem para eliminar variantes morfológicas
+        from collections import defaultdict
+        stem_groups: dict[str, dict[str, int]] = defaultdict(dict)
+        for name, count in raw_counts.items():
+            stem = _simple_stem(name)
+            stem_groups[stem][name] = count
+
+        # Para cada grupo, calcular total e nome canônico
+        brand_candidates = []
+        for stem, variants in stem_groups.items():
+            total_count = sum(variants.values())
+            if total_count < min_count:
+                continue
+            canonical = max(variants, key=variants.get)
+            brand_candidates.append((canonical, total_count))
+
+        # Ordenar por contagem (maior primeiro) — DEVE ser consistente com generate_seed.py
+        brand_candidates.sort(key=lambda x: x[1], reverse=True)
+        top_brands = {name for name, _ in brand_candidates[:max_brands]}
+
+        top_brands.add("OUTROS")
+        return top_brands
+    except Exception as e:
+        print(f"⚠️  Erro ao carregar marcas: {e}")
+        return {"OUTROS"}
+
+# Carregar marcas do dataset dinamicamente
 BRANDS_DB = load_brands_from_dataset()
 
 SELLERS = [
@@ -315,33 +420,24 @@ class DataMapper:
         Normaliza a marca para BrandDTO.
 
         Prioridade:
-        1. brand_name explícito (campo 'brand' do CSV)
-        2. Primeira palavra não-genérica do título (padrão Amazon Brazil)
-        3. Fallback para 'Outros' (sempre presente no seed.sql)
+        1. brand_name explícito (campo 'brand' do CSV) → normalizado para UPPER
+        2. Pipeline de 4 camadas no título (stopwords, genéricas, sufixos, UPPER)
+        3. Fallback para 'OUTROS' (sempre presente no seed.sql)
         """
         # Tenta usar brand_name explícito
         if brand_name and not pd.isna(brand_name):
-            name = str(brand_name).strip()
+            name = str(brand_name).strip().upper()
             if name:
                 return {"id": name, "name": name, "description": ""}
 
-        # Extrai da primeira palavra não-genérica do título
+        # Extrai usando pipeline de 4 camadas
         if title:
-            for word in str(title).strip().split()[:4]:
-                clean = re.sub(r"[^\w]", "", word).strip()
-                if len(clean) < 2 or clean[0].isdigit():
-                    continue
-                if clean.lower() in _NON_BRAND_WORDS:
-                    continue
-                name = clean.upper() if clean.isupper() else clean.capitalize()
-                
-                # VALIDAR SE EXISTE NO DB
-                if name in BRANDS_DB:
-                    return {"id": name, "name": name, "description": ""}
-                break # Tenta apenas a primeira marca válida encontrada no título
+            extracted = _extract_brand(str(title))
+            if extracted and extracted in BRANDS_DB:
+                return {"id": extracted, "name": extracted, "description": ""}
 
         # Fallback garantido
-        return {"id": "Outros", "name": "Outros", "description": ""}
+        return {"id": "OUTROS", "name": "OUTROS", "description": ""}
     
     def parse_images(self, images_field) -> List[str]:
         """

@@ -10,6 +10,20 @@ until curl -sf "$OPENSEARCH_URL/_cluster/health" > /dev/null 2>&1; do
 done
 echo "OpenSearch disponível!"
 
+# ── Configurações de Cluster: Watermarks e Desbloqueio ─────────────────────
+echo "Configurando watermarks de disco e removendo bloqueios..."
+curl -s -X PUT "$OPENSEARCH_URL/_cluster/settings" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "persistent": {
+      "cluster.routing.allocation.disk.watermark.low": "95%",
+      "cluster.routing.allocation.disk.watermark.high": "97%",
+      "cluster.routing.allocation.disk.watermark.flood_stage": "98%",
+      "cluster.blocks.create_index": null
+    }
+  }'
+echo ""
+
 # ── ILM Policy: retenção de 7 dias, rollover por tamanho ──────────────────
 echo "Criando ILM policy de logs..."
 curl -s -X PUT "$OPENSEARCH_URL/_plugins/_ism/policies/marketplace-logs-policy" \

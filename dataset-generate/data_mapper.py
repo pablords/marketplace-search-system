@@ -618,7 +618,7 @@ class DataMapper:
             Dicionário representando ProductDTO completo
         """
         # Campos obrigatórios básicos
-        title = str(row.get("title", "")).strip() if not pd.isna(row.get("title")) else "Produto sem título"
+        title = str(row.get("title", "")).strip()[:1000] if not pd.isna(row.get("title")) else "Produto sem título"
         if not title:
             title = "Produto sem título"
         

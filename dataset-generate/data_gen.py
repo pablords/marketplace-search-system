@@ -416,6 +416,8 @@ def enrich_real_product(real_product_data: dict, category_id: Optional[str] = No
         
         if not enriched_product.get("title"):
             enriched_product["title"] = "Produto sem título"
+        else:
+            enriched_product["title"] = str(enriched_product["title"])[:1000]
         
         if not enriched_product.get("price") or enriched_product.get("price", 0) <= 0:
             enriched_product["price"] = round(random.uniform(50.0, 5000.0), 2)

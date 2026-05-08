@@ -29,17 +29,18 @@ public class AsyncConfig implements AsyncConfigurer {
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         
-        // Configurações do pool de threads
-        executor.setCorePoolSize(5);           // Threads mínimas
-        executor.setMaxPoolSize(10);           // Threads máximas
-        executor.setQueueCapacity(100);        // Fila de tarefas
+        // Configurações otimizadas para alto volume de indexação
+        executor.setCorePoolSize(20);          // Aumentado de 5 para 20
+        executor.setMaxPoolSize(50);           // Aumentado de 10 para 50
+        executor.setQueueCapacity(1000);       // Aumentado de 100 para 1000
         executor.setThreadNamePrefix("async-indexer-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
         
-        // Handler para exceções não capturadas
-        executor.setRejectedExecutionHandler((r, executor1) -> 
-            logger.warn("Task rejected, thread pool is full and queue is full"));
+        // Estratégia de Backpressure: Quando a fila encher, a thread que está 
+        // produzindo (Kafka Listener) executará a tarefa, naturalmente 
+        // diminuindo o ritmo de consumo do Kafka até que o pool libere espaço.
+        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
         
         executor.initialize();
         return executor;

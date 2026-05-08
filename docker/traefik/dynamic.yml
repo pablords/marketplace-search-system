@@ -29,7 +29,7 @@ http:
         - web
       service: jaeger-service
       priority: 10
-  
+    
   services:
     # Serviço para Jaeger
     jaeger-service:

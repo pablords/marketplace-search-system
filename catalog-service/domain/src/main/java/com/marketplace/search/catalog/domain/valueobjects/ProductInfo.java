@@ -63,8 +63,8 @@ public class ProductInfo {
     if (title == null || title.trim().isEmpty()) {
       throw new IllegalArgumentException("Title cannot be null or empty");
     }
-    if (title.length() > 200) {
-      throw new IllegalArgumentException("Title cannot exceed 200 characters");
+    if (title.length() > 1000) {
+      throw new IllegalArgumentException("Title cannot exceed 1000 characters");
     }
     return title.trim();
   }

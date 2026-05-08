@@ -12,7 +12,7 @@ TOTAL_REQUESTS = 1000000
 SEARCH_TERMS = [
     "smartphone", "laptop", "monitor", "headphone", "teclado", 
     "mouse", "cadeira gamer", "mesa", "caixa de som", "carregador",
-    "iphone", "samsung", "dell", "lg", "logitech", "razer"
+    "iphone", "samsung", "dell", "lg", "logitech", "razer", "camisa"
 ]
 
 CATEGORIES = ["electronics", "office", "computing", "accessories"]

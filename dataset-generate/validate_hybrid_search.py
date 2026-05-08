@@ -390,19 +390,14 @@ def test_search_query(query: str, use_hybrid: bool = True) -> Optional[Dict]:
         params = {
             "query": query,
             "page": 0,
-            "size": 10
+            "size": 10,
+            "ranking_debug": "true" # Ativar debug para validar scores
         }
-        
-        # Nota: O parâmetro "hybrid" não existe no SearchController
-        # A busca híbrida é ativada automaticamente se o Embedding Service estiver disponível
         
         response = requests.get(url, params=params, timeout=20)
         
         if response.status_code == 200:
             result = response.json()
-            # Debug: mostrar estrutura da resposta se não houver resultados
-            if result.get("total_count", 0) == 0:
-                print_warning(f"Resposta da API para '{query}': {json.dumps(result, indent=2)[:500]}")
             return result
         else:
             print_error(f"Erro na busca: {response.status_code}")
@@ -414,27 +409,46 @@ def test_search_query(query: str, use_hybrid: bool = True) -> Optional[Dict]:
 
 def analyze_search_results(results: Dict, query: str) -> Dict:
     """Analisa os resultados da busca"""
-    # A resposta pode ter totalCount ou total_count (camelCase vs snake_case)
-    total_count = results.get("totalCount") or results.get("total_count", 0)
-    execution_time = results.get("executionTimeMs") or results.get("execution_time_ms", 0)
+    total_count = results.get("total_count", 0)
+    execution_time = results.get("execution_time_ms", 0)
     
     analysis = {
         "total_count": total_count,
         "products_returned": len(results.get("products", [])),
         "execution_time_ms": execution_time,
         "has_metrics": "metrics" in results,
+        "has_ranking_debug": False,
+        "valid_scores": False,
         "products": []
     }
     
     products = results.get("products", [])
-    # Analisar os últimos 5 resultados ao invés dos primeiros
-    products_to_analyze = products[-5:] if len(products) > 5 else products
-    for product in products_to_analyze:
+    if products:
+        # Verificar o primeiro produto (geralmente o mais relevante)
+        first_product = products[0]
+        if "ranking_debug" in first_product:
+            analysis["has_ranking_debug"] = True
+            debug = first_product["ranking_debug"]
+            features = debug.get("features", {})
+            
+            # Validar se scores principais não são zero
+            bm25 = features.get("bm25_score", 0)
+            knn = features.get("knn_score", 0)
+            
+            if bm25 > 0 or knn > 0:
+                analysis["valid_scores"] = True
+    
+    # Analisar alguns produtos
+    for product in products[:3]:
         product_info = {
             "id": product.get("id"),
             "title": product.get("title", "")[:50],
-            "score": product.get("score", 0.0) if "score" in product else None
+            "score": product.get("score", 0.0)
         }
+        if "ranking_debug" in product:
+            product_info["bm25"] = product["ranking_debug"].get("features", {}).get("bm25_score", 0)
+            product_info["knn"] = product["ranking_debug"].get("features", {}).get("knn_score", 0)
+            
         analysis["products"].append(product_info)
     
     return analysis
@@ -546,17 +560,19 @@ def test_search_with_hybrid_check(query: str, ml_ranking_available: bool = False
             print_success(f"Busca retornou {total_count} resultados em {execution_time}ms")
             
             # Verificar se produtos foram retornados
-            products = results.get("products", [])
+            products = analysis.get("products", [])
             if products:
-                # Mostrar os últimos resultados ao invés dos primeiros
-                last_products = products[-3:] if len(products) > 3 else products
-                print_info(f"Últimos resultados (de {len(products)} total):")
-                for i, product in enumerate(last_products, len(products) - len(last_products) + 1):
+                print_info("Principais resultados:")
+                for i, product in enumerate(products, 1):
                     title = product.get("title", "Sem título")
-                    print(f"  {i}. {title[:60]}")
+                    bm25 = product.get("bm25", 0)
+                    knn = product.get("knn", 0)
+                    print(f"  {i}. {title[:60]} (BM25: {bm25:.4f}, kNN: {knn:.4f})")
+            
+            if not analysis.get("valid_scores"):
+                print_warning("⚠ Atenção: Scores BM25 e kNN estão zerados!")
             
             # A busca híbrida está ativa se o Embedding Service estiver disponível
-            # (verificado na seção 1)
             comparison["hybrid_active"] = True
             print_info("Busca híbrida: Ativada automaticamente (Embedding Service disponível)")
             

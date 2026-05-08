@@ -142,23 +142,32 @@ public class RankWithMLUseCase {
         for (Product candidate : candidates) {
             String productId = candidate.getId().getValue();
             Map<String, Double> features;
+            
+            ScorePair scorePair = scores.getOrDefault(productId, new ScorePair(0.0, 0.0));
+            Map<String, Double> dynamicFeatures = featureExtractor.extractDynamicFeatures(
+                candidate, query, scorePair.bm25Score(), scorePair.knnScore());
 
             // Tentar usar features do cache
             if (cachedFeatures.containsKey(productId)) {
-                features = cachedFeatures.get(productId);
+                features = new java.util.HashMap<>(cachedFeatures.get(productId));
+                features.putAll(dynamicFeatures);
                 meterRegistry.counter("search.ml.features.cache.total", "status", "hit").increment();
-                logger.debug("Features do cache para produto: {}", productId);
+                logger.debug("Features do cache (estáticas) + dinâmicas calculadas para produto: {}", productId);
             } else {
                 // Calcular features on-the-fly
                 meterRegistry.counter("search.ml.features.cache.total", "status", "miss").increment();
-                ScorePair scorePair = scores.getOrDefault(productId, new ScorePair(0.0, 0.0));
-                features = featureExtractor.extractFeatures(
-                    candidate, query, scorePair.bm25Score(), scorePair.knnScore());
                 
-                // Cachear features calculadas
+                // Extrair features estáticas
+                Map<String, Double> staticFeatures = featureExtractor.extractStaticFeatures(candidate);
+                
+                // Combinar para o mapa final
+                features = new java.util.HashMap<>(staticFeatures);
+                features.putAll(dynamicFeatures);
+                
+                // Cachear apenas as features estáticas (para evitar scores obsoletos no cache)
                 try {
-                    featureStore.saveFeatures(productId, features);
-                    logger.debug("Features calculadas e cacheadas para produto: {}", productId);
+                    featureStore.saveFeatures(productId, staticFeatures);
+                    logger.debug("Features estáticas calculadas e cacheadas para produto: {}", productId);
                 } catch (Exception e) {
                     logger.warn("Erro ao cachear features para produto: {}", productId, e);
                 }

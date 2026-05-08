@@ -34,6 +34,42 @@ public class FeatureExtractor {
      */
     public Map<String, Double> extractFeatures(Product product, SearchQuery query, 
                                                 double bm25Score, double knnScore) {
+        Map<String, Double> features = new java.util.HashMap<>();
+        
+        // 1. Extrair features estáticas (independentes da query)
+        features.putAll(extractStaticFeatures(product));
+        
+        // 2. Extrair features dinâmicas (dependentes da query)
+        features.putAll(extractDynamicFeatures(product, query, bm25Score, knnScore));
+        
+        return features;
+    }
+
+    /**
+     * Extrai apenas features estáticas do produto (podem ser cacheadas com segurança)
+     */
+    public Map<String, Double> extractStaticFeatures(Product product) {
+        String title = product.getInfo().getTitle();
+        String description = product.getInfo().getDescription() != null ? product.getInfo().getDescription() : "";
+        
+        return Map.ofEntries(
+            Map.entry("title_length", (double) title.length()),
+            Map.entry("description_length", (double) description.length()),
+            Map.entry("title_description_ratio", calculateTitleDescriptionRatio(title, description)),
+            Map.entry("text_quality_score", calculateTextQualityScore(title, description)),
+            Map.entry("has_numbers", hasNumbers(title) ? 1.0 : 0.0),
+            Map.entry("popularity_score", product.getMetrics().getPopularityScore()),
+            Map.entry("quality_score", calculateQualityScore(product)),
+            Map.entry("ctr", product.getMetrics().conversionRate()),
+            Map.entry("sales_count_normalized", calculateNormalizedSalesCount(product))
+        );
+    }
+
+    /**
+     * Extrai apenas features dinâmicas (dependentes da query)
+     */
+    public Map<String, Double> extractDynamicFeatures(Product product, SearchQuery query, 
+                                                       double bm25Score, double knnScore) {
         String queryTerms = query.terms().toLowerCase();
         String title = product.getInfo().getTitle().toLowerCase();
         String description = product.getInfo().getDescription() != null 
@@ -44,37 +80,18 @@ public class FeatureExtractor {
         
         Set<String> queryKeywords = query.getKeywords();
         
-        // Normalizar scores do OpenSearch para 0-1
         double normalizedBm25 = normalizeScore(bm25Score);
         double normalizedKnn = normalizeScore(knnScore);
         
         return Map.ofEntries(
-            // 1-3: Features de Relevância
             Map.entry("bm25_score", normalizedBm25),
             Map.entry("knn_score", normalizedKnn),
             Map.entry("hybrid_score", calculateHybridScore(normalizedBm25, normalizedKnn)),
-            
-            // 4-5: Features de Match Textual
             Map.entry("exact_match", calculateExactMatch(queryTerms, title)),
             Map.entry("term_coverage", calculateTermCoverage(queryKeywords, title, description)),
-            
-            // 6-9: Features de Qualidade do Texto
-            Map.entry("title_length", (double) title.length()),
-            Map.entry("description_length", (double) description.length()),
-            Map.entry("title_description_ratio", calculateTitleDescriptionRatio(title, description)),
-            Map.entry("text_quality_score", calculateTextQualityScore(title, description)),
-            
-            // 10-13: Features de Contexto
             Map.entry("first_word_match", calculateFirstWordMatch(queryTerms, title)),
-            Map.entry("has_numbers", hasNumbers(title) ? 1.0 : 0.0),
             Map.entry("brand_match", calculateBrandMatch(queryTerms, brandName)),
-            Map.entry("category_match", calculateCategoryMatch(queryTerms, categoryName)),
-            
-            // 14-17: Features de Popularidade
-            Map.entry("popularity_score", product.getMetrics().getPopularityScore()),
-            Map.entry("quality_score", calculateQualityScore(product)),
-            Map.entry("ctr", product.getMetrics().conversionRate()),
-            Map.entry("sales_count_normalized", calculateNormalizedSalesCount(product))
+            Map.entry("category_match", calculateCategoryMatch(queryTerms, categoryName))
         );
     }
 

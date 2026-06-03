@@ -101,7 +101,7 @@ public class RankWithMLUseCase {
 
             if (rankedProducts.isEmpty() || rankedProducts.get().isEmpty()) {
                 logger.warn("ML Ranking Service não retornou resultados, usando fallback");
-                meterRegistry.counter("search.ml.ranking.fallback.total", "reason", "no_results").increment();
+                meterRegistry.counter("search.ml.ranking.fallback", "reason", "no_results").increment();
                 return fallbackRanking(candidates, query);
             }
 
@@ -112,12 +112,12 @@ public class RankWithMLUseCase {
                 .description("Tempo total do processo de re-ranking ML")
                 .register(meterRegistry));
             
-            meterRegistry.counter("search.ml.ranking.success.total").increment();
+            meterRegistry.counter("search.ml.ranking.success").increment();
 
             return reorderProducts.stream().limit(TOP_RESULTS).collect(Collectors.toList());
 
         } catch (Exception e) {
-            meterRegistry.counter("search.ml.ranking.errors.total").increment();
+            meterRegistry.counter("search.ml.ranking.errors").increment();
             logger.error("Erro ao executar re-ranking ML para query: '{}'", query.terms(), e);
             return fallbackRanking(candidates, query);
         }
@@ -151,11 +151,11 @@ public class RankWithMLUseCase {
             if (cachedFeatures.containsKey(productId)) {
                 features = new java.util.HashMap<>(cachedFeatures.get(productId));
                 features.putAll(dynamicFeatures);
-                meterRegistry.counter("search.ml.features.cache.total", "status", "hit").increment();
+                meterRegistry.counter("search.ml.features.cache", "status", "hit").increment();
                 logger.debug("Features do cache (estáticas) + dinâmicas calculadas para produto: {}", productId);
             } else {
                 // Calcular features on-the-fly
-                meterRegistry.counter("search.ml.features.cache.total", "status", "miss").increment();
+                meterRegistry.counter("search.ml.features.cache", "status", "miss").increment();
                 
                 // Extrair features estáticas
                 Map<String, Double> staticFeatures = featureExtractor.extractStaticFeatures(candidate);

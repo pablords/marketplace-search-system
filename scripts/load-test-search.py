@@ -5,7 +5,7 @@ import time
 import sys
 
 # Configurações do Teste
-BASE_URL = "http://localhost:8888/api/v1/search/products"
+BASE_URL = "http://api.lab.com.br/api/v1/search/products"
 CONCURRENT_USERS = 20
 TOTAL_REQUESTS = 1000000
 

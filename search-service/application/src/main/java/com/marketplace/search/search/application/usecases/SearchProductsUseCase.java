@@ -114,7 +114,7 @@ public class SearchProductsUseCase {
           logger.warn("Embedding Service retornou vazio para query: '{}' - usando apenas busca BM25 (fallback)", query.terms());
         }
       } catch (Exception e) {
-        meterRegistry.counter("search.embedding.errors.total").increment();
+        meterRegistry.counter("search.embedding.errors").increment();
         logger.warn("Erro ao gerar embedding para query: '{}' - usando apenas busca BM25 (fallback). Erro: {}", 
             query.terms(), e.getMessage());
         queryEmbedding = Optional.empty();
@@ -122,7 +122,7 @@ public class SearchProductsUseCase {
 
       // FASE 1: Buscar Top 200 candidatos no OpenSearch
       String searchType = queryEmbedding.isPresent() ? "hybrid" : "lexical";
-      meterRegistry.counter("search.requests.type.total", "type", searchType).increment();
+      meterRegistry.counter("search.requests.type", "type", searchType).increment();
 
       Timer.Sample retrievalSample = Timer.start(meterRegistry);
       var candidatesWithScores = searchDomainService.fetchAndValidateCandidates(query, userContext, queryEmbedding);
@@ -130,7 +130,7 @@ public class SearchProductsUseCase {
       
       List<Product> candidates = candidatesWithScores.products();
       if (candidates.isEmpty()) {
-          meterRegistry.counter("search.empty.results.total").increment();
+          meterRegistry.counter("search.empty.results").increment();
           return createEmptyResult(query, Duration.between(startTime, Instant.now()));
       }
 

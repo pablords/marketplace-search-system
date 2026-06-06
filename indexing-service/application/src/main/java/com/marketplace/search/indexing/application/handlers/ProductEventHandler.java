@@ -102,41 +102,34 @@ public class ProductEventHandler {
             productId, eventTimestamp, kafkaOffset);
       }
 
+      // Determina qual pipeline assíncrona executar
       CompletableFuture<Void> processingFuture = switch (cdcEvent.getOperation()) {
-        case "c", "r", "u" -> processProductUpsert(cdcEvent); // create, read (snapshot), update
-        case "d" -> processProductDeletion(cdcEvent); // delete
+        case "c", "r", "u" -> processProductUpsert(cdcEvent);
+        case "d" -> processProductDeletion(cdcEvent);
         default -> {
           logger.warn("Operação CDC não suportada: {}", cdcEvent.getOperation());
           yield CompletableFuture.completedFuture(null);
         }
       };
 
-      processingFuture
-          .thenRun(() -> {
-            logger.info("Evento CDC processado com sucesso - Operation: {}", cdcEvent.getOperation());
-            acknowledgment.acknowledge();
-          })
-          .exceptionally(throwable -> {
-            logger.error("Erro ao processar evento CDC - Operation: {}, Error: {}",
-                cdcEvent.getOperation(), throwable.getMessage(), throwable);
-            
-            // Mark span as error
-            currentSpan.setStatus(StatusCode.ERROR, "Process Error: " + throwable.getMessage());
-            currentSpan.setAttribute("error", true);
-            currentSpan.recordException(throwable);
-            
-            // Em caso de erro, não fazer acknowledge para reprocessar a mensagem
-            return null;
-          });
+      // 2. O SEGREDO DO BACKPRESSURE COM COMMIT MANUAL:
+      // Bloqueamos a thread do listener do Kafka até que a task assíncrona termine.
+      // Isso impede o Kafka de fazer um novo poll() de mensagens enquanto o
+      // Elastic/OpenSearch estiver processando.
+      processingFuture.join();
 
+      // 3. SEU COMMIT MANUAL CONTROLADO:
+      // Só chega aqui se o .join() terminar com sucesso (sem exceptions)
+      logger.info("Evento CDC processado com sucesso - Operation: {}", cdcEvent.getOperation());
+      acknowledgment.acknowledge();
     } catch (Exception e) {
       logger.error("Erro ao parsear evento CDC do Kafka - Message: {}, Error: {}", message, e.getMessage(), e);
-      
+
       // Mark span as error
       currentSpan.setStatus(StatusCode.ERROR, "Parsing Error: " + e.getMessage());
       currentSpan.setAttribute("error", true);
       currentSpan.recordException(e);
-      
+
       // Em caso de erro de parsing, fazer acknowledge para evitar loop infinito
       acknowledgment.acknowledge();
     }
@@ -170,8 +163,7 @@ public class ProductEventHandler {
       ProductCommand productCommand = productMapper.mapProductPayloadToDTO(enrichedProduct);
       logger.debug("Product Command Após Mapper: {}", productCommand.toString());
       return indexProductUseCase.executeAsync(productCommand);
-      
-      
+
     } catch (Exception e) {
       logger.error("Erro ao processar upsert de produto", e);
       return CompletableFuture.failedFuture(e);
@@ -187,7 +179,7 @@ public class ProductEventHandler {
           return productData.getId();
         }
       }
-      
+
       // Para operações de deleção, usar 'before'
       if (cdcEvent.getBefore() != null) {
         ProductPayload productData = objectMapper.convertValue(cdcEvent.getBefore(), ProductPayload.class);
@@ -198,23 +190,23 @@ public class ProductEventHandler {
     } catch (Exception e) {
       logger.debug("Erro ao extrair productId do evento CDC: {}", e.getMessage());
     }
-    
+
     return null;
   }
 
   private boolean isProductEnrichmentComplete(ProductPayload product) {
     // Verificar se pelo menos os IDs estão presentes (mínimo necessário)
-    boolean hasBasicData = product.getId() != null && 
-                          product.getTitle() != null &&
-                          product.getBrandId() != null &&
-                          product.getCategoryId() != null &&
-                          product.getSellerId() != null;
-    
+    boolean hasBasicData = product.getId() != null &&
+        product.getTitle() != null &&
+        product.getBrandId() != null &&
+        product.getCategoryId() != null &&
+        product.getSellerId() != null;
+
     // Verificar se dados enriquecidos estão presentes (ideal)
     boolean hasEnrichedData = product.getBrandName() != null &&
-                             product.getCategoryName() != null &&
-                             product.getSellerName() != null;
-    
+        product.getCategoryName() != null &&
+        product.getSellerName() != null;
+
     return hasBasicData && hasEnrichedData;
   }
 
@@ -229,10 +221,12 @@ public class ProductEventHandler {
 
       logger.debug("Processando deleção do produto: {}", productData.getId());
 
-      // TODO: Implementar remoção do índice quando DeleteProductUseCase estiver disponível
-      logger.info("Deleção de produto {} registrada - remoção do índice será implementada em breve", productData.getId());
+      // TODO: Implementar remoção do índice quando DeleteProductUseCase estiver
+      // disponível
+      logger.info("Deleção de produto {} registrada - remoção do índice será implementada em breve",
+          productData.getId());
       return CompletableFuture.completedFuture(null);
-      
+
     } catch (Exception e) {
       logger.error("Erro ao processar deleção de produto", e);
       return CompletableFuture.failedFuture(e);

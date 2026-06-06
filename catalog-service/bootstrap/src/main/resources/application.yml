@@ -90,3 +90,7 @@ debezium:
       value.converter: org.apache.kafka.connect.json.JsonConverter
       value.converter.schemas.enable: false
       decimal.handling.mode: string
+      # Habilita e configura a criação automática customizada de tópicos
+      topic.creation.default.partitions: 3
+      topic.creation.default.replication.factor: 3
+      topic.creation.default.replicas.assignment.retry.delay.ms: 10000

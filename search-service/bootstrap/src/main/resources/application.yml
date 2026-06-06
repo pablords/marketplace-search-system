@@ -7,7 +7,7 @@ spring:
 
   output:
     ansi:
-      enabled: always
+      enabled: never
   
   # Redis configuration
   data:
@@ -77,12 +77,7 @@ logging:
     com.marketplace.search: ${LOG_LEVEL:INFO}
     com.marketplace.search.search.infrastructure.ml: ${LOG_LEVEL_ML:INFO}
     com.marketplace.search.search.infrastructure.featurestore: ${LOG_LEVEL_FEATURE_STORE:INFO}
-  pattern:
-    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
-    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){blue} %clr([%X{traceId:-},%X{spanId:-}]){faint} %clr(%logger{36}){cyan} - %msg%n"
-  #   file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  # file:
-  #   name: logs/search-service.log
+
 
 # Management/Actuator
 management:

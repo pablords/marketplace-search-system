@@ -75,10 +75,11 @@ debezium:
       connector.class: io.debezium.connector.postgresql.PostgresConnector
       tasks.max: 1
       database.hostname: ${DB_HOSTNAME_CONTAINER}
-      database.port: ${POSTGRES_PORT}
+      database.port: ${POSTGRES_PORT:5432}
       database.user: ${POSTGRES_USER}
       database.password: ${POSTGRES_PASSWORD}
-      database.dbname: ${POSTGRES_DB}
+      # ALTERAÇÃO CRÍTICA: Agora o Debezium usa uma variável exclusiva, limpa de parâmetros JDBC
+      database.dbname: ${DEBEZIUM_DB_NAME:catalog}
       database.server.name: ${KAFKA_TOPIC_PREFIX:catalog-db}
       table.include.list: ${POSTGRES_TABLES}
       topic.prefix: ${KAFKA_TOPIC_PREFIX:catalog-db}
@@ -90,7 +91,6 @@ debezium:
       value.converter: org.apache.kafka.connect.json.JsonConverter
       value.converter.schemas.enable: false
       decimal.handling.mode: string
-      # Habilita e configura a criação automática customizada de tópicos
       topic.creation.default.partitions: 3
       topic.creation.default.replication.factor: 3
       topic.creation.default.replicas.assignment.retry.delay.ms: 10000

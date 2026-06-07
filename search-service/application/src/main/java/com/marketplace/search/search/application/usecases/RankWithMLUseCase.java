@@ -138,6 +138,8 @@ public class RankWithMLUseCase {
         // Buscar features em lote do cache
         Map<String, Map<String, Double>> cachedFeatures = featureStore.getFeaturesBatch(productIds);
 
+        Map<String, Map<String, Double>> toCache = new java.util.HashMap<>();
+
         // Preparar features
         for (Product candidate : candidates) {
             String productId = candidate.getId().getValue();
@@ -164,16 +166,21 @@ public class RankWithMLUseCase {
                 features = new java.util.HashMap<>(staticFeatures);
                 features.putAll(dynamicFeatures);
                 
-                // Cachear apenas as features estáticas (para evitar scores obsoletos no cache)
-                try {
-                    featureStore.saveFeatures(productId, staticFeatures);
-                    logger.debug("Features estáticas calculadas e cacheadas para produto: {}", productId);
-                } catch (Exception e) {
-                    logger.warn("Erro ao cachear features para produto: {}", productId, e);
-                }
+                // Acumular para salvar em lote
+                toCache.put(productId, staticFeatures);
             }
 
             featuresMap.put(productId, features);
+        }
+
+        // Salvar todas as features estáticas que não estavam no cache em um único lote (pipeline)
+        if (!toCache.isEmpty()) {
+            try {
+                featureStore.saveFeaturesBatch(toCache);
+                logger.debug("Salvas {} features estáticas no cache em lote", toCache.size());
+            } catch (Exception e) {
+                logger.warn("Erro ao cachear features em lote", e);
+            }
         }
 
         return featuresMap;

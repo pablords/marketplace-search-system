@@ -27,6 +27,13 @@ public interface MLFeatureStore {
     void saveFeatures(String productId, Map<String, Double> features);
 
     /**
+     * Salva múltiplas features de ML de vários produtos no cache em lote
+     * 
+     * @param featuresBatch Mapa de productId -> features
+     */
+    void saveFeaturesBatch(Map<String, Map<String, Double>> featuresBatch);
+
+    /**
      * Recupera as features de ML de um produto do cache
      * 
      * @param productId ID do produto

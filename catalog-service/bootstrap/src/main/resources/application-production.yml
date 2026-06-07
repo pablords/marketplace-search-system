@@ -1,14 +1,14 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOSTNAME}:${POSTGRES_PORT}/${POSTGRES_DB}
+    # Se a variável SPRING_DATASOURCE_URL não for passada, ele monta a padrão (desenvolvimento local)
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOSTNAME:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:catalog}}
     username: ${POSTGRES_USER:catalog}
     password: ${POSTGRES_PASSWORD:catalog}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 20
+      maximum-pool-size: 15 # Ajustado para 15 para segurança do HPA
       minimum-idle: 5
       connection-timeout: 30000
-  
   jpa:
     hibernate:
       ddl-auto: none
@@ -22,8 +22,9 @@ spring:
           batch_size: 20
         order_inserts: true
         order_updates: true
+        # Se preferir, pode embutir o parâmetro de batch direto no dialeto do Hibernate
+        # mas mantê-lo na URL JDBC garante a atuação correta do driver do Postgres.
     open-in-view: false
-  
   # Configuração para executar scripts SQL na inicialização
   sql:
     init:

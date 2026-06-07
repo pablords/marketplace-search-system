@@ -104,17 +104,16 @@ func (c *CatalogClient) CreateProduct(ctx context.Context, product *models.Produ
 		return nil, fmt.Errorf("erro ao construir URL: %w", err)
 	}
 
-	// Criar requisição HTTP
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL.String(), bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("erro ao criar requisição HTTP: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
 	// Função que faz a requisição HTTP com retry
 	httpRequestFn := func() (*http.Response, error) {
+		// Criar requisição HTTP a cada tentativa com um novo reader para evitar exaustão do body
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL.String(), bytes.NewReader(jsonData))
+		if err != nil {
+			return nil, fmt.Errorf("erro ao criar requisição HTTP: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+
 		start := time.Now()
 		resp, err := c.httpClient.Do(req)
 		duration := time.Since(start)

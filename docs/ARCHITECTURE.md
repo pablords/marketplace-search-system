@@ -68,6 +68,10 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - Lança `ProductAlreadyExistsException` se produto já existe
 - Evita duplicação no banco e consequente duplicação no Kafka
 
+**Resiliência no Debezium:**
+- O registro ou atualização do conector Debezium roda de forma assíncrona (`ApplicationReadyEvent` com `CompletableFuture.runAsync()`).
+- Implementa mecanismo de retentativa (máximo de 30 tentativas espaçadas em 10 segundos) para que o serviço não dependa da inicialização imediata e síncrona do Kafka Connect, garantindo resiliência e evitando falhas de bootstrap.
+
 ### Indexing Service (Porta 8082)
 
 **Responsabilidades:**
@@ -92,6 +96,12 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - Operação atômica usando SETNX
 - Evita reprocessamento em caso de retry ou rebalanceamento do Kafka
 
+**Backpressure e Controle de Fluxo:**
+- **ThreadPool com CallerRunsPolicy**: O `ThreadPoolTaskExecutor` (executor assíncrono para indexação) está configurado com `CallerRunsPolicy`. Quando a fila de tarefas de indexação enche (limite de 1000 pendentes), a própria thread produtora (o Kafka Listener) executa o processamento. Isso reduz automaticamente o ritmo de consumo do Kafka.
+- **Join Blocking no Listener**: A thread de leitura do Kafka bloqueia explicitamente usando `processingFuture.join()`. Isso impede que o Kafka dispare novos `poll()` enquanto a indexação e o enriquecimento de dados no OpenSearch e Embedding Service estiverem sob alta carga.
+- **Ajuste de Mensagens por Poll**: A propriedade `max-poll-records` foi reduzida de 500 para 50, permitindo um tráfego mais suave e melhor gerenciamento de memória.
+- **Manual Ack**: A confirmação de entrega do offset do Kafka (`ManualImmediate`) só é realizada se o processamento e sincronização terminarem com sucesso, prevenindo perda de mensagens (at-least-once semantic).
+
 ### Search Service (Porta 8083)
 
 **Responsabilidades:**
@@ -106,6 +116,7 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - Spring Boot 3.2.0
 - OpenSearch 3.x
 - Redis 7
+- Caffeine (L1 Cache)
 - ML Ranking Service
 - ML Embedding Service
 
@@ -120,6 +131,12 @@ O Marketplace Search System é uma aplicação de microserviços que implementa 
 - Combina scores BM25 e k-NN para relevância híbrida
 - Retorna Top 400 candidatos
 - Fallback para apenas BM25 se Embedding Service indisponível
+
+**Cache Híbrido de L1 e L2 para Features (Caffeine + Redis):**
+- O `RedisFeatureStore` gerencia as features de Machine Learning estruturadas de forma híbrida:
+  - **L1 (In-Memory)**: Utiliza **Caffeine** local na JVM com limite configurável (padrão 10.000 itens) e expiração por escrita (padrão 300s). Evita requests desnecessários ao Redis.
+  - **L2 (Redis Hash)**: A segunda camada lê as features em Redis em formato Hash com TTL de 1 hora.
+- **Pipelining em Lote**: Para o re-ranking (Phase 2) com até 400 candidatos, a leitura de L2 e a escrita em lote são realizadas utilizando **Redis Pipelining** (`getFeaturesBatch` / `saveFeaturesBatch`), minimizando o Round Trip Time (RTT).
 
 ### ML Ranking Service (Porta 8084)
 
@@ -345,9 +362,11 @@ sequenceDiagram
 
 ### Cache e Feature Store
 
-**Redis 7**
+**Redis 7 (L2 Cache & Feature Store) & Caffeine (L1 Cache)**
+- **L1 Feature Cache (Caffeine)**: Em memória JVM no Search Service para acesso de baixíssima latência (TTL de 5 minutos, limite de 10.000 itens).
+- **L2 Feature Store (Redis)**: Cache distribuído persistido por Hash (TTL de 1 hora) com prefixo `feature:ml:{productId}`.
+- **Pipelining em Lote**: Leituras e gravações em lote no Redis são pipelinadas para reduzir o RTT.
 - Cache de resultados de busca (TTL: 1 hora)
-- Feature Store para features ML (TTL: 1 hora)
 - **Deduplicação de eventos**: Chaves `event:processed:{productId}:{timestamp}:{offset}` (TTL: 7 dias)
 - **Cache de embeddings**: Embeddings de produtos e queries (TTL configurável)
 - **Cache de rankings**: Resultados de ranking ML (TTL configurável)
@@ -448,6 +467,7 @@ O sistema utiliza uma stack moderna de agregação de logs:
 - **Retenção**: 7 dias garantidos por Index Lifecycle Management (ILM).
 - **Correlação**: Logs injetam automaticamente `trace_id` e `span_id` para navegação direta ao Jaeger.
 - **PII Sanitizer**: Mascaramento automático de campos sensíveis (password, credit_card) no API Gateway.
+- **Logs Estruturados**: Logs formatados em JSON (ECS/Logstash compatível) via Logback (`logback-spring.xml`) sem caracteres ANSI (`spring.output.ansi.enabled: never`), otimizando a leitura do Fluent Bit.
 
 ### Métricas
 

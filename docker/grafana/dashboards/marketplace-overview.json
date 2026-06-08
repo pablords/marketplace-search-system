@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 38,
-  "version": 2,
+  "version": 3,
   "refresh": "10s",
   "time": {
     "from": "now-5m",
@@ -160,7 +160,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "probe_success{instance=~\".*ml-ranking.*\"}",
+          "expr": "up{job=\"ml-ranking-service\"}",
           "legendFormat": "ML Ranking"
         },
         {
@@ -168,7 +168,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "probe_success{instance=~\".*ml-embedding.*\"}",
+          "expr": "up{job=\"ml-embedding-service\"}",
           "legendFormat": "ML Embedding"
         }
       ],

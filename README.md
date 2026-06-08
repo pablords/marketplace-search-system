@@ -79,6 +79,11 @@ marketplace-search-system/
 - [x] **ML Ranking** - Re-ranking com 17 features usando modelo ML
 - [x] **Embeddings Vetoriais** - Busca semântica com k-NN
 - [x] **Feature Store** - Cache de features ML no Redis
+- [x] **Cache Híbrido L1/L2 de Features** - Caffeine (L1 em memória) + Redis (L2) no Feature Store para otimização do ML Ranking
+- [x] **Carga/Escrita de Features em Lote** - Pipelining Redis para diminuir a latência de rede no Feature Store
+- [x] **Backpressure no Consumidor Kafka** - Controle com ThreadPool `CallerRunsPolicy` e sincronização via `join()` para balancear consumo
+- [x] **Debezium Async Register** - Inicialização assíncrona com mecanismo de retries para registro do conector Debezium
+- [x] **Logs Estruturados em JSON** - Logback padronizado sem console ANSI para ingestão otimizada no Fluent Bit
 - [x] **Inicialização de Índices** - Criação automática de índices k-NN no OpenSearch
 - [x] **Métricas & Observabilidade** - Micrometer + Prometheus
 - [x] **Arquitetura Hexagonal** - Preparada para microserviços
@@ -204,6 +209,14 @@ EMBEDDING_SERVICE_URL=http://localhost:8085
 
 # Kafka Deduplication (Indexing Service)
 KAFKA_DEDUPLICATION_TTL_HOURS=168  # 7 dias (padrão)
+
+# Feature Store Cache (Search Service)
+ML_FEATURE_STORE_TTL=3600             # TTL no L2 (Redis) - 1 hora (padrão)
+ML_FEATURE_STORE_L1_TTL_SECONDS=300   # TTL no L1 (Caffeine) - 5 minutos (padrão)
+ML_FEATURE_STORE_L1_MAX_SIZE=10000    # Tamanho máximo do cache L1 (Caffeine) - 10000 itens (padrão)
+
+# Debezium Connector Configuration (Catalog Service)
+DEBEZIUM_DB_NAME=catalog              # Nome do banco de dados exclusivo para registro do Debezium
 
 # Traefik Cache (Cache de Borda)
 CACHE_SEARCH_TTL_SECONDS=300  # 5 minutos (padrão) - TTL do cache HTTP para rotas de search

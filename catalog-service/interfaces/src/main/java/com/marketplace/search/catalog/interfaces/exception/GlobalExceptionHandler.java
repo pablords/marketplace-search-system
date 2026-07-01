@@ -19,6 +19,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.marketplace.search.catalog.domain.exceptions.ProductAlreadyExistsException;
+import com.marketplace.search.catalog.domain.exceptions.TooManyRequestsException;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -140,6 +141,27 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
 
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequestsException(
+            TooManyRequestsException ex, WebRequest request) {
+        
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                .error("Too Many Requests")
+                .message(ex.getMessage())
+                .path(request.getDescription(false))
+                .build();
+
+        logger.warn("Concorrência excedida: {}", ex.getMessage());
+
+        // Mark current span as error in OpenTelemetry
+        Span.current().setStatus(StatusCode.ERROR, "Too Many Requests");
+        Span.current().setAttribute("error", true);
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

@@ -45,6 +45,32 @@ public class RedisDistributedLockAdapter implements DistributedLockPort {
     }
 
     @Override
+    public boolean tryAcquireLock(String key, Duration waitTime, Duration leaseTime) {
+        long start = System.currentTimeMillis();
+        long maxWait = waitTime.toMillis();
+        String lockKey = LOCK_PREFIX + key;
+        
+        while (System.currentTimeMillis() - start < maxWait) {
+            Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", leaseTime);
+            if (success != null && success) {
+                logger.debug("Lock adquirido para chave (com espera): {}", lockKey);
+                return true;
+            }
+            try {
+                // Spin lock: aguarda 100ms antes de tentar novamente
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.warn("Thread interrompida enquanto aguardava o lock para a chave: {}", lockKey);
+                return false;
+            }
+        }
+        
+        logger.trace("Falha ao adquirir lock para chave (timeout esgotado): {}", lockKey);
+        return false;
+    }
+
+    @Override
     public void releaseLock(String key) {
         String lockKey = LOCK_PREFIX + key;
         redisTemplate.delete(lockKey);

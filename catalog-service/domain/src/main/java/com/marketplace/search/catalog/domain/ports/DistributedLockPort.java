@@ -18,6 +18,16 @@ public interface DistributedLockPort {
     boolean acquireLock(String key, Duration duration);
 
     /**
+     * Tenta adquirir um lock para a chave informada, aguardando até waitTime caso o lock esteja em uso.
+     * 
+     * @param key Chave do recurso a ser travado
+     * @param waitTime Tempo máximo para aguardar a liberação do lock
+     * @param leaseTime Tempo de expiração do lock (TTL) para evitar deadlocks
+     * @return true se o lock foi adquirido, false se o waitTime esgotou
+     */
+    boolean tryAcquireLock(String key, Duration waitTime, Duration leaseTime);
+
+    /**
      * Libera o lock para a chave informada.
      * 
      * @param key Chave do recurso a ser destravado

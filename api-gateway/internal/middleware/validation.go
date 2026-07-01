@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,8 +19,15 @@ func init() {
 
 // ValidateJSON valida um DTO JSON usando go-playground/validator
 // Uso: router.POST("/products", ValidateJSON(&models.Product{}), handler)
-func ValidateJSON(dto interface{}) gin.HandlerFunc {
+func ValidateJSON(dtoTemplate interface{}) gin.HandlerFunc {
+	dtoType := reflect.TypeOf(dtoTemplate)
+	if dtoType.Kind() == reflect.Ptr {
+		dtoType = dtoType.Elem()
+	}
+
 	return func(c *gin.Context) {
+		dto := reflect.New(dtoType).Interface()
+
 		// Bind JSON para o DTO
 		if err := c.ShouldBindJSON(dto); err != nil {
 			// Erro de binding (JSON inválido, etc.)
@@ -44,8 +52,15 @@ func ValidateJSON(dto interface{}) gin.HandlerFunc {
 
 // ValidateQuery valida query parameters
 // Uso: router.GET("/search", ValidateQuery(&SearchQuery{}), handler)
-func ValidateQuery(dto interface{}) gin.HandlerFunc {
+func ValidateQuery(dtoTemplate interface{}) gin.HandlerFunc {
+	dtoType := reflect.TypeOf(dtoTemplate)
+	if dtoType.Kind() == reflect.Ptr {
+		dtoType = dtoType.Elem()
+	}
+
 	return func(c *gin.Context) {
+		dto := reflect.New(dtoType).Interface()
+
 		// Bind query parameters para o DTO
 		if err := c.ShouldBindQuery(dto); err != nil {
 			c.Error(err).SetType(gin.ErrorTypeBind)
@@ -69,8 +84,15 @@ func ValidateQuery(dto interface{}) gin.HandlerFunc {
 
 // ValidateURI valida URI parameters
 // Uso: router.GET("/products/:id", ValidateURI(&ProductID{}), handler)
-func ValidateURI(dto interface{}) gin.HandlerFunc {
+func ValidateURI(dtoTemplate interface{}) gin.HandlerFunc {
+	dtoType := reflect.TypeOf(dtoTemplate)
+	if dtoType.Kind() == reflect.Ptr {
+		dtoType = dtoType.Elem()
+	}
+
 	return func(c *gin.Context) {
+		dto := reflect.New(dtoType).Interface()
+
 		// Bind URI parameters para o DTO
 		if err := c.ShouldBindUri(dto); err != nil {
 			c.Error(err).SetType(gin.ErrorTypeBind)

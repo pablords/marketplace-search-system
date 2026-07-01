@@ -99,6 +99,7 @@ run_scenario() {
     echo -e "${BLUE}📡 Enviando métricas para Prometheus em ${prom_addr}${NC}"
     k6_args+=("--out" "experimental-prometheus-rw")
     export K6_PROMETHEUS_RW_SERVER_URL="http://${prom_addr}/api/v1/write"
+    export K6_PROMETHEUS_RW_TREND_STATS="p(50),p(95),p(99),avg,min,max"
   else
     echo -e "${YELLOW}⚠️  Prometheus não detectado — métricas apenas no terminal${NC}"
   fi

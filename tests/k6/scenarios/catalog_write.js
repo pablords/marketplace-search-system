@@ -19,33 +19,33 @@ import {
 } from '../lib/helpers.js';
 
 // Métricas customizadas
-const writeDuration    = new Trend('write_duration_ms', true);
-const writeCreated     = new Counter('write_created_total');
-const writeConflicts   = new Counter('write_conflicts_total');  // 409 esperado
-const writeErrors      = new Counter('write_errors_total');     // 4xx/5xx inesperado
-const writeErrorRate   = new Rate('write_error_rate');
+const writeDuration = new Trend('write_duration_ms', true);
+const writeCreated = new Counter('write_created_total');
+const writeConflicts = new Counter('write_conflicts_total');  // 409 esperado
+const writeErrors = new Counter('write_errors_total');     // 4xx/5xx inesperado
+const writeErrorRate = new Rate('write_error_rate');
 
 // Configuração do perfil de carga
 export const options = {
   stages: [
-    { duration: '1m',  target: 5   }, // Warm-up leve
-    { duration: '2m',  target: 25  }, // Ramp-up
-    { duration: '3m',  target: 50  }, // Carga sustentada (benchmark principal)
-    { duration: '2m',  target: 100 }, // Pico — aqui o Postgres deve saturar
-    { duration: '1m',  target: 0   }, // Ramp-down
+    { duration: '1m', target: 20 }, // Warm-up leve
+    { duration: '2m', target: 70 }, // Ramp-up
+    { duration: '3m', target: 200 }, // Carga sustentada (benchmark principal)
+    { duration: '2m', target: 250 }, // Pico — aqui o Postgres deve saturar
+    { duration: '1m', target: 0 }, // Ramp-down
   ],
 
   thresholds: {
     // Erros inesperados (exclui 409 via check customizado abaixo)
-    'write_error_rate':   ['rate<0.02'],    // < 2% de erros reais
-    'write_duration_ms':  ['p(95)<500'],    // P95 < 500ms
-    'http_req_duration':  ['p(99)<2000'],   // P99 < 2s (safety net)
+    'write_error_rate': ['rate<0.02'],    // < 2% de erros reais
+    'write_duration_ms': ['p(95)<500'],    // P95 < 500ms
+    'http_req_duration': ['p(99)<2000'],   // P99 < 2s (safety net)
   },
 };
 
 export default function () {
   const payload = generateProductPayload(__VU, __ITER);
-  const body    = JSON.stringify(payload);
+  const body = JSON.stringify(payload);
 
   const res = http.post(`${BASE_URL}/products`, body, {
     headers: JSON_HEADERS,
@@ -60,12 +60,12 @@ export default function () {
     writeErrorRate.add(false);
     check(res, { 'created 201': (r) => r.status === 201 });
 
-  // 409 Conflict = produto já existe (comportamento esperado de idempotência)
+    // 409 Conflict = produto já existe (comportamento esperado de idempotência)
   } else if (res.status === 409) {
     writeConflicts.add(1);
     writeErrorRate.add(false);  // não conta como erro de teste
 
-  // Qualquer outro código = falha real
+    // Qualquer outro código = falha real
   } else {
     writeErrors.add(1);
     writeErrorRate.add(true);
@@ -85,9 +85,9 @@ import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 export function handleSummary(data) {
   // Adiciona breakdown customizado ao summary
   const custom = {
-    created:   data.metrics['write_created_total']?.values?.count  ?? 0,
+    created: data.metrics['write_created_total']?.values?.count ?? 0,
     conflicts: data.metrics['write_conflicts_total']?.values?.count ?? 0,
-    errors:    data.metrics['write_errors_total']?.values?.count    ?? 0,
+    errors: data.metrics['write_errors_total']?.values?.count ?? 0,
   };
   console.log('\n=== Write Breakdown ===');
   console.log(`  201 Created:   ${custom.created}`);

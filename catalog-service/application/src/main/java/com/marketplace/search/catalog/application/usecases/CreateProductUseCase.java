@@ -35,6 +35,9 @@ public class CreateProductUseCase {
     private final ProductRepository productRepository;
     private final DistributedLockPort lockPort;
     private final MeterRegistry meterRegistry;
+    
+    // Semáforo para limitar a concorrência a 50 requisições simultâneas por pod
+    private final java.util.concurrent.Semaphore semaphore = new java.util.concurrent.Semaphore(50);
 
     public CreateProductUseCase(
             ProductMapper productMapper,
@@ -59,31 +62,41 @@ public class CreateProductUseCase {
      */
     @Transactional
     public void execute(ProductCommand productDTO) {
-        meterRegistry.counter("catalog.product.operations.total", "operation", "create").increment();
-        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        if (!semaphore.tryAcquire()) {
+            meterRegistry.counter("catalog.product.operations.rejected", "reason", "concurrency_limit").increment();
+            throw new com.marketplace.search.catalog.domain.exceptions.TooManyRequestsException(
+                "Muitas requisições simultâneas. Limite de concorrência (50) atingido no pod."
+            );
+        }
+
+        try {
+            meterRegistry.counter("catalog.product.operations.total", "operation", "create").increment();
+            Timer.Sample sample = Timer.start(meterRegistry);
 
         logger.info("Received request for create product: id={}, title='{}'",
             productDTO.id(), productDTO.title());
 
-        // 1. Tenta adquirir Lock Distribuído por 5 segundos
-        boolean acquired = lockPort.acquireLock(productDTO.id(), Duration.ofSeconds(5));
+        // 1. Tenta adquirir Lock Distribuído esperando até 15 segundos
+        boolean acquired = lockPort.tryAcquireLock(productDTO.id(), Duration.ofSeconds(15), Duration.ofSeconds(30));
         
         if (!acquired) {
             meterRegistry.counter("catalog.product.lock.denied.total").increment();
-            logger.warn("Not possible to acquire lock for product {}. Another instance might be processing.", 
+            logger.warn("Not possible to acquire lock for product {} after waiting. Another instance might be processing.", 
                 productDTO.id());
-            // Se não conseguiu o lock, tratamos como conflito pois provavelmente já está sendo criado
+            // Se não conseguiu o lock no tempo limite, lançamos conflito (timeout).
             throw new ProductAlreadyExistsException(productDTO.id());
         }
 
         meterRegistry.counter("catalog.product.lock.acquired.total").increment();
 
         try {
-            // 2. Verifica idempotência no Banco: se o produto já existe, lança exceção
+            // 2. Verifica idempotência no Banco (Idempotência Transparente)
             if (productRepository.existsById(productDTO.id())) {
-                logger.warn("Product {} already exists. Skipping creation to avoid duplication.", 
+                logger.info("Product {} already exists. Transparent idempotency: skipping creation and returning success.", 
                     productDTO.id());
-                throw new ProductAlreadyExistsException(productDTO.id());
+                // Retornamos silenciosamente para que o Controller devolva 201 Created (Sucesso)
+                return;
             }
 
             // 3. Converte DTO para domínio e Salva
@@ -100,6 +113,9 @@ public class CreateProductUseCase {
         } finally {
             // 4. Libera o Lock
             lockPort.releaseLock(productDTO.id());
+        }
+        } finally {
+            semaphore.release();
         }
     }
 }

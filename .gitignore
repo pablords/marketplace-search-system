@@ -113,3 +113,5 @@ __pycache__/
 
 /bin
 # Seed SQL gerado dinamicamente pelo generate_seed.py (não deve ser versionado)
+
+/results

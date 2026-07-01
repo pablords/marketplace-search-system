@@ -103,10 +103,11 @@ public class ProductInfo {
    * Obtém todas as palavras-chave para indexação
    */
   public Set<String> getSearchableKeywords() {
-    Set<String> keywords = Set.of((title + " " + description + " " + brand.name())
+    Set<String> keywords = java.util.Arrays.stream((title + " " + description + " " + brand.name())
         .toLowerCase()
         .replaceAll("[^a-zA-Z0-9\\s]", "")
-        .split("\\s+"));
+        .split("\\s+"))
+        .collect(java.util.stream.Collectors.toSet());
 
     Set<String> result = new java.util.HashSet<>(keywords);
     result.addAll(tags);

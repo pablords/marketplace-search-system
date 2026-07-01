@@ -673,7 +673,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(indexing_events_consumed_total[1m])) by (status)",
+          "expr": "sum(rate(indexing_events_consumed_total_total[1m])) by (status)",
           "legendFormat": "Events {{status}}",
           "refId": "A"
         }
@@ -859,7 +859,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(indexing_process_duration_seconds_sum[5m])) / sum(rate(indexing_process_duration_seconds_count[5m]))",
+          "expr": "sum(rate(indexing_process_batch_duration_seconds_sum[5m])) / sum(rate(indexing_process_batch_duration_seconds_count[5m]))",
           "legendFormat": "Avg Process Duration",
           "refId": "A"
         },
@@ -868,7 +868,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max(indexing_process_duration_seconds_max)",
+          "expr": "max(indexing_process_batch_duration_seconds_max)",
           "legendFormat": "Max Process Duration",
           "refId": "B"
         },
@@ -877,7 +877,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(indexing_opensearch_duration_seconds_sum[5m])) / sum(rate(indexing_opensearch_duration_seconds_count[5m]))",
+          "expr": "sum(rate(indexing_opensearch_batch_duration_seconds_sum[5m])) / sum(rate(indexing_opensearch_batch_duration_seconds_count[5m]))",
           "legendFormat": "Avg OpenSearch Duration",
           "refId": "C"
         },
@@ -886,7 +886,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(indexing_features_duration_seconds_sum[5m])) / sum(rate(indexing_features_duration_seconds_count[5m]))",
+          "expr": "sum(rate(indexing_features_batch_duration_seconds_sum[5m])) / sum(rate(indexing_features_batch_duration_seconds_count[5m]))",
           "legendFormat": "Avg Features Duration",
           "refId": "D"
         }
@@ -1002,13 +1002,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(indexing_events_consumed_total{status=\"received_batch\",job=\"indexing-service\"}[1m]))",
+          "expr": "sum(rate(indexing_events_consumed_total_total{status=\"received_batch\",job=\"indexing-service\"}[1m]))",
           "legendFormat": "Produtos recebidos (batch)/s",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(indexing_events_consumed_total{status=\"error_batch\",job=\"indexing-service\"}[1m]))",
+          "expr": "sum(rate(indexing_events_consumed_total_total{status=\"error_batch\",job=\"indexing-service\"}[1m]))",
           "legendFormat": "Erros de batch/s",
           "refId": "B"
         }

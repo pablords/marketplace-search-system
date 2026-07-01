@@ -24,8 +24,8 @@
           "type": "grafana-opensearch-datasource",
           "uid": "opensearch-logs"
         },
-        "definition": "{\"find\":\"terms\",\"field\":\"container_name\"}",
-        "query": "{\"find\":\"terms\",\"field\":\"container_name\"}",
+        "definition": "{\"find\":\"terms\",\"field\":\"kubernetes.container_name.keyword\"}",
+        "query": "{\"find\":\"terms\",\"field\":\"kubernetes.container_name.keyword\"}",
         "multi": true,
         "includeAll": true,
         "current": {
@@ -76,7 +76,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "level:$level AND container_name:$service AND NOT container_name:*prometheus* AND NOT container_name:*fluent-bit* $search",
+          "query": "_exists_:level AND level:$level AND kubernetes.container_name:$service AND NOT kubernetes.container_name:*prometheus* AND NOT kubernetes.container_name:*fluent-bit* $search",
           "metrics": [
             {
               "type": "logs",
@@ -112,7 +112,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "level:(ERROR OR error OR WARN OR warn) AND container_name:$service AND *$search*",
+          "query": "level:(ERROR OR error OR WARN OR warn) AND kubernetes.container_name:$service AND *$search*",
           "metrics": [
             {
               "type": "count",
@@ -160,7 +160,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "container_name:$service $search",
+          "query": "_exists_:level AND kubernetes.container_name:$service $search",
           "metrics": [
             {
               "type": "count",
@@ -201,7 +201,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "(level:ERROR OR level:error OR level:WARN OR level:warn) AND container_name:$service $search",
+          "query": "(level:ERROR OR level:error OR level:WARN OR level:warn) AND kubernetes.container_name:$service $search",
           "metrics": [
             {
               "type": "logs",
@@ -236,7 +236,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "(level:ERROR OR level:error) AND container_name:$service $search",
+          "query": "(level:ERROR OR level:error) AND kubernetes.container_name:$service $search",
           "metrics": [
             {
               "type": "count",

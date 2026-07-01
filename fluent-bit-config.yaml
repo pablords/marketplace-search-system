@@ -1,0 +1,209 @@
+apiVersion: v1
+data:
+  cleanup.lua: "function cleanup_log(tag, timestamp, record)\n    -- 1. Extract message
+    (standardize on 'message')\n    local msg = record[\"message\"]\n    if msg ==
+    nil then\n        if record[\"msg\"] ~= nil then\n            msg = record[\"msg\"]\n
+    \       elseif record[\"log\"] ~= nil then\n            msg = record[\"log\"]\n
+    \       end\n    end\n    \n    -- Strip trailing newlines/carriage returns and
+    trim whitespace\n    if msg ~= nil then\n        msg = tostring(msg):gsub(\"\\r\",
+    \"\"):gsub(\"\\n\", \"\")\n        msg = msg:match(\"^%s*(.-)%s*$\")\n    end\n\n
+    \   -- 2. Extract timestamp\n    local raw_ts = record[\"log_timestamp\"] or record[\"timestamp\"]
+    or record[\"time\"]\n    local opensearch_ts = nil\n    \n    if raw_ts ~= nil
+    then\n        local ts = tostring(raw_ts)\n        if ts:match(\"%d%d%d%d%-%d%d%-%d%d
+    %d%d:%d%d:%d%d\") then\n            -- 2026-04-26 14:18:34 -> 2026-04-26T14:18:34.000Z\n
+    \           opensearch_ts = ts:gsub(\" \", \"T\") .. \".000Z\"\n        elseif
+    ts:match(\"%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%d\") then\n            opensearch_ts
+    = ts\n        end\n    end\n\n    -- Fallback: if no timestamp could be parsed,
+    format the Fluent Bit event timestamp or system time\n    if opensearch_ts ==
+    nil then\n        local sec = nil\n        if type(timestamp) == \"table\" then\n
+    \           sec = timestamp[\"sec\"] or timestamp[1]\n        elseif type(timestamp)
+    == \"number\" then\n            sec = timestamp\n        end\n        sec = sec
+    or os.time()\n        opensearch_ts = os.date(\"!%Y-%m-%dT%H:%M:%SZ\", sec)\n
+    \   end\n\n    -- 3. Extract environment (default to production if not set)\n
+    \   local env = record[\"environment\"] or \"production\"\n\n    -- Extract level\n
+    \   local level = record[\"level\"]\n\n    -- 4. Extract
+    trace_id and span_id\n    local trace_id = record[\"trace_id\"] or record[\"traceId\"]\n
+    \   local span_id = record[\"span_id\"] or record[\"spanId\"]\n\n    -- 5. Extract
+    container_name for Grafana query filtering\n    local container_name = nil\n    if
+    record[\"kubernetes\"] ~= nil then\n        container_name = record[\"kubernetes\"][\"container_name\"]\n
+    \   end\n    if container_name == nil then\n        container_name = record[\"container_name\"]\n
+    \   end\n\n    -- Construct the clean record containing ONLY the 5 required columns
+    and container name\n    local clean_rec = {}\n    clean_rec[\"@timestamp\"] =
+    opensearch_ts\n    clean_rec[\"message\"] = msg\n    clean_rec[\"environment\"]
+    = env\n    \n    if level ~= nil and tostring(level) ~= \"\" then\n        clean_rec[\"level\"] = tostring(level)\n    end\n    \n    if trace_id ~= nil and tostring(trace_id) ~= \"\" and tostring(trace_id)
+    ~= \"-\" then\n        clean_rec[\"trace_id\"] = tostring(trace_id)\n    end\n
+    \   \n    if span_id ~= nil and tostring(span_id) ~= \"\" and tostring(span_id)
+    ~= \"-\" then\n        clean_rec[\"span_id\"] = tostring(span_id)\n    end\n\n
+    \   if container_name ~= nil then\n        clean_rec[\"kubernetes\"] = {\n            container_name
+    = container_name\n        }\n    end\n\n    return 2, timestamp, clean_rec\nend\n"
+  extract_service.lua: |
+    -- Extrai o nome do serviço a partir da tag Docker
+    -- Tag format: "docker.marketplace-catalog-service" → service_name = "catalog-service"
+    -- Tag format: "docker.marketplace-api-gateway"     → service_name = "api-gateway"
+    function extract_service_name(tag, timestamp, record)
+        if tag then
+            -- Remove prefixo "docker.marketplace-"
+            local service = tag:gsub("^docker%.marketplace%-", "")
+            if service and service ~= "" then
+                record["service_name"] = service
+            end
+        end
+        return 2, timestamp, record
+    end
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         1
+        Daemon        Off
+        Log_Level     info
+        Parsers_File  /fluent-bit/etc/parsers.conf
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
+
+    [INPUT]
+        Name              tail
+        Tag               kube.*
+        Path              /var/log/containers/*.log
+        Parser            docker
+        DB                /var/log/flb_kube.db
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     kube.var.log.containers.
+        Merge_Log           On
+        Merge_Log_Key       log_processed
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude Off
+
+    [FILTER]
+        Name          grep
+        Match         kube.*
+        Regex         $kubernetes['namespace_name'] ^(marketplace|kafka)$
+
+    [FILTER]
+        Name          parser
+        Match         kube.var.log.containers.*_marketplace_*-service-*.log
+        Key_Name      log
+        Parser        springboot_json
+        Parser        springboot
+        Reserve_Data  On
+        Preserve_Key  On
+
+    [FILTER]
+        Name          parser
+        Match         kube.var.log.containers.*_marketplace_ml-ranking-service-*.log
+        Key_Name      log
+        Parser        python
+        Reserve_Data  On
+        Preserve_Key  On
+
+    [FILTER]
+        Name          parser
+        Match         kube.var.log.containers.*_marketplace_ml-embedding-service-*.log
+        Key_Name      log
+        Parser        python
+        Reserve_Data  On
+        Preserve_Key  On
+
+    [FILTER]
+        Name          parser
+        Match         kube.var.log.containers.*_marketplace_api-gateway-*.log
+        Key_Name      log
+        Parser        json_message
+        Reserve_Data  On
+        Preserve_Key  On
+
+    [FILTER]
+        Name          grep
+        Match         *
+        Exclude       log actuator/health
+        Exclude       log actuator/prometheus
+        Exclude       log /_cluster/health
+        Exclude       message Request received
+        Exclude       log Sharing is only supported for boot loader classes
+        Exclude       log opentelemetry-javaagent
+        Exclude       log Standard Commons Logging discovery
+
+    [FILTER]
+        Name          lua
+        Match         kube.*
+        Script        /fluent-bit/etc/cleanup.lua
+        Call          cleanup_log
+
+
+    [OUTPUT]
+        Name                  opensearch
+        Match                 kube.*
+        Host                  opensearch.observability.svc.cluster.local
+        Port                  9200
+        Index                 marketplace-logs
+        Logstash_Format       On
+        Logstash_Prefix       marketplace-logs
+        Logstash_DateFormat   %Y.%m.%d
+        Buffer_Size           5M
+        Generate_ID           On
+        Retry_Limit           False
+        tls                   Off
+        tls.verify            Off
+        Suppress_Type_Name    On
+        Trace_Error           On
+        Trace_Output          Off
+        Workers               2
+  parsers.conf: |
+    # Parser padrão para logs do Docker daemon (formato JSON com campo "log")
+    [PARSER]
+        Name        docker
+        Format      json
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+
+    # Parser para desempacotar o campo "log" como JSON estruturado
+    # Captura os campos: level, msg/message, trace_id, span_id, logger, timestamp etc.
+    [PARSER]
+        Name        json_message
+        Format      json
+        Time_Key    ts
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+
+    [PARSER]
+        Name        springboot
+        Format      regex
+        # Matches Spring Boot logs with or without ANSI colors
+        Regex       /^(?:\x1b\[\d+m)?(?<log_timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.?\d*)(?:\x1b\[[0-9;]+m)?\s+(?:\x1b\[\d+m)?\[(?<thread>[^\]]*)\](?:\x1b\[[0-9;]+m)?\s+(?:\x1b\[\d+m)?(?<level>[A-Z ]{5})(?:\x1b\[[0-9;]+m)?\s+(?:\x1b\[\d+m)?(?<logger>[^\s\x1b]+)(?:\x1b\[[0-9;]+m)?\s+-\s+(?<message>.*)$/
+        Time_Key    log_timestamp
+        Time_Format %Y-%m-%d %H:%M:%S
+        Time_Keep   On
+
+
+
+
+
+    [PARSER]
+        Name        springboot_json
+        Format      json
+        Time_Key    timestamp
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep   On
+
+
+
+
+    [PARSER]
+        Name        python
+        Format      regex
+        Regex       /^(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (?<logger>.*) - (?<level>[A-Z]*) - \[(?<trace_id>[a-f0-9]*):(?<span_id>[a-f0-9]*)\] - \[(?<location>.*)\] - (?<message>.*)$/
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2026-07-01T19:44:27Z"
+  name: fluent-bit-config
+  namespace: observability
+  resourceVersion: "1632"
+  uid: 6b9581e3-6fff-4e19-ab44-5a5207beb2cb

@@ -1,0 +1,94 @@
+apiVersion: v1
+data:
+  prometheus.yml: "global:\n  scrape_interval: 15s\n  evaluation_interval: 15s\n  external_labels:\n
+    \   cluster: 'marketplace-search'\n    environment: 'development'\n\nrule_files:\n
+    \ - \"/etc/prometheus/rules/*.yml\"\n\nscrape_configs:\n  # Prometheus itself\n
+    \ - job_name: 'prometheus'\n    static_configs:\n      - targets: ['localhost:9090']\n\n
+    \ # API Gateway (Go)\n  - job_name: 'api-gateway'\n    metrics_path: '/api/v1/metrics'\n
+    \   static_configs:\n      - targets: ['api-gateway.marketplace:8080']\n    scrape_interval:
+    10s\n    scrape_timeout: 5s\n\n  # Catalog Service\n  - job_name: 'catalog-service'\n
+    \   metrics_path: '/api/v1/actuator/prometheus'\n    static_configs:\n      -
+    targets: ['catalog-service.marketplace:8081']\n    scrape_interval: 10s\n    scrape_timeout:
+    5s\n\n  # Search Service\n  - job_name: 'search-service'\n    metrics_path: '/api/v1/actuator/prometheus'\n
+    \   static_configs:\n      - targets: ['search-service.marketplace:8083']\n    scrape_interval:
+    10s\n    scrape_timeout: 5s\n\n  # Indexing Service\n  - job_name: 'indexing-service'\n
+    \   metrics_path: '/actuator/prometheus'\n    static_configs:\n      - targets:
+    ['indexing-service.marketplace:8082']\n    scrape_interval: 10s\n    scrape_timeout:
+    5s\n\n  # ML Ranking Service\n  - job_name: 'ml-ranking-service'\n    metrics_path:
+    '/metrics'\n    static_configs:\n      - targets: ['ml-ranking-service.marketplace:8084']\n
+    \   scrape_interval: 10s\n    scrape_timeout: 5s\n\n  # ML Embedding Service\n
+    \ - job_name: 'ml-embedding-service'\n    metrics_path: '/metrics'\n    static_configs:\n
+    \     - targets: ['ml-embedding-service.marketplace:8085']\n    scrape_interval:
+    10s\n    scrape_timeout: 5s\n\n  # Traefik\n  - job_name: 'traefik'\n    static_configs:\n
+    \     - targets: ['traefik.marketplace:8082']\n    metrics_path: '/metrics'\n
+    \   scrape_interval: 10s\n\n  # OpenSearch metrics (via elasticsearch_exporter)\n
+    \ - job_name: 'opensearch'\n    static_configs:\n      - targets: ['opensearch-exporter.observability:9114']\n
+    \   scrape_interval: 30s\n\n  # Redis metrics (via redis_exporter)\n  - job_name:
+    'redis'\n    static_configs:\n      - targets: ['redis.marketplace:9121']\n    scrape_interval:
+    30s\n  \n  # Kafka metrics (via kafka_exporter)\n  - job_name: 'kafka'\n    static_configs:\n
+    \     - targets: ['kafka-exporter.marketplace:9308']\n    scrape_interval: 30s\n\n
+    \ # PostgreSQL metrics (via postgres_exporter)\n  - job_name: 'postgres'\n    static_configs:\n
+    \     - targets: ['catalog-db.marketplace:9187']\n    scrape_interval: 30s\n\n
+    \ # ML Services - probe HTTP via blackbox_exporter (nao expõem /metrics nativamente)\n
+    \ - job_name: 'ml-services-probe'\n    metrics_path: /probe\n    params:\n      module:
+    [http_2xx]\n    static_configs:\n      - targets:\n          - http://ml-ranking-service.marketplace:8084/health\n
+    \         - http://ml-embedding-service.marketplace:8085/api/v1/health\n    relabel_configs:\n
+    \     - source_labels: [__address__]\n        target_label: __param_target\n      -
+    source_labels: [__param_target]\n        target_label: instance\n      - target_label:
+    __address__\n        replacement: blackbox-exporter.observability:9115\n\n  #
+    Host Metrics\n  - job_name: 'node-exporter'\n    static_configs:\n      - targets:
+    ['node-exporter.observability:9100']\n\n  # Container Metrics\n  - job_name: 'cadvisor'\n
+    \   static_configs:\n      - targets: ['cadvisor.observability:8080']\n\n  # ----
+    Per-pod scraping (para contagem de réplicas) ----\n  # Descobre e scrape cada
+    pod individualmente via Kubernetes SD.\n  # Isso expõe as labels `pod` e `instance`
+    por réplica, permitindo\n  # que o dashboard de overview conte corretamente os
+    pods ativos.\n\n  - job_name: 'pods-catalog-service'\n    metrics_path: '/api/v1/actuator/prometheus'\n
+    \   scrape_interval: 15s\n    kubernetes_sd_configs:\n      - role: pod\n        namespaces:\n
+    \         names: ['marketplace']\n    relabel_configs:\n      - source_labels:
+    [__meta_kubernetes_pod_label_app]\n        action: keep\n        regex: catalog-service\n
+    \     - source_labels: [__meta_kubernetes_pod_name]\n        target_label: pod\n
+    \     - source_labels: [__meta_kubernetes_pod_ip]\n        replacement: '${1}:8081'\n
+    \       target_label: __address__\n      - target_label: job\n        replacement:
+    catalog-service-pods\n\n  - job_name: 'pods-search-service'\n    metrics_path:
+    '/api/v1/actuator/prometheus'\n    scrape_interval: 15s\n    kubernetes_sd_configs:\n
+    \     - role: pod\n        namespaces:\n          names: ['marketplace']\n    relabel_configs:\n
+    \     - source_labels: [__meta_kubernetes_pod_label_app]\n        action: keep\n
+    \       regex: search-service\n      - source_labels: [__meta_kubernetes_pod_name]\n
+    \       target_label: pod\n      - source_labels: [__meta_kubernetes_pod_ip]\n
+    \       replacement: '${1}:8083'\n        target_label: __address__\n      - target_label:
+    job\n        replacement: search-service-pods\n\n  - job_name: 'pods-indexing-service'\n
+    \   metrics_path: '/actuator/prometheus'\n    scrape_interval: 15s\n    kubernetes_sd_configs:\n
+    \     - role: pod\n        namespaces:\n          names: ['marketplace']\n    relabel_configs:\n
+    \     - source_labels: [__meta_kubernetes_pod_label_app]\n        action: keep\n
+    \       regex: indexing-service\n      - source_labels: [__meta_kubernetes_pod_name]\n
+    \       target_label: pod\n      - source_labels: [__meta_kubernetes_pod_ip]\n
+    \       replacement: '${1}:8082'\n        target_label: __address__\n      - target_label:
+    job\n        replacement: indexing-service-pods\n\n  - job_name: 'pods-api-gateway'\n
+    \   metrics_path: '/api/v1/metrics'\n    scrape_interval: 15s\n    kubernetes_sd_configs:\n
+    \     - role: pod\n        namespaces:\n          names: ['marketplace']\n    relabel_configs:\n
+    \     - source_labels: [__meta_kubernetes_pod_label_app]\n        action: keep\n
+    \       regex: api-gateway\n      - source_labels: [__meta_kubernetes_pod_name]\n
+    \       target_label: pod\n      - source_labels: [__meta_kubernetes_pod_ip]\n
+    \       replacement: '${1}:8080'\n        target_label: __address__\n      - target_label:
+    job\n        replacement: api-gateway-pods\n\n  - job_name: 'pods-ml-ranking-service'\n
+    \   metrics_path: '/metrics'\n    scrape_interval: 15s\n    kubernetes_sd_configs:\n
+    \     - role: pod\n        namespaces:\n          names: ['marketplace']\n    relabel_configs:\n
+    \     - source_labels: [__meta_kubernetes_pod_label_app]\n        action: keep\n
+    \       regex: ml-ranking-service\n      - source_labels: [__meta_kubernetes_pod_name]\n
+    \       target_label: pod\n      - source_labels: [__meta_kubernetes_pod_ip]\n
+    \       replacement: '${1}:8084'\n        target_label: __address__\n      - target_label:
+    job\n        replacement: ml-ranking-service-pods\n\n  - job_name: 'pods-ml-embedding-service'\n
+    \   metrics_path: '/metrics'\n    scrape_interval: 15s\n    kubernetes_sd_configs:\n
+    \     - role: pod\n        namespaces:\n          names: ['marketplace']\n    relabel_configs:\n
+    \     - source_labels: [__meta_kubernetes_pod_label_app]\n        action: keep\n
+    \       regex: ml-embedding-service\n      - source_labels: [__meta_kubernetes_pod_name]\n
+    \       target_label: pod\n      - source_labels: [__meta_kubernetes_pod_ip]\n
+    \       replacement: '${1}:8085'\n        target_label: __address__\n      - target_label:
+    job\n        replacement: ml-embedding-service-pods\n"
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2026-07-01T19:44:27Z"
+  name: prometheus-config
+  namespace: observability
+  resourceVersion: "1634"
+  uid: d22dea27-5fe8-43ab-a27e-3698dcbea166

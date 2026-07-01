@@ -975,6 +975,157 @@
           ]
         }
       }
+    },
+    {
+      "id": 400,
+      "title": "Batch Indexing - Throughput (produtos/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "pluginVersion": "12.3.1",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10,
+            "gradientMode": "opacity", "showPoints": "auto",
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(indexing_events_consumed_total{status=\"received_batch\",job=\"indexing-service\"}[1m]))",
+          "legendFormat": "Produtos recebidos (batch)/s",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(indexing_events_consumed_total{status=\"error_batch\",job=\"indexing-service\"}[1m]))",
+          "legendFormat": "Erros de batch/s",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 401,
+      "title": "Batch Indexing - Duração (avg por fase)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
+      "pluginVersion": "12.3.1",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10,
+            "gradientMode": "opacity", "showPoints": "auto",
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(indexing_process_batch_duration_seconds_sum{job=\"indexing-service\"}[5m])) / sum(rate(indexing_process_batch_duration_seconds_count{job=\"indexing-service\"}[5m]))",
+          "legendFormat": "Avg Batch Total",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(indexing_opensearch_batch_duration_seconds_sum{job=\"indexing-service\"}[5m])) / sum(rate(indexing_opensearch_batch_duration_seconds_count{job=\"indexing-service\"}[5m]))",
+          "legendFormat": "Avg OpenSearch (bulk)",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(indexing_features_batch_duration_seconds_sum{job=\"indexing-service\"}[5m])) / sum(rate(indexing_features_batch_duration_seconds_count{job=\"indexing-service\"}[5m]))",
+          "legendFormat": "Avg Features (Redis)",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 402,
+      "title": "DLQ - Mensagens acumuladas (catalog-db.public.products.dlq)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 64 },
+      "pluginVersion": "12.3.1",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "red", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20,
+            "gradientMode": "opacity", "showPoints": "auto",
+            "thresholdsStyle": { "mode": "line+area" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "kafka_consumer_records_lag{topic=~\".*products.dlq\"}",
+          "legendFormat": "DLQ Lag - {{partition}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 403,
+      "title": "DLQ - Taxa de envio (eventos enviados para DLQ/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 64 },
+      "pluginVersion": "12.3.1",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "custom": {
+            "drawStyle": "bars", "lineWidth": 1, "fillOpacity": 50,
+            "gradientMode": "none", "showPoints": "never",
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(spring_kafka_template_seconds_count{job=\"indexing-service\", topic=~\".*products.dlq\"}[1m]))",
+          "legendFormat": "Mensagens → DLQ/s",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "preload": false,

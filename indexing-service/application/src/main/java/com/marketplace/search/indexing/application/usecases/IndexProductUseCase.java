@@ -93,21 +93,33 @@ public class IndexProductUseCase {
         logger.info("Indexing batch of {} products", productCommand.size());
 
         try {
+            meterRegistry.counter("indexing.events.consumed.total", "status", "received_batch").increment(productCommand.size());
+            Timer.Sample totalSample = Timer.start(meterRegistry);
+
             List<Product> products = productCommand.stream()
                     .map(productMapper::toDomain)
                     .collect(Collectors.toList());
 
             // Indexar produtos no OpenSearch
+            Timer.Sample osSample = Timer.start(meterRegistry);
             indexRepository.indexDocumentsBatch(products);
+            osSample.stop(Timer.builder("indexing.opensearch.batch.duration").register(meterRegistry));
 
             // Calcular e cachear features de ML para cada produto
+            Timer.Sample featureSample = Timer.start(meterRegistry);
             for (Product product : products) {
                 featureCalculationService.calculateAndCacheFeatures(product);
             }
+            featureSample.stop(Timer.builder("indexing.features.batch.duration").register(meterRegistry));
+
+            totalSample.stop(Timer.builder("indexing.process.batch.duration")
+                .tag("status", "success")
+                .register(meterRegistry));
 
             logger.info("Batch indexing completed: {} products", products.size());
 
         } catch (Exception e) {
+            meterRegistry.counter("indexing.events.consumed.total", "status", "error_batch").increment(productCommand.size());
             logger.error("Error indexing product batch", e);
             throw new IndexingException("Failed to index product batch", e);
         }

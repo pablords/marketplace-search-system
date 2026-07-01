@@ -54,12 +54,12 @@ services:
       sliding_window_size: 10  # Sobrescrito por CATALOG_SERVICE_CB_SLIDING_WINDOW_SIZE
   search:
     base_url: http://localhost:8083/api/v1  # Sobrescrito por SEARCH_SERVICE_BASE_URL
-    timeout: 10000  # milliseconds, sobrescrito por SEARCH_SERVICE_TIMEOUT
+    timeout: 5000  # milliseconds, sobrescrito por SEARCH_SERVICE_TIMEOUT
     retry:
       max_attempts: 3  # Sobrescrito por SEARCH_SERVICE_RETRY_MAX_ATTEMPTS
       min_backoff: 500  # milliseconds, sobrescrito por SEARCH_SERVICE_RETRY_MIN_BACKOFF
     circuit_breaker:
       failure_rate_threshold: 50  # percentage, sobrescrito por SEARCH_SERVICE_CB_FAILURE_RATE_THRESHOLD
-      wait_duration_in_open_state: 10000  # milliseconds, sobrescrito por SEARCH_SERVICE_CB_WAIT_DURATION
+      wait_duration_in_open_state: 5000  # milliseconds, sobrescrito por SEARCH_SERVICE_CB_WAIT_DURATION
       sliding_window_size: 10  # Sobrescrito por SEARCH_SERVICE_CB_SLIDING_WINDOW_SIZE
 

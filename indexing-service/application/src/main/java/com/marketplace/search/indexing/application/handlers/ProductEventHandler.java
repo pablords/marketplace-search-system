@@ -1,17 +1,19 @@
 package com.marketplace.search.indexing.application.handlers;
 
-import java.time.Instant;
+
 import java.util.concurrent.CompletableFuture;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.lang.Nullable;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,117 +59,117 @@ public class ProductEventHandler {
     }
   }
 
-  @KafkaListener(topics = "${kafka.topics.product-events}", groupId = "${kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
+  @KafkaListener(topics = "${kafka.topics.product-events}", groupId = "${kafka.consumer.group-id}", containerFactory = "batchKafkaListenerContainerFactory")
   public void handleProductEvent(
-      @Payload String message,
-      @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-      @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-      @Header(KafkaHeaders.RECEIVED_TIMESTAMP) long timestamp,
-      @Header(value = "eventType", required = false) String eventType,
-      ConsumerRecord<String, String> record,
+      List<ConsumerRecord<String, String>> records,
       Acknowledgment acknowledgment) {
 
     Span currentSpan = Span.current();
 
+    if (records == null || records.isEmpty()) {
+      return;
+    }
+
+    logger.info("Recebido lote com {} eventos CDC", records.size());
+    List<ProductCommand> batchCommands = new ArrayList<>();
+    Map<String, DebeziumCDCEvent> latestEventsPerProduct = new LinkedHashMap<>();
+
+    // Fase 1: Parse e Deduplicação
+    for (int i = 0; i < records.size(); i++) {
+        ConsumerRecord<String, String> record = records.get(i);
+        try {
+            DebeziumCDCEvent cdcEvent = objectMapper.readValue(record.value(), DebeziumCDCEvent.class);
+            String productId = extractProductId(cdcEvent);
+
+            if (productId != null) {
+                Long eventTimestamp = cdcEvent.getTimestamp();
+                Long kafkaOffset = record.offset();
+
+                if (eventTimestamp != null && kafkaOffset != null) {
+                    if (deduplicationService.isDuplicate(productId, eventTimestamp, kafkaOffset)) {
+                        logger.warn("Evento duplicado ignorado - ProductId: {}, Offset: {}", productId, kafkaOffset);
+                        continue;
+                    }
+                }
+                // Mantém apenas o evento mais recente do produto no lote
+                latestEventsPerProduct.put(productId, cdcEvent);
+            } else {
+                logger.warn("ProductId não encontrado no evento CDC, offset: {}", record.offset());
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao parsear evento CDC no offset {}: {}", record.offset(), e.getMessage());
+            currentSpan.setStatus(StatusCode.ERROR, "Parsing Error: " + e.getMessage());
+            currentSpan.recordException(e);
+            throw new org.springframework.kafka.listener.BatchListenerFailedException("Falha ao parsear registro do lote", e, record);
+        }
+    }
+
+    // Fase 2: Enriquecimento e Mapeamento
+    for (Map.Entry<String, DebeziumCDCEvent> entry : latestEventsPerProduct.entrySet()) {
+        DebeziumCDCEvent cdcEvent = entry.getValue();
+        try {
+            if ("d".equals(cdcEvent.getOperation())) {
+                processProductDeletion(cdcEvent);
+            } else if ("c".equals(cdcEvent.getOperation()) || "r".equals(cdcEvent.getOperation()) || "u".equals(cdcEvent.getOperation())) {
+                ProductCommand cmd = processProductUpsertSync(cdcEvent);
+                if (cmd != null) {
+                    batchCommands.add(cmd);
+                }
+            } else {
+                logger.warn("Operação CDC não suportada: {}", cdcEvent.getOperation());
+            }
+        } catch (Exception e) {
+             logger.error("Erro ao processar/enriquecer produto {}: {}", entry.getKey(), e.getMessage());
+             // Buscar o ConsumerRecord correspondente a este evento para DLQ
+             ConsumerRecord<String, String> failedRecord = records.stream()
+                .filter(r -> r.value().contains(entry.getKey()))
+                .findFirst()
+                .orElse(records.get(0));
+             throw new org.springframework.kafka.listener.BatchListenerFailedException("Falha ao preparar comando de produto", e, failedRecord);
+        }
+    }
+
+    // Fase 3: Indexação em Batch
     try {
-      logger.info("Recebido evento CDC - Topic: {}, Partition: {}, Offset: {}, Timestamp: {}",
-          topic, partition, record.offset(), Instant.ofEpochMilli(timestamp));
-
-      DebeziumCDCEvent cdcEvent = objectMapper.readValue(message, DebeziumCDCEvent.class);
-
-      logger.info("Operação CDC: {}, Table: {}", cdcEvent.getOperation(),
-          cdcEvent.getSource() != null ? cdcEvent.getSource().getTable() : "unknown");
-
-      // Verificar idempotência: extrair productId do evento antes de processar
-      String productId = extractProductId(cdcEvent);
-      Long eventTimestamp = cdcEvent.getTimestamp();
-      Long kafkaOffset = record.offset();
-
-      if (productId != null) {
-        currentSpan.setAttribute("product.id", productId);
-      }
-
-      // Verificar se o evento já foi processado (deduplicação)
-      if (productId != null && eventTimestamp != null && kafkaOffset != null) {
-        if (deduplicationService.isDuplicate(productId, eventTimestamp, kafkaOffset)) {
-          logger.warn("Evento duplicado ignorado - ProductId: {}, Timestamp: {}, Offset: {}. " +
-              "Evento já foi processado anteriormente.", productId, eventTimestamp, kafkaOffset);
-          // Acknowledge o evento duplicado para não reprocessar
-          acknowledgment.acknowledge();
-          return;
+        if (!batchCommands.isEmpty()) {
+            logger.info("Enviando {} produtos para indexação em batch...", batchCommands.size());
+            indexProductUseCase.executeBatch(batchCommands);
         }
-      } else {
-        logger.warn("Não foi possível extrair informações para deduplicação - ProductId: {}, " +
-            "Timestamp: {}, Offset: {}. Continuando processamento sem verificação de duplicação.",
-            productId, eventTimestamp, kafkaOffset);
-      }
 
-      // Determina qual pipeline assíncrona executar
-      CompletableFuture<Void> processingFuture = switch (cdcEvent.getOperation()) {
-        case "c", "r", "u" -> processProductUpsert(cdcEvent);
-        case "d" -> processProductDeletion(cdcEvent);
-        default -> {
-          logger.warn("Operação CDC não suportada: {}", cdcEvent.getOperation());
-          yield CompletableFuture.completedFuture(null);
-        }
-      };
+        logger.info("Lote processado com sucesso");
+        acknowledgment.acknowledge();
 
-      // 2. O SEGREDO DO BACKPRESSURE COM COMMIT MANUAL:
-      // Bloqueamos a thread do listener do Kafka até que a task assíncrona termine.
-      // Isso impede o Kafka de fazer um novo poll() de mensagens enquanto o
-      // Elastic/OpenSearch estiver processando.
-      processingFuture.join();
-
-      // 3. SEU COMMIT MANUAL CONTROLADO:
-      // Só chega aqui se o .join() terminar com sucesso (sem exceptions)
-      logger.info("Evento CDC processado com sucesso - Operation: {}", cdcEvent.getOperation());
-      acknowledgment.acknowledge();
     } catch (Exception e) {
-      logger.error("Erro ao parsear evento CDC do Kafka - Message: {}, Error: {}", message, e.getMessage(), e);
-
-      // Mark span as error
-      currentSpan.setStatus(StatusCode.ERROR, "Parsing Error: " + e.getMessage());
-      currentSpan.setAttribute("error", true);
-      currentSpan.recordException(e);
-
-      // Em caso de erro de parsing, fazer acknowledge para evitar loop infinito
-      acknowledgment.acknowledge();
+        logger.error("Erro na indexação do lote de produtos: {}", e.getMessage(), e);
+        currentSpan.setStatus(StatusCode.ERROR, "Indexing Error: " + e.getMessage());
+        currentSpan.recordException(e);
+        if (!records.isEmpty()) {
+            throw new org.springframework.kafka.listener.BatchListenerFailedException("Falha na indexação do lote", e, records.get(0));
+        }
+        throw new RuntimeException("Falha na indexação do lote", e);
     }
   }
 
-  private CompletableFuture<Void> processProductUpsert(DebeziumCDCEvent cdcEvent) {
-    try {
-      // Converter o payload para ProductPayload
+  private ProductCommand processProductUpsertSync(DebeziumCDCEvent cdcEvent) throws Exception {
       ProductPayload productData = objectMapper.convertValue(cdcEvent.getAfter(), ProductPayload.class);
       if (productData == null) {
         logger.warn("Evento CDC sem dados 'after', ignorando");
-        return CompletableFuture.completedFuture(null);
+        return null;
       }
 
       logger.debug("Processando criação/atualização do produto: {}", productData.getId());
 
-      // Enriquecer o produto com dados de dimensões e métricas
       ProductPayload enrichedProduct = enrichmentService.enrich(productData);
-      logger.debug("Produto enriquecido: {}", enrichedProduct.toString());
-      // Verificar se dados críticos estão disponíveis
+      
       if (!isProductEnrichmentComplete(enrichedProduct)) {
-        logger.warn("Produto {} não totalmente enriquecido - alguns dados podem estar faltando. " +
-            "Brand: {}, Category: {}, Seller: {}. Continuando com indexação (eventual consistency aceitável)",
+        logger.warn("Produto {} não totalmente enriquecido. Brand: {}, Category: {}, Seller: {}",
             enrichedProduct.getId(),
             enrichedProduct.getBrandName() != null,
             enrichedProduct.getCategoryName() != null,
             enrichedProduct.getSellerName() != null);
-        // Continuar mesmo assim - eventual consistency é aceitável para indexação
       }
 
-      ProductCommand productCommand = productMapper.mapProductPayloadToDTO(enrichedProduct);
-      logger.debug("Product Command Após Mapper: {}", productCommand.toString());
-      return indexProductUseCase.executeAsync(productCommand);
-
-    } catch (Exception e) {
-      logger.error("Erro ao processar upsert de produto", e);
-      return CompletableFuture.failedFuture(e);
-    }
+      return productMapper.mapProductPayloadToDTO(enrichedProduct);
   }
 
   private String extractProductId(DebeziumCDCEvent cdcEvent) {

@@ -69,12 +69,17 @@ embedding:
 kafka:
   topics:
     product-events: ${KAFKA_PRODUCT_EVENTS_TOPIC:catalog-db.public.products}
+    product-events-dlq: ${KAFKA_PRODUCT_EVENTS_DLQ_TOPIC:catalog-db.public.products.dlq}
     brand-events: ${KAFKA_BRAND_EVENTS_TOPIC:catalog-db.public.brands}
     category-events: ${KAFKA_CATEGORY_EVENTS_TOPIC:catalog-db.public.categories}
     seller-events: ${KAFKA_SELLER_EVENTS_TOPIC:catalog-db.public.sellers}
     product-metrics-events: ${KAFKA_PRODUCT_METRICS_EVENTS_TOPIC:catalog-db.public.product_metrics}
   consumer:
     group-id: ${KAFKA_CONSUMER_GROUP_ID:marketplace-search-indexer-service}
+  dlq:
+    # Número de partições e replication-factor do tópico DLQ
+    partitions: ${KAFKA_DLQ_PARTITIONS:3}
+    replication-factor: ${KAFKA_DLQ_REPLICATION_FACTOR:1}
   # Configuração de deduplicação de eventos
   # TTL em horas para chaves de deduplicação no Redis (padrão: 7 dias = 168 horas)
   deduplication:

@@ -6,7 +6,7 @@ import sys
 
 # Configurações do Teste
 BASE_URL = "http://api.lab.com.br/api/v1/search/products"
-CONCURRENT_USERS = 20
+CONCURRENT_USERS = 100
 TOTAL_REQUESTS = 1000000
 
 SEARCH_TERMS = [

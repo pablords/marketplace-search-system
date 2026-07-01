@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -19,7 +20,11 @@ import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+import org.springframework.util.backoff.FixedBackOff;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.TopicPartition;
 
 /**
  * Configuração do Apache Kafka
@@ -59,6 +64,26 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.producer.buffer-memory:33554432}")
     private long bufferMemory;
+
+    @Value("${kafka.topics.product-events-dlq:catalog-db.public.products.dlq}")
+    private String productEventsDlqTopic;
+
+    @Value("${kafka.dlq.partitions:3}")
+    private int dlqPartitions;
+
+    @Value("${kafka.dlq.replication-factor:1}")
+    private short dlqReplicationFactor;
+
+    /**
+     * Cria automaticamente o tópico DLQ de produtos no Kafka se não existir.
+     */
+    @Bean
+    public NewTopic productEventsDlqTopic() {
+        return TopicBuilder.name(productEventsDlqTopic)
+                .partitions(dlqPartitions)
+                .replicas(dlqReplicationFactor)
+                .build();
+    }
 
     /**
      * Configuração do Producer
@@ -176,6 +201,23 @@ public class KafkaConfig {
                     // Log do erro - implementar Dead Letter Queue se necessário
                     System.err.println("Error processing record: " + consumerRecord + ", error: " + exception);
                 }));
+
+        return factory;
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> batchKafkaListenerContainerFactory(KafkaTemplate<String, String> template) {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+
+        factory.setConsumerFactory(consumerFactory());
+        factory.setBatchListener(true);
+        factory.setConcurrency(3);
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(template,
+                (r, e) -> new TopicPartition(r.topic() + ".dlq", r.partition()));
+        
+        factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 2)));
 
         return factory;
     }

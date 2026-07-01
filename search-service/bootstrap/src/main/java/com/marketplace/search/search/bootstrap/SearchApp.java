@@ -17,7 +17,8 @@ import lombok.extern.slf4j.Slf4j;
         "com.marketplace.search.search.domain",
         "com.marketplace.search.search.application",
         "com.marketplace.search.search.infrastructure",
-        "com.marketplace.search.search.interfaces"
+        "com.marketplace.search.search.interfaces",
+        "com.marketplace.search.search.bootstrap"
 })
 @Slf4j
 public class SearchApp implements CommandLineRunner {

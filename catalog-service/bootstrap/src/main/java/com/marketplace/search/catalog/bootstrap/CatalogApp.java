@@ -6,6 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -16,7 +17,8 @@ import lombok.extern.slf4j.Slf4j;
         "com.marketplace.search.catalog.domain",
         "com.marketplace.search.catalog.application",
         "com.marketplace.search.catalog.infrastructure",
-        "com.marketplace.search.catalog.interfaces"
+        "com.marketplace.search.catalog.interfaces",
+        "com.marketplace.search.catalog.bootstrap"
 })
 @Slf4j
 public class CatalogApp implements CommandLineRunner {

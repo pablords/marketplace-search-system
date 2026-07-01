@@ -2,6 +2,10 @@ spring:
   application:
     name: catalog
 
+  threads:
+    virtual:
+      enabled: true
+
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:production}
 

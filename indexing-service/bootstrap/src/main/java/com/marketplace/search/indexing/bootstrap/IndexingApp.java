@@ -16,7 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 @ComponentScan(basePackages = {
 		"com.marketplace.search.indexing.domain",
 		"com.marketplace.search.indexing.application",
-		"com.marketplace.search.indexing.infrastructure"
+		"com.marketplace.search.indexing.infrastructure",
+		"com.marketplace.search.indexing.bootstrap"
 })
 
 @Import({

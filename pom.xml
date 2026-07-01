@@ -13,12 +13,12 @@
   <description>Sistema de busca escalável para marketplace com arquitetura hexagonal</description>
 
   <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Spring Boot -->
-    <spring-boot.version>3.2.0</spring-boot.version>
+    <spring-boot.version>3.4.0</spring-boot.version>
 
     <!-- Documentation -->
     <springdoc-openapi.version>2.3.0</springdoc-openapi.version>
@@ -37,7 +37,8 @@
     <resilience4j.version>2.1.0</resilience4j.version>
 
     <!-- Maven Plugins -->
-    <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <lombok.version>1.18.36</lombok.version>
     <maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
     <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
     <spotbugs-maven-plugin.version>4.8.2.0</spotbugs-maven-plugin.version>
@@ -159,9 +160,16 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>${maven-compiler-plugin.version}</version>
           <configuration>
-            <source>${maven.compiler.source}</source>
-            <target>${maven.compiler.target}</target>
+            <source>21</source>
+            <target>21</target>
             <parameters>true</parameters>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+              </path>
+            </annotationProcessorPaths>
           </configuration>
         </plugin>
 

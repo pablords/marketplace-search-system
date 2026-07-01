@@ -4,10 +4,13 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -33,12 +36,14 @@ public class EmbeddingClient {
     private final WebClient webClient;
     private final int maxRetries;
     private final Duration timeout;
+    private final Executor executor;
 
     public EmbeddingClient(
             @Value("${embedding.service.url}") String baseUrl,
             @Value("${embedding.service.timeout-seconds}") int timeoutSeconds,
             @Value("${embedding.service.max-retries}") int maxRetries,
-            WebClient.Builder webClientBuilder) {
+            WebClient.Builder webClientBuilder,
+            @Qualifier("applicationTaskExecutor") Executor executor) {
         this.timeout = Duration.ofSeconds(timeoutSeconds);
         this.maxRetries = maxRetries;
         
@@ -46,6 +51,7 @@ public class EmbeddingClient {
             .baseUrl(baseUrl)
             .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
             .build();
+        this.executor = executor;
     }
 
     /**
@@ -60,12 +66,36 @@ public class EmbeddingClient {
             return Optional.empty();
         }
 
-        // Limitar batch size para evitar sobrecarga
-        if (texts.size() > 100) {
-            logger.warn("Lista de textos excede 100 itens ({}), limitando a 100", texts.size());
-            texts = texts.subList(0, 100);
+        if (texts.size() <= 100) {
+            return generateEmbeddingsBatch(texts);
         }
 
+        List<List<String>> batches = new ArrayList<>();
+        for (int i = 0; i < texts.size(); i += 100) {
+            batches.add(texts.subList(i, Math.min(i + 100, texts.size())));
+        }
+
+        logger.info("Dividindo {} textos em {} lotes para Embedding Service", texts.size(), batches.size());
+
+        List<CompletableFuture<Optional<List<float[]>>>> futures = batches.stream()
+            .map(batch -> CompletableFuture.supplyAsync(() -> generateEmbeddingsBatch(batch), executor))
+            .toList();
+
+        List<float[]> allEmbeddings = new ArrayList<>();
+        for (CompletableFuture<Optional<List<float[]>>> future : futures) {
+            Optional<List<float[]>> batchResult = future.join();
+            if (batchResult.isPresent() && !batchResult.get().isEmpty()) {
+                allEmbeddings.addAll(batchResult.get());
+            } else {
+                logger.warn("Falha ao gerar embeddings para um dos lotes. Abortando geração para manter o alinhamento dos vetores.");
+                return Optional.empty();
+            }
+        }
+        
+        return Optional.of(allEmbeddings);
+    }
+
+    private Optional<List<float[]>> generateEmbeddingsBatch(List<String> texts) {
         try {
             EmbeddingRequest request = new EmbeddingRequest(texts, "product");
             

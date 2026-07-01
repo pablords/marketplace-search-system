@@ -1,5 +1,8 @@
 package com.marketplace.search.catalog.infrastructure.persistence.adapters;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -40,6 +43,20 @@ public class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
+    public void saveAll(List<Product> products) {
+        if (products.isEmpty()) return;
+        logger.debug("Saving batch of {} products to PostgreSQL", products.size());
+        
+        List<ProductEntity> entities = products.stream()
+                .map(productEntityMapper::toEntity)
+                .collect(Collectors.toList());
+                
+        productJpaRepository.saveAll(entities);
+        
+        logger.debug("Batch of {} products saved successfully", products.size());
+    }
+
+    @Override
     public void update(Product product) {
         logger.debug("Updating product {} in PostgreSQL", product.getId().getValue());
         
@@ -67,5 +84,17 @@ public class ProductRepositoryAdapter implements ProductRepository {
         logger.debug("Product {} exists: {}", productId, exists);
         
         return exists;
+    }
+
+    @Override
+    public List<String> findExistingIds(List<String> productIds) {
+        if (productIds.isEmpty()) return List.of();
+        logger.debug("Finding existing product IDs from {} provided IDs", productIds.size());
+        
+        List<ProductEntity> entities = productJpaRepository.findAllById(productIds);
+        
+        return entities.stream()
+                .map(ProductEntity::getId)
+                .collect(Collectors.toList());
     }
 }

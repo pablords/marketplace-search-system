@@ -1,5 +1,7 @@
 package com.marketplace.search.catalog.domain.repositories;
 
+import java.util.List;
+
 import com.marketplace.search.catalog.domain.entities.Product;
 
 /**
@@ -14,6 +16,13 @@ public interface ProductRepository {
 	 * @param product produto a ser salvo
 	 */
 	void save(Product product);
+
+	/**
+	 * Salva uma lista de produtos no repositório em batch.
+	 * 
+	 * @param products lista de produtos a serem salvos
+	 */
+	void saveAll(List<Product> products);
 
 	/**
 	 * Atualiza um produto existente.
@@ -36,4 +45,12 @@ public interface ProductRepository {
 	 * @return true se o produto existe, false caso contrário
 	 */
 	boolean existsById(String productId);
+
+	/**
+	 * Retorna apenas os IDs dos produtos que já existem no repositório.
+	 * 
+	 * @param productIds Lista de IDs de produtos a verificar
+	 * @return Lista de IDs encontrados
+	 */
+	List<String> findExistingIds(List<String> productIds);
 }

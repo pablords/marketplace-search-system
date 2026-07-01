@@ -27,13 +27,18 @@ spring:
     consumer:
       group-id: catalog-service-group
       auto-offset-reset: earliest
+      max-poll-records: 500
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.trusted.packages: "*"
+    listener:
+      type: batch
+      concurrency: 3
     template:
       default-topic: catalog.product.create.requests
+      dlq-topic: catalog.product.create.dlq
 
 # Logging
 logging:

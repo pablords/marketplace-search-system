@@ -3,6 +3,10 @@ package com.marketplace.search.indexing.application.handlers;
 
 import java.util.concurrent.CompletableFuture;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.CompletionException;
+import java.util.Objects;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -11,6 +15,7 @@ import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.lang.Nullable;
@@ -40,14 +45,17 @@ public class ProductEventHandler {
   private final ProductEnrichmentService enrichmentService;
   private final EventDeduplicationService deduplicationService;
   private final ObjectMapper objectMapper;
+  private final Executor executor;
 
   public ProductEventHandler(IndexProductUseCase indexProductUseCase, ProductMapper productMapper,
       ProductEnrichmentService enrichmentService, EventDeduplicationService deduplicationService,
+      @Qualifier("applicationTaskExecutor") Executor executor,
       @Nullable ObjectMapper objectMapper) {
     this.indexProductUseCase = indexProductUseCase;
     this.productMapper = productMapper;
     this.enrichmentService = enrichmentService;
     this.deduplicationService = deduplicationService;
+    this.executor = executor;
 
     if (objectMapper == null) {
       ObjectMapper om = new ObjectMapper();
@@ -105,28 +113,43 @@ public class ProductEventHandler {
     }
 
     // Fase 2: Enriquecimento e Mapeamento
-    for (Map.Entry<String, DebeziumCDCEvent> entry : latestEventsPerProduct.entrySet()) {
-        DebeziumCDCEvent cdcEvent = entry.getValue();
-        try {
-            if ("d".equals(cdcEvent.getOperation())) {
-                processProductDeletion(cdcEvent);
-            } else if ("c".equals(cdcEvent.getOperation()) || "r".equals(cdcEvent.getOperation()) || "u".equals(cdcEvent.getOperation())) {
-                ProductCommand cmd = processProductUpsertSync(cdcEvent);
-                if (cmd != null) {
-                    batchCommands.add(cmd);
+    List<CompletableFuture<ProductCommand>> enrichmentFutures = latestEventsPerProduct.entrySet().stream()
+        .map(entry -> CompletableFuture.supplyAsync(() -> {
+            DebeziumCDCEvent cdcEvent = entry.getValue();
+            try {
+                if ("d".equals(cdcEvent.getOperation())) {
+                    processProductDeletion(cdcEvent).join();
+                    return null;
+                } else if ("c".equals(cdcEvent.getOperation()) || "r".equals(cdcEvent.getOperation()) || "u".equals(cdcEvent.getOperation())) {
+                    return processProductUpsertSync(cdcEvent);
+                } else {
+                    logger.warn("Operação CDC não suportada: {}", cdcEvent.getOperation());
+                    return null;
                 }
-            } else {
-                logger.warn("Operação CDC não suportada: {}", cdcEvent.getOperation());
+            } catch (Exception e) {
+                logger.error("Erro ao processar/enriquecer produto {}: {}", entry.getKey(), e.getMessage());
+                ConsumerRecord<String, String> failedRecord = records.stream()
+                   .filter(r -> r.value().contains(entry.getKey()))
+                   .findFirst()
+                   .orElse(records.get(0));
+                throw new CompletionException(
+                    new org.springframework.kafka.listener.BatchListenerFailedException("Falha ao preparar comando de produto", e, failedRecord)
+                );
             }
-        } catch (Exception e) {
-             logger.error("Erro ao processar/enriquecer produto {}: {}", entry.getKey(), e.getMessage());
-             // Buscar o ConsumerRecord correspondente a este evento para DLQ
-             ConsumerRecord<String, String> failedRecord = records.stream()
-                .filter(r -> r.value().contains(entry.getKey()))
-                .findFirst()
-                .orElse(records.get(0));
-             throw new org.springframework.kafka.listener.BatchListenerFailedException("Falha ao preparar comando de produto", e, failedRecord);
+        }, executor))
+        .toList();
+
+    try {
+        List<ProductCommand> commands = enrichmentFutures.stream()
+            .map(CompletableFuture::join)
+            .filter(Objects::nonNull)
+            .toList();
+        batchCommands.addAll(commands);
+    } catch (CompletionException e) {
+        if (e.getCause() instanceof org.springframework.kafka.listener.BatchListenerFailedException) {
+            throw (org.springframework.kafka.listener.BatchListenerFailedException) e.getCause();
         }
+        throw e;
     }
 
     // Fase 3: Indexação em Batch

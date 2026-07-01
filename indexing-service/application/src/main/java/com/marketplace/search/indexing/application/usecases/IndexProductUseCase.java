@@ -13,6 +13,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 
+import java.util.concurrent.Executor;
+
 import com.marketplace.search.indexing.application.commands.ProductCommand;
 import com.marketplace.search.indexing.application.exceptions.IndexingException;
 import com.marketplace.search.indexing.application.mappers.ProductMapper;
@@ -25,6 +27,7 @@ import com.marketplace.search.indexing.domain.repositories.ProductIndexRepositor
  * Executa operações de indexação de forma assíncrona para não bloquear o
  * caller.
  */
+import org.springframework.beans.factory.annotation.Qualifier;
 @Service
 public class IndexProductUseCase {
 
@@ -34,15 +37,18 @@ public class IndexProductUseCase {
     private final ProductMapper productMapper;
     private final ProductFeatureCalculationService featureCalculationService;
     private final MeterRegistry meterRegistry;
+    private final Executor executor;
 
     public IndexProductUseCase(ProductIndexRepository indexRepository,
             ProductMapper productMapper,
             ProductFeatureCalculationService featureCalculationService,
-            MeterRegistry meterRegistry) {
+            MeterRegistry meterRegistry,
+            @Qualifier("applicationTaskExecutor") Executor executor) {
         this.indexRepository = indexRepository;
         this.productMapper = productMapper;
         this.featureCalculationService = featureCalculationService;
         this.meterRegistry = meterRegistry;
+        this.executor = executor;
     }
 
     /**
@@ -107,9 +113,12 @@ public class IndexProductUseCase {
 
             // Calcular e cachear features de ML para cada produto
             Timer.Sample featureSample = Timer.start(meterRegistry);
-            for (Product product : products) {
-                featureCalculationService.calculateAndCacheFeatures(product);
-            }
+            List<CompletableFuture<Void>> featureFutures = products.stream()
+                .map(product -> CompletableFuture.runAsync(() -> 
+                    featureCalculationService.calculateAndCacheFeatures(product)
+                , executor))
+                .collect(Collectors.toList());
+            CompletableFuture.allOf(featureFutures.toArray(new CompletableFuture[0])).join();
             featureSample.stop(Timer.builder("indexing.features.batch.duration").register(meterRegistry));
 
             totalSample.stop(Timer.builder("indexing.process.batch.duration")

@@ -119,5 +119,5 @@ debezium:
       value.converter.schema.registry.url: http://schema-registry.kafka.svc.cluster.local:8081
       decimal.handling.mode: string
       topic.creation.default.partitions: 3
-      topic.creation.default.replication.factor: 3
+      topic.creation.default.replication.factor: 30     # Total de Consumidores Ativos = 10  Pods × 3  threads/Pod = 30  threads
       topic.creation.default.replicas.assignment.retry.delay.ms: 10000

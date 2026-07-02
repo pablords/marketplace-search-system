@@ -30,6 +30,8 @@ spring:
   # Kafka
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    dlq:
+      partitions: ${KAFKA_DLQ_PARTITIONS:30} # Alterado de 3 para 30
     properties:
       schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry.kafka.svc.cluster.local:8081}
     consumer:

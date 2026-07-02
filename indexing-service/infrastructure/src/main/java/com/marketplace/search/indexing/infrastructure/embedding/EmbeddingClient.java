@@ -43,7 +43,7 @@ public class EmbeddingClient {
             @Value("${embedding.service.timeout-seconds}") int timeoutSeconds,
             @Value("${embedding.service.max-retries}") int maxRetries,
             WebClient.Builder webClientBuilder,
-            @Qualifier("applicationTaskExecutor") Executor executor) {
+            @Qualifier("embeddingExecutor") Executor executor) {
         this.timeout = Duration.ofSeconds(timeoutSeconds);
         this.maxRetries = maxRetries;
         

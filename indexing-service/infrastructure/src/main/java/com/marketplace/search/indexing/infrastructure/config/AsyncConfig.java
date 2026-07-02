@@ -24,7 +24,7 @@ public class AsyncConfig implements AsyncConfigurer {
     /**
      * Executor para operações assíncronas de indexação (usado pelos use cases)
      */
-    @Bean(name = "asyncIndexingExecutor")
+    @Bean(name = {"asyncIndexingExecutor", "applicationTaskExecutor"})
     @Override
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -41,6 +41,28 @@ public class AsyncConfig implements AsyncConfigurer {
         // produzindo (Kafka Listener) executará a tarefa, naturalmente 
         // diminuindo o ritmo de consumo do Kafka até que o pool libere espaço.
         executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        
+        executor.initialize();
+        return executor;
+    }
+    
+    /**
+     * Executor dedicado para chamadas ao Embedding Service (Bulkhead Pattern)
+     * Isolando requisições I/O da pool de indexação principal.
+     */
+    @Bean(name = "embeddingExecutor")
+    public Executor embeddingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(30);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("embedding-io-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        
+        // Estratégia de recusa com AbortPolicy para isolar e reagir rapidamente a gargalos
+        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
         
         executor.initialize();
         return executor;

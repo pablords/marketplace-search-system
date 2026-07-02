@@ -10,6 +10,7 @@ import com.marketplace.search.catalog.application.mappers.ProductMapper;
 import com.marketplace.search.catalog.domain.entities.Product;
 import com.marketplace.search.catalog.domain.ports.ProductEventProducerPort;
 
+import org.springframework.beans.factory.annotation.Value;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
@@ -29,16 +30,19 @@ public class CreateProductUseCase {
     private final ProductEventProducerPort productEventProducerPort;
     private final MeterRegistry meterRegistry;
     
-    // Semáforo para limitar a concorrência a 50 requisições simultâneas por pod
-    private final java.util.concurrent.Semaphore semaphore = new java.util.concurrent.Semaphore(50);
+    // Semáforo para limitar a concorrência de requisições simultâneas por pod
+    private final java.util.concurrent.Semaphore semaphore;
 
     public CreateProductUseCase(
             ProductMapper productMapper,
             ProductEventProducerPort productEventProducerPort,
-            MeterRegistry meterRegistry) {
+            MeterRegistry meterRegistry,
+            @Value("${concurrency.limit:50}") int concurrencyLimit) {
         this.productMapper = productMapper;
         this.productEventProducerPort = productEventProducerPort;
         this.meterRegistry = meterRegistry;
+        this.semaphore = new java.util.concurrent.Semaphore(concurrencyLimit);
+        logger.info("Inicializando CreateProductUseCase com limite de concorrência (semáforo) = {}", concurrencyLimit);
     }
 
     /**

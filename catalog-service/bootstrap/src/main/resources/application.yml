@@ -26,6 +26,11 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      compression-type: lz4
+      batch-size: 65536
+      properties:
+        linger.ms: 10
+        max.block.ms: 2000
     consumer:
       group-id: catalog-service-group
       auto-offset-reset: earliest
@@ -121,3 +126,6 @@ debezium:
       topic.creation.default.partitions: 3
       topic.creation.default.replication.factor: 30     # Total de Consumidores Ativos = 10  Pods × 3  threads/Pod = 30  threads
       topic.creation.default.replicas.assignment.retry.delay.ms: 10000
+
+concurrency:
+  limit: ${CONCURRENCY_LIMIT:50}

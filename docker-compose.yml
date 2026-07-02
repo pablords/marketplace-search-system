@@ -466,7 +466,7 @@ services:
       context: ./ml-ranking-service
       dockerfile: Dockerfile
     container_name: marketplace-ml-ranking
-    image: marketplace/ranking-service:latest
+    image: registry:5000/ranking-service:latest
     env_file:
       - ./ml-ranking-service/.env
     depends_on:
@@ -490,7 +490,7 @@ services:
       context: ./ml-embedding-service
       dockerfile: Dockerfile
     container_name: marketplace-embedding
-    image: marketplace/embedding:latest
+    image: registry:5000/embedding:latest
     env_file:
       - ./ml-embedding-service/.env
     depends_on:
@@ -514,7 +514,7 @@ services:
       context: ./catalog-service
       dockerfile: Dockerfile
     container_name: marketplace-catalog-service
-    image: marketplace/catalog-service:latest
+    image: registry:5000/catalog-service:latest
     environment:
       - OTEL_SERVICE_NAME=catalog-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
@@ -555,7 +555,7 @@ services:
       context: ./search-service
       dockerfile: Dockerfile
     container_name: marketplace-search-service
-    image: marketplace/search-service:latest
+    image: registry:5000/search-service:latest
     environment:
       - OTEL_SERVICE_NAME=search-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
@@ -602,7 +602,7 @@ services:
       context: ./indexing-service
       dockerfile: Dockerfile
     container_name: marketplace-indexing-service
-    image: marketplace/indexing-service:latest
+    image: registry:5000/indexing-service:latest
     environment:
       - OTEL_SERVICE_NAME=indexing-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
@@ -647,7 +647,7 @@ services:
       context: ./api-gateway
       dockerfile: Dockerfile
     container_name: marketplace-api-gateway
-    image: marketplace/api-gateway:latest
+    image: registry:5000/api-gateway:latest
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=PathPrefix(`/api`)"

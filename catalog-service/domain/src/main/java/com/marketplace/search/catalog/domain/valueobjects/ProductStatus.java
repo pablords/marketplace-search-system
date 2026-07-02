@@ -67,6 +67,10 @@ public class ProductStatus {
     return state;
   }
 
+  public String getStateName() {
+    return state.name();
+  }
+
   public boolean hasStock() {
     return hasStock;
   }

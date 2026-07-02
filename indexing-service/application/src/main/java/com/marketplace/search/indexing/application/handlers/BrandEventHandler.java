@@ -1,6 +1,8 @@
 package com.marketplace.search.indexing.application.handlers;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.avro.generic.GenericRecord;
+import com.marketplace.search.indexing.application.events.AvroCDCEventConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -42,11 +44,11 @@ public class BrandEventHandler {
 
   @KafkaListener(topics = "${kafka.topics.brand-events:catalog-db.public.brands}", groupId = "${kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
   public void handleBrandEvent(
-      @Payload String message,
+      @Payload GenericRecord message,
       @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
       @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
       @Header(KafkaHeaders.RECEIVED_TIMESTAMP) long timestamp,
-      ConsumerRecord<String, String> record,
+      ConsumerRecord<String, GenericRecord> record,
       Acknowledgment acknowledgment) {
 
     Span currentSpan = Span.current();
@@ -55,7 +57,7 @@ public class BrandEventHandler {
       logger.debug("Recebido evento CDC de Brand - Topic: {}, Partition: {}, Offset: {}",
           topic, partition, record.offset());
 
-      DebeziumCDCEvent cdcEvent = objectMapper.readValue(message, DebeziumCDCEvent.class);
+      DebeziumCDCEvent cdcEvent = AvroCDCEventConverter.convert(message);
 
       // Converter o payload para BrandPayload
       BrandPayload brandAfter = objectMapper.convertValue(cdcEvent.getAfter(), BrandPayload.class);

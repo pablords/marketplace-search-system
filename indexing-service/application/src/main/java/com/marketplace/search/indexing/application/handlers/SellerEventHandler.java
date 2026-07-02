@@ -1,6 +1,8 @@
 package com.marketplace.search.indexing.application.handlers;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.avro.generic.GenericRecord;
+import com.marketplace.search.indexing.application.events.AvroCDCEventConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -42,11 +44,11 @@ public class SellerEventHandler {
 
   @KafkaListener(topics = "${kafka.topics.seller-events:catalog-db.public.sellers}", groupId = "${kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
   public void handleSellerEvent(
-      @Payload String message,
+      @Payload GenericRecord message,
       @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
       @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
       @Header(KafkaHeaders.RECEIVED_TIMESTAMP) long timestamp,
-      ConsumerRecord<String, String> record,
+      ConsumerRecord<String, GenericRecord> record,
       Acknowledgment acknowledgment) {
 
     Span currentSpan = Span.current();
@@ -55,7 +57,7 @@ public class SellerEventHandler {
       logger.debug("Recebido evento CDC de Seller - Topic: {}, Partition: {}, Offset: {}",
           topic, partition, record.offset());
 
-      DebeziumCDCEvent cdcEvent = objectMapper.readValue(message, DebeziumCDCEvent.class);
+      DebeziumCDCEvent cdcEvent = AvroCDCEventConverter.convert(message);
 
       // Converter o payload para SellerPayload
       SellerPayload sellerAfter = objectMapper.convertValue(cdcEvent.getAfter(), SellerPayload.class);

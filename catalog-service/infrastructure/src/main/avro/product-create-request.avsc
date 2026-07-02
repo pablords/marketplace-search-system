@@ -1,0 +1,64 @@
+{
+  "type": "record",
+  "name": "ProductAvro",
+  "namespace": "com.marketplace.search.catalog.infrastructure.avro",
+  "fields": [
+    { "name": "id", "type": "string" },
+    { "name": "title", "type": "string" },
+    { "name": "description", "type": "string" },
+    { "name": "price", "type": "string" },
+    { "name": "currency", "type": "string" },
+    {
+      "name": "category",
+      "type": {
+        "type": "record",
+        "name": "CategoryAvro",
+        "fields": [
+          { "name": "id", "type": "string" },
+          { "name": "name", "type": ["null", "string"], "default": null }
+        ]
+      }
+    },
+    {
+      "name": "brand",
+      "type": {
+        "type": "record",
+        "name": "BrandAvro",
+        "fields": [
+          { "name": "id", "type": "string" },
+          { "name": "name", "type": ["null", "string"], "default": null }
+        ]
+      }
+    },
+    {
+      "name": "seller",
+      "type": {
+        "type": "record",
+        "name": "SellerAvro",
+        "fields": [
+          { "name": "id", "type": "string" },
+          { "name": "name", "type": ["null", "string"], "default": null }
+        ]
+      }
+    },
+    {
+      "name": "metrics",
+      "type": {
+        "type": "record",
+        "name": "MetricsAvro",
+        "fields": [
+          { "name": "views", "type": "long" },
+          { "name": "sales", "type": "long" },
+          { "name": "stock", "type": "long" },
+          { "name": "score", "type": "double" }
+        ]
+      }
+    },
+    { "name": "status", "type": "string" },
+    { "name": "images", "type": { "type": "array", "items": "string" } },
+    { "name": "attributes", "type": { "type": "array", "items": "string" } },
+    { "name": "tags", "type": { "type": "array", "items": "string" } },
+    { "name": "createdAt", "type": "long" },
+    { "name": "updatedAt", "type": "long" }
+  ]
+}

@@ -35,6 +35,9 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
+    @Value("${spring.kafka.properties.schema.registry.url:http://schema-registry.kafka.svc.cluster.local:8081}")
+    private String schemaRegistryUrl;
+
     @Value("${spring.kafka.producer.client-id:marketplace-search-producer}")
     private String producerClientId;
 
@@ -89,14 +92,15 @@ public class KafkaConfig {
      * Configuração do Producer
      */
     @Bean
-    public ProducerFactory<String, String> producerFactory() {
+    public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> props = new HashMap<>();
 
         // Configurações básicas
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.CLIENT_ID_CONFIG, producerClientId);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "io.confluent.kafka.serializers.KafkaAvroSerializer");
+        props.put("schema.registry.url", schemaRegistryUrl);
 
         // Configurações de confiabilidade
         props.put(ProducerConfig.ACKS_CONFIG, acks);
@@ -104,11 +108,11 @@ public class KafkaConfig {
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
 
-        // Configurações de performance
+        // Configurações de performance (Nenhuma compressão nativa por compatibilidade no Alpine)
         props.put(ProducerConfig.BATCH_SIZE_CONFIG, batchSize);
         props.put(ProducerConfig.LINGER_MS_CONFIG, lingerMs);
         props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, bufferMemory);
-        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
+        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "none");
 
         // Configurações de timeout
         props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);
@@ -118,8 +122,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, String> kafkaTemplate() {
-        KafkaTemplate<String, String> template = new KafkaTemplate<>(producerFactory());
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        KafkaTemplate<String, Object> template = new KafkaTemplate<>(producerFactory());
 
         // Configurar callback padrão para logs
         template.setDefaultTopic("default-topic");
@@ -132,18 +136,20 @@ public class KafkaConfig {
      */
     @Bean
     @Primary
-    public ConsumerFactory<String, String> consumerFactory() {
+    public ConsumerFactory<String, Object> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
 
         // Configurações básicas
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
 
-        // Configuração de deserialização com tratamento de erro
+        // Configuração de deserialização com tratamento de erro e Avro
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
-        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
+        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, "io.confluent.kafka.serializers.KafkaAvroDeserializer");
+        props.put("schema.registry.url", schemaRegistryUrl);
+        props.put("specific.avro.reader", "false");
 
         // Configurações de offset e polling
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
@@ -156,8 +162,6 @@ public class KafkaConfig {
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 15000);
 
         // Configurações de conexão e metadata
-        // METADATA_MAX_AGE: tempo máximo antes de atualizar metadata (reduz avisos de
-        // Node -1)
         props.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 300000); // 5 minutos
         props.put(ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, 540000); // 9 minutos
         props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);
@@ -173,8 +177,6 @@ public class KafkaConfig {
         props.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, 100);
 
         // Configuração de descoberta de brokers
-        // "Node -1 disconnected" é um aviso normal durante descoberta inicial de
-        // brokers
         props.put("client.dns.lookup", "use_all_dns_ips");
 
         return new DefaultKafkaConsumerFactory<>(props);
@@ -182,23 +184,15 @@ public class KafkaConfig {
 
     @Bean
     @Primary
-    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
 
         factory.setConsumerFactory(consumerFactory());
-
-        // Configurações de concorrência
-        // Reduzido para 1 porque cada tópico tem apenas 1 partição
-        // Múltiplos consumers no mesmo grupo causam rebalances desnecessários
         factory.setConcurrency(3);
-
-        // Configurações de commit
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
 
-        // Configurações de retry e error handling
         factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler(
                 (consumerRecord, exception) -> {
-                    // Log do erro - implementar Dead Letter Queue se necessário
                     System.err.println("Error processing record: " + consumerRecord + ", error: " + exception);
                 }));
 
@@ -206,8 +200,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> batchKafkaListenerContainerFactory(KafkaTemplate<String, String> template) {
-        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    public ConcurrentKafkaListenerContainerFactory<String, Object> batchKafkaListenerContainerFactory(KafkaTemplate<String, Object> template) {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
 
         factory.setConsumerFactory(consumerFactory());
         factory.setBatchListener(true);

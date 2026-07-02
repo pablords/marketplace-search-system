@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.avro.generic.GenericRecord;
+import com.marketplace.search.indexing.application.events.AvroCDCEventConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -69,7 +71,7 @@ public class ProductEventHandler {
 
   @KafkaListener(topics = "${kafka.topics.product-events}", groupId = "${kafka.consumer.group-id}", containerFactory = "batchKafkaListenerContainerFactory")
   public void handleProductEvent(
-      List<ConsumerRecord<String, String>> records,
+      List<ConsumerRecord<String, GenericRecord>> records,
       Acknowledgment acknowledgment) {
 
     Span currentSpan = Span.current();
@@ -84,9 +86,9 @@ public class ProductEventHandler {
 
     // Fase 1: Parse e Deduplicação
     for (int i = 0; i < records.size(); i++) {
-        ConsumerRecord<String, String> record = records.get(i);
+        ConsumerRecord<String, GenericRecord> record = records.get(i);
         try {
-            DebeziumCDCEvent cdcEvent = objectMapper.readValue(record.value(), DebeziumCDCEvent.class);
+            DebeziumCDCEvent cdcEvent = AvroCDCEventConverter.convert(record.value());
             String productId = extractProductId(cdcEvent);
 
             if (productId != null) {
@@ -128,8 +130,8 @@ public class ProductEventHandler {
                 }
             } catch (Exception e) {
                 logger.error("Erro ao processar/enriquecer produto {}: {}", entry.getKey(), e.getMessage());
-                ConsumerRecord<String, String> failedRecord = records.stream()
-                   .filter(r -> r.value().contains(entry.getKey()))
+                ConsumerRecord<String, GenericRecord> failedRecord = records.stream()
+                   .filter(r -> r.value() != null && r.value().toString().contains(entry.getKey()))
                    .findFirst()
                    .orElse(records.get(0));
                 throw new CompletionException(

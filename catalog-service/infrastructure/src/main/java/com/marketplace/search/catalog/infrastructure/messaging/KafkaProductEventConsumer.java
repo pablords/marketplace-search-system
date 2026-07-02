@@ -20,9 +20,9 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import com.marketplace.search.catalog.domain.entities.Product;
-import com.marketplace.search.catalog.domain.exceptions.ProductAlreadyExistsException;
 import com.marketplace.search.catalog.domain.ports.DistributedLockPort;
 import com.marketplace.search.catalog.domain.repositories.ProductRepository;
+import com.marketplace.search.catalog.infrastructure.avro.ProductAvro;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -36,7 +36,7 @@ public class KafkaProductEventConsumer {
     private final DistributedLockPort lockPort;
     private final MeterRegistry meterRegistry;
     private final Executor executor;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, ProductAvro> kafkaTemplate;
     private final String dlqTopic;
 
     public KafkaProductEventConsumer(
@@ -44,7 +44,7 @@ public class KafkaProductEventConsumer {
             DistributedLockPort lockPort,
             MeterRegistry meterRegistry,
             @Qualifier("applicationTaskExecutor") Executor executor,
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, ProductAvro> kafkaTemplate,
             @Value("${spring.kafka.template.dlq-topic:catalog.product.create.dlq}") String dlqTopic) {
         this.productRepository = productRepository;
         this.lockPort = lockPort;
@@ -55,11 +55,25 @@ public class KafkaProductEventConsumer {
     }
 
     @KafkaListener(topics = "${spring.kafka.template.default-topic:catalog.product.create.requests}", groupId = "${spring.kafka.consumer.group-id:catalog-service-group}")
-    public void consume(List<Product> products) {
-        if (products == null || products.isEmpty()) return;
+    public void consume(List<ProductAvro> productsAvro) {
+        if (productsAvro == null || productsAvro.isEmpty()) return;
 
-        logger.info("Received batch of {} product events from Kafka", products.size());
+        logger.info("Received batch of {} product events from Kafka (Avro)", productsAvro.size());
         Timer.Sample sample = Timer.start(meterRegistry);
+
+        List<Product> products = new ArrayList<>();
+        for (ProductAvro avro : productsAvro) {
+            try {
+                products.add(mapAvroToProduct(avro));
+            } catch (Exception e) {
+                logger.error("Error mapping ProductAvro to domain Product: {}", e.getMessage(), e);
+            }
+        }
+
+        if (products.isEmpty()) {
+            logger.warn("No products could be successfully mapped from Avro batch.");
+            return;
+        }
 
         // 1. Deduplicação do Lote
         Map<String, Product> uniqueProductsMap = new LinkedHashMap<>();
@@ -114,7 +128,16 @@ public class KafkaProductEventConsumer {
             } catch (Exception e) {
                 logger.error("Failed to save batch to DB. Sending to DLQ. Error: {}", e.getMessage());
                 for (Product failedProduct : toSave) {
-                    kafkaTemplate.send(dlqTopic, failedProduct.getId().value(), failedProduct);
+                    // Send to DLQ (converting back to Avro)
+                    try {
+                        ProductAvro failedAvro = productsAvro.stream()
+                            .filter(a -> a.getId().toString().equals(failedProduct.getId().value()))
+                            .findFirst()
+                            .orElse(mapProductToAvro(failedProduct));
+                        kafkaTemplate.send(dlqTopic, failedProduct.getId().value(), failedAvro);
+                    } catch (Exception ex) {
+                        logger.error("Failed to send product to DLQ: {}", ex.getMessage());
+                    }
                 }
             }
 
@@ -127,5 +150,135 @@ public class KafkaProductEventConsumer {
                 .tag("operation", "save_batch")
                 .register(meterRegistry));
         }
+    }
+
+    private Product mapAvroToProduct(ProductAvro avro) {
+        com.marketplace.search.catalog.domain.valueobjects.ProductId productId = 
+            new com.marketplace.search.catalog.domain.valueobjects.ProductId(avro.getId().toString());
+
+        com.marketplace.search.catalog.domain.entities.Category category = 
+            new com.marketplace.search.catalog.domain.entities.Category(
+                avro.getCategory().getId().toString(),
+                avro.getCategory().getName() != null ? avro.getCategory().getName().toString() : "Unknown",
+                null,
+                avro.getCategory().getName() != null ? avro.getCategory().getName().toString().toLowerCase() : "unknown"
+            );
+
+        com.marketplace.search.catalog.domain.valueobjects.Brand brand = 
+            new com.marketplace.search.catalog.domain.valueobjects.Brand(
+                avro.getBrand().getId().toString(),
+                avro.getBrand().getName() != null ? avro.getBrand().getName().toString() : "Unknown",
+                null
+            );
+
+        com.marketplace.search.catalog.domain.valueobjects.ProductInfo info = 
+            new com.marketplace.search.catalog.domain.valueobjects.ProductInfo(
+                avro.getTitle().toString(),
+                avro.getDescription().toString(),
+                new java.math.BigDecimal(avro.getPrice().toString()),
+                avro.getCurrency().toString(),
+                category,
+                brand,
+                convertCharSequenceList(avro.getImages()),
+                convertCharSequenceSet(avro.getAttributes()),
+                convertCharSequenceSet(avro.getTags())
+            );
+
+        com.marketplace.search.catalog.domain.entities.Seller seller = 
+            new com.marketplace.search.catalog.domain.entities.Seller(
+                avro.getSeller().getId().toString(),
+                avro.getSeller().getName() != null ? avro.getSeller().getName().toString() : "Unknown",
+                com.marketplace.search.catalog.domain.valueobjects.SellerType.MERCADO_LIDER,
+                new com.marketplace.search.catalog.domain.valueobjects.SellerReputation(5.0, 100, 100, 0, 0, 0.0, 1.0),
+                com.marketplace.search.catalog.domain.valueobjects.SellerStatus.ACTIVE,
+                java.time.Instant.now()
+            );
+
+        com.marketplace.search.catalog.domain.valueobjects.ProductMetrics metrics = 
+            new com.marketplace.search.catalog.domain.valueobjects.ProductMetrics(
+                (int) avro.getMetrics().getViews(),
+                (int) avro.getMetrics().getSales(),
+                0,
+                avro.getMetrics().getScore(),
+                (int) avro.getMetrics().getStock(),
+                0.0,
+                null,
+                null,
+                0,
+                0.0,
+                0.0
+            );
+
+        String statusStr = avro.getStatus().toString();
+        com.marketplace.search.catalog.domain.valueobjects.ProductStatus status;
+        if ("ACTIVE".equalsIgnoreCase(statusStr)) {
+            status = com.marketplace.search.catalog.domain.valueobjects.ProductStatus.active(avro.getMetrics().getStock() > 0);
+        } else if ("SUSPENDED".equalsIgnoreCase(statusStr)) {
+            status = com.marketplace.search.catalog.domain.valueobjects.ProductStatus.suspended("Suspended via import");
+        } else {
+            status = com.marketplace.search.catalog.domain.valueobjects.ProductStatus.inactive();
+        }
+
+        return Product.builder()
+            .id(productId)
+            .info(info)
+            .seller(seller)
+            .metrics(metrics)
+            .status(status)
+            .createdAt(java.time.Instant.ofEpochMilli(avro.getCreatedAt()))
+            .updatedAt(java.time.Instant.ofEpochMilli(avro.getUpdatedAt()))
+            .build();
+    }
+
+    private ProductAvro mapProductToAvro(Product product) {
+        return ProductAvro.newBuilder()
+            .setId(product.getId().value())
+            .setTitle(product.getInfo().getTitle())
+            .setDescription(product.getInfo().getDescription())
+            .setPrice(product.getInfo().getPrice().toString())
+            .setCurrency(product.getInfo().getCurrency())
+            .setCategory(com.marketplace.search.catalog.infrastructure.avro.CategoryAvro.newBuilder()
+                .setId(product.getInfo().getCategory().getId())
+                .setName(product.getInfo().getCategory().getName())
+                .build())
+            .setBrand(com.marketplace.search.catalog.infrastructure.avro.BrandAvro.newBuilder()
+                .setId(product.getInfo().getBrand().id())
+                .setName(product.getInfo().getBrand().name())
+                .build())
+            .setSeller(com.marketplace.search.catalog.infrastructure.avro.SellerAvro.newBuilder()
+                .setId(product.getSeller().getId())
+                .setName(product.getSeller().getName())
+                .build())
+            .setMetrics(com.marketplace.search.catalog.infrastructure.avro.MetricsAvro.newBuilder()
+                .setViews(product.getMetrics().totalViews())
+                .setSales(product.getMetrics().totalSales())
+                .setStock(product.getMetrics().stockQuantity())
+                .setScore(product.getMetrics().averageRating())
+                .build())
+            .setStatus(product.getStatus().getStateName())
+            .setImages(product.getInfo().getImages() != null ? new ArrayList<>(product.getInfo().getImages()) : new ArrayList<>())
+            .setAttributes(product.getInfo().getAttributes() != null ? new ArrayList<>(product.getInfo().getAttributes()) : new ArrayList<>())
+            .setTags(product.getInfo().getTags() != null ? new ArrayList<>(product.getInfo().getTags()) : new ArrayList<>())
+            .setCreatedAt(product.getCreatedAt().toEpochMilli())
+            .setUpdatedAt(product.getUpdatedAt().toEpochMilli())
+            .build();
+    }
+
+    private List<String> convertCharSequenceList(List<CharSequence> list) {
+        if (list == null) return new java.util.ArrayList<>();
+        List<String> result = new java.util.ArrayList<>();
+        for (CharSequence cs : list) {
+            result.add(cs.toString());
+        }
+        return result;
+    }
+
+    private java.util.Set<String> convertCharSequenceSet(java.util.Collection<CharSequence> col) {
+        if (col == null) return new java.util.HashSet<>();
+        java.util.Set<String> result = new java.util.HashSet<>();
+        for (CharSequence cs : col) {
+            result.add(cs.toString());
+        }
+        return result;
     }
 }

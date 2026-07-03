@@ -32,7 +32,8 @@ public class WebClientConfig {
                     .addHandlerLast(new WriteTimeoutHandler(10)));
 
         WebClient.Builder builder = WebClient.builder()
-            .clientConnector(new ReactorClientHttpConnector(httpClient));
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024)); // 10MB
 
         // Aplicar customizers do Spring Boot (inclui ObservationWebClientCustomizer para tracing)
         customizerProvider.orderedStream().forEach(customizer -> customizer.customize(builder));

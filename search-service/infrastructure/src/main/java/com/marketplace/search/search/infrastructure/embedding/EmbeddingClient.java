@@ -18,6 +18,7 @@ import com.marketplace.search.search.domain.services.EmbeddingService;
 
 import reactor.util.retry.Retry;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 
 /**
  * Cliente HTTP para comunicação com o Embedding Service
@@ -58,6 +59,7 @@ public class EmbeddingClient implements EmbeddingService {
      */
     @Override
     @CircuitBreaker(name = "embeddingService", fallbackMethod = "embeddingFallback")
+    @Bulkhead(name = "embeddingService", fallbackMethod = "embeddingFallback")
     public Optional<float[]> generateQueryEmbedding(String query) {
         if (!enabled) {
             logger.debug("Embedding Service desabilitado. Retornando vazio.");

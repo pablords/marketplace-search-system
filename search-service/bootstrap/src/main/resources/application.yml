@@ -149,4 +149,9 @@ resilience4j:
         waitDurationInOpenState: 10s
         failureRateThreshold: 50
         eventConsumerBufferSize: 10
+  bulkhead:
+    instances:
+      embeddingService:
+        maxConcurrentCalls: ${RESILIENCE4J_EMBEDDING_BULKHEAD_MAX_CONCURRENT:10}
+        maxWaitDuration: ${RESILIENCE4J_EMBEDDING_BULKHEAD_MAX_WAIT:50ms}
 

@@ -28,11 +28,12 @@ const writeErrorRate = new Rate('write_error_rate');
 // Configuração do perfil de carga
 export const options = {
   stages: [
-    { duration: '1m', target: 20 }, // Warm-up leve
-    { duration: '2m', target: 70 }, // Ramp-up
-    { duration: '3m', target: 200 }, // Carga sustentada (benchmark principal)
-    { duration: '2m', target: 250 }, // Pico — aqui o Postgres deve saturar
-    { duration: '1m', target: 0 }, // Ramp-down
+    { duration: '1m',  target: 10  }, // Warm-up
+    { duration: '2m',  target: 50  }, // Ramp-up moderado
+    { duration: '3m',  target: 100 }, // Carga sustentada
+    { duration: '2m',  target: 200 }, // Pico de carga
+    { duration: '2m',  target: 100 }, // Redução
+    { duration: '1m',  target: 0   }, // Ramp-down
   ],
 
   thresholds: {

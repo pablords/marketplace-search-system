@@ -27,9 +27,9 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       compression-type: lz4
-      batch-size: 65536
+      batch-size: 32768
       properties:
-        linger.ms: 10
+        linger.ms: 5
         max.block.ms: 2000
     consumer:
       group-id: catalog-service-group
